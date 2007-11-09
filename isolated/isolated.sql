@@ -1,5 +1,5 @@
  --
- -- Autor: [[:ru:user:Mashiah Davidson]]
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
  -- Purpose: [[:en:Connectivity (graph theory)|Connectivity]] analysis script
  --          for [[:ru:|Russian Wikipedia]].
@@ -55,6 +55,13 @@
 set @max_scc_size=10;
 
  --
+ --       enable/disable informative output, such as
+ --       current sets of isolated and dead-end articles
+ --
+
+set @enable_informative_output=0;
+
+ --
  --       tune one if one of memory tables does not fit
  --
 
@@ -64,6 +71,7 @@ set @max_scc_size=10;
 #set @@max_heap_table_size=134217728;
 set @@max_heap_table_size=268435456;
 #set @@max_heap_table_size=536870912;
+#set @@max_heap_table_size=1073741824;
 
  --
  --       choose right limit for recursion depth allowed
@@ -77,7 +85,7 @@ set max_sp_recursion_depth=10;
  --
  -- Initialization section: threading of the initial graph
  --                         need to know what will be the number of
- --                         article, which will be got when user
+ --                         articles, which will be got when user
  --                         clicks a link.
  --
 
@@ -88,9 +96,42 @@ SELECT ':: echo init:' as title;
 SELECT CONCAT( ':: echo replag: ', timediff(now(), max(rc_timestamp))) as title
        FROM frwiki_p.recentchanges;
 
+SET @starttime=now();
+
 SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
 
 SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+############################################################
+delimiter //
+
+DROP PROCEDURE IF EXISTS outifexists//
+CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf VARCHAR(255), ordercol VARCHAR(255), rule VARCHAR(255) )
+  BEGIN
+    DECLARE cnt INT;
+    DECLARE st1 VARCHAR(255);
+    DECLARE st2 VARCHAR(255);
+
+    SET @st1=CONCAT( 'SELECT count(*) INTO @cnt FROM ', tablename );
+    PREPARE stmt FROM @st1;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    IF @cnt>0
+    THEN
+      SELECT CONCAT(':: echo ', outt, ': ', @cnt ) as title;
+      SELECT CONCAT(':: ', rule, ' ', @fprefix, outf ) as title;
+
+      SET @st2=CONCAT( 'SELECT * FROM ', tablename, ' ORDER BY ', ordercol, ' ASC' );
+      PREPARE stmt FROM @st2;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+    END IF;
+  END;
+//
+      
+delimiter ;
+############################################################
 
 # caching all zero namespace pages for speedup
 # requires @@max_heap_table_size not less than 134217728;
@@ -108,6 +149,9 @@ SELECT page_id as p_id,
        FROM ruwiki_p.page
        WHERE page_namespace=0;
 
+## requested by qq[IrcCity]
+#CALL outifexists( 'p', 'zero namespace', 'p.info', 'p_title', 'out' );
+
 # Non-redirects from main (zero) namespace
 DROP TABLE IF EXISTS `nrzn`;
 CREATE TABLE `nrzn` (
@@ -119,6 +163,9 @@ SELECT p_id as nrzn_id,
        FROM p
        WHERE p_is_redirect=0;
 
+SELECT CONCAT( ':: echo ', count(*), ' main namespace non-redirects found' )
+       FROM nrzn;
+
 # Non-articles by category in main namespace
 DROP TABLE IF EXISTS `cna`;
 CREATE TABLE `cna` (
@@ -127,9 +174,9 @@ CREATE TABLE `cna` (
 ) ENGINE=MEMORY AS
 SELECT DISTINCT cl_from as cna_id
        FROM ruwiki_p.categorylinks 
-#                  disambiguation pages
+             #      disambiguation pages
        WHERE cl_to='Многозначные_термины' OR
-#                  soft redirects
+             #      soft redirects
              cl_to='Википедия:Мягкие_перенаправления';
 
 # Articles (i.e. non-redirects and non-disambigs from main namespace)
@@ -151,6 +198,9 @@ SELECT nrzn_id as a_id,
 DROP TABLE cna;
 DROP TABLE nrzn;
 
+SELECT CONCAT( ':: echo ', count(*), ' articles found' )
+       FROM articles;
+
 # Articles non-forming valid links such as chronological articles
 DROP TABLE IF EXISTS `exclusions`;
 CREATE TABLE `exclusions` (
@@ -159,53 +209,53 @@ CREATE TABLE `exclusions` (
 ) ENGINE=MEMORY AS
 SELECT DISTINCT p_id as excl_id
        FROM p
-#                         Common Era years 
+             #             Common Era years 
        WHERE p_title LIKE '_!_год' escape '!' OR
              p_title LIKE '__!_год' escape '!' OR             
              p_title LIKE '___!_год' escape '!' OR             
              p_title LIKE '____!_год' escape '!' OR
-#                         years B.C.
+             #             years B.C.
              p_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
              p_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
              p_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
              p_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
-#                         decades
+             #             decades
              p_title LIKE '_-е' escape '!' OR             
              p_title LIKE '__-е' escape '!' OR             
              p_title LIKE '___-е' escape '!' OR
              p_title LIKE '____-е' escape '!' OR
-#                         decades B.C.
+             #             decades B.C.
              p_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
              p_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
              p_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
              p_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
-#                         centuries
+             #             centuries
              p_title LIKE '_!_век' escape '!' OR
              p_title LIKE '__!_век' escape '!' OR
              p_title LIKE '___!_век' escape '!' OR
              p_title LIKE '____!_век' escape '!' OR
              p_title LIKE '_____!_век' escape '!' OR
              p_title LIKE '______!_век' escape '!' OR
-#                         centuries B.C.
+             #             centuries B.C.
              p_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
              p_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
              p_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
              p_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
              p_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
              p_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
-#                         milleniums
+             #             milleniums
              p_title LIKE '_!_тысячелетие' escape '!' OR
              p_title LIKE '__!_тысячелетие' escape '!' OR
-#                         milleniums B.C.
+             #             milleniums B.C.
              p_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
              p_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
              p_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
-#                         years in different application domains
+             #             years in different application domains
              p_title LIKE '_!_год!_в!_%' escape '!' OR
              p_title LIKE '__!_год!_в!_%' escape '!' OR
              p_title LIKE '___!_год!_в!_%' escape '!' OR
              p_title LIKE '____!_год!_в!_%' escape '!' OR
-#                         calendar dates in the year
+             #             calendar dates in the year
              p_title LIKE '_!_января' escape '!' OR
              p_title LIKE '__!_января' escape '!' OR
              p_title LIKE '_!_февраля' escape '!' OR
@@ -230,9 +280,12 @@ SELECT DISTINCT p_id as excl_id
              p_title LIKE '__!_ноября' escape '!' OR
              p_title LIKE '_!_декабря' escape '!' OR
              p_title LIKE '__!_декабря' escape '!' OR
-#                         year lists by the first week day 
+             #             year lists by the first week day 
              p_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
              p_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
+
+SELECT CONCAT( ':: echo ', count(*), ' chronological names found' )
+       FROM exclusions;
 
 # List of articles forming valid links (refered as linkers below)
 DROP TABLE IF EXISTS `linkers`;
@@ -248,6 +301,9 @@ SELECT a_id as lkr_id
                      FROM exclusions
              );
 DROP TABLE exclusions;
+
+SELECT CONCAT( ':: echo ', count(*), ' linkers found' )
+       FROM linkers;
 
 # Redirect pages in the main (zero) namespace
 DROP TABLE IF EXISTS `rzn`;
@@ -321,39 +377,7 @@ SELECT rzn_title as wr_title
              rlc_id=rzn_id;
 DROP TABLE rlc;
 
-############################################################
-delimiter //
-
-DROP PROCEDURE IF EXISTS outifexists//
-CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf VARCHAR(255), ordercol VARCHAR(255) )
-  BEGIN
-    DECLARE cnt INT;
-    DECLARE st1 VARCHAR(255);
-    DECLARE st2 VARCHAR(255);
-
-    SET @st1=CONCAT( 'SELECT count(*) INTO @cnt FROM ', tablename );
-    PREPARE stmt FROM @st1;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    IF @cnt>0
-    THEN
-      SELECT CONCAT(':: echo ', outt, ': ', @cnt ) as title;
-      SELECT CONCAT(':: out ', @fprefix, outf ) as title;
-
-      SET @st2=CONCAT( 'SELECT * FROM ', tablename, ' ORDER BY ', ordercol, ' ASC' );
-      PREPARE stmt FROM @st2;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
-      SELECT '';
-    END IF;
-  END;
-//
-      
-delimiter ;
-############################################################
-
-CALL outifexists( 'wr', 'wrong redirects', 'wr.txt', 'wr_title' );
+CALL outifexists( 'wr', 'wrong redirects', 'wr.txt', 'wr_title', 'out' );
 
 # prevent taking into account links from wrong redirects
 DELETE FROM rzn
@@ -523,7 +547,7 @@ SELECT r1.rzn_title as dr_from,
              r2r2a_via=r2.rzn_id and
              r2r2a_to=a_id;
 
-CALL outifexists( 'dr', 'double redirects', 'dr.txt', 'dr_from' );
+CALL outifexists( 'dr', 'double redirects', 'dr.info', 'dr_from', 'upload' );
 
 # all links from redirects to articles via one more redirect
 DROP TABLE IF EXISTS `l2r2r2a`;
@@ -581,7 +605,7 @@ SELECT r1.rzn_title as tr_from,
              r2r2r2a_to=a_id;
 DROP TABLE rzn;
 
-CALL outifexists( 'tr', 'triple redirects', 'tr.txt', 'tr_from' );
+CALL outifexists( 'tr', 'triple redirects', 'tr.info', 'tr_from', 'upload' );
 
 # all links from redirects to articles via one more redirect
 DROP TABLE IF EXISTS `l2r2r2r2a`;
@@ -599,7 +623,7 @@ DROP TABLE l2r;
 DROP TABLE r2r2r2a;
 
 # all links to be taken into account
-# requires @@max_heap_table_size no less than 268435456;
+# requires @@max_heap_table_size not less than 268435456;
 DROP TABLE IF EXISTS `l`;
 CREATE TABLE `l` (
   `l_to` int(8) unsigned NOT NULL default '0',
@@ -637,39 +661,7 @@ INSERT IGNORE INTO `l`
               FROM ea2;
 DROP TABLE ea2;
 
-# Begin the procedure for dead end pages
-SELECT ':: echo dead end pages processing:' as title;
-
-# linkers with links to articles
-DROP TABLE IF EXISTS `lwl`;
-CREATE TABLE `lwl` (
-  `lwl_id` int(8) unsigned NOT NULL default '0',
-  PRIMARY KEY (`lwl_id`)
-) ENGINE=MEMORY AS 
-SELECT DISTINCT l_from as lwl_id
-       FROM l;
-
-# DEAD-END LINKERS
-DROP TABLE IF EXISTS `del`;
-CREATE TABLE del (
-  `del_id` int(8) unsigned NOT NULL default '0',
-  `del_title` varchar(255) binary NOT NULL default '',
-  PRIMARY KEY (`del_id`)
-) ENGINE=MEMORY AS 
-SELECT lkr_id as del_id,
-       a_title as del_title
-       FROM linkers,
-            articles
-       WHERE lkr_id NOT IN 
-       (
-        SELECT lwl_id
-               FROM lwl
-       ) and
-       a_id=lkr_id;
-DROP TABLE lwl;
-DROP TABLE linkers;
-
-CALL outifexists( 'del', 'total', 'de.info', 'del_title' );
+SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
 
 ############################################################
 delimiter //
@@ -734,57 +726,102 @@ CREATE FUNCTION getnsprefix ( ns INT )
   END;
 //
 
-delimiter ;
-############################################################
+DROP PROCEDURE IF EXISTS deadend//
+CREATE PROCEDURE deadend ()
+  BEGIN
+    DECLARE cnt INT;
 
-# DEAD-END PAGES REGISTERED AT THE MOMENT
-DROP TABLE IF EXISTS `cur`;
-CREATE TABLE `cur` (
-  `id` int(8) unsigned NOT NULL default '0',
-  `title` varchar(255) binary NOT NULL default '',
-  PRIMARY KEY (`id`)
-) ENGINE=MEMORY AS
-SELECT cl_from as id,
-       CONCAT(getnsprefix(page_namespace), page_title) as title
-       FROM ruwiki_p.categorylinks,
-            ruwiki_p.page
-#                  a category registering deadend articles
-       WHERE cl_to='Википедия:Тупиковые_статьи' and
-             page_id=cl_from;
+    # Begin the procedure for dead end pages
+    SELECT ':: echo dead end pages processing:' as title;
 
-DROP TABLE IF EXISTS `delset`;
-CREATE TABLE `delset` (
-  `del_title` varchar(255) binary NOT NULL default ''
-) ENGINE=MEMORY AS
-SELECT del_title
-       FROM del 
-       WHERE del_id NOT IN
-             (
-              SELECT id
-                     FROM cur
-             );
+    # DEAD-END PAGES REGISTERED AT THE MOMENT
+    DROP TABLE IF EXISTS `del`;
+    CREATE TABLE `del` (
+      `id` int(8) unsigned NOT NULL default '0',
+      `act` int(8) signed NOT NULL default '0',
+      PRIMARY KEY (`id`)
+    ) ENGINE=MEMORY AS
+    SELECT cl_from as id,
+           -1 as act
+           FROM ruwiki_p.categorylinks
+           #            a category registering deadend articles
+           WHERE cl_to='Википедия:Тупиковые_статьи';
 
-CALL outifexists( 'delset', '+', 'deset.txt', 'del_title' );
+    # linkers with links to articles
+    DROP TABLE IF EXISTS `lwl`;
+    CREATE TABLE `lwl` (
+      `lwl_id` int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (`lwl_id`)
+    ) ENGINE=MEMORY AS 
+    SELECT DISTINCT l_from as lwl_id
+           FROM l;
 
-DROP TABLE IF EXISTS `delrem`;
-CREATE TABLE `delrem` (
-  `delr_title` varchar(255) binary NOT NULL default ''
-) ENGINE=MEMORY AS
-SELECT title as delr_title
-       FROM cur
-       WHERE id NOT IN
-             (
-              SELECT del_id
-                     FROM del
-             );
-DROP TABLE IF EXISTS cur;
+    # CURRENT DEAD-END LINKERS
+    INSERT INTO del
+    SELECT lkr_id as id,
+           1 as act
+           FROM linkers
+           WHERE lkr_id NOT IN
+           (
+            SELECT lwl_id
+                   FROM lwl
+           )
+    ON DUPLICATE KEY UPDATE act=0;
 
-CALL outifexists( 'delrem', '-', 'derem.txt', 'delr_title' );
+    DROP TABLE lwl;
 
-# END OF DEAD-END LINKERS
+    SELECT count(*) INTO cnt
+           FROM del
+           WHERE act>=0;
+    SELECT CONCAT(':: echo total: ', cnt ) as title;
 
-############################################################
-delimiter //
+    IF cnt>0
+      THEN
+        IF @enable_informative_output>0
+          THEN
+            SELECT CONCAT(':: out ', @fprefix, 'de.info' ) as title;
+            SELECT id,
+                   a_title
+                   FROM del,
+                        articles
+                   WHERE a_id=id and
+                         act>=0
+                   ORDER BY a_title ASC;
+        END IF;
+
+        SELECT count( * ) INTO cnt
+               FROM del
+               WHERE act=1;
+        IF cnt>0
+          THEN
+            SELECT CONCAT(':: echo +: ', cnt ) as title;
+            SELECT CONCAT( ':: out ', @fprefix, 'deset.txt' );
+            SELECT a_title
+                   FROM del,
+                        articles
+                   WHERE act=1 AND
+                         id=a_id
+                   ORDER BY a_title ASC;
+        END IF;
+    END IF;
+
+    SELECT count( * ) INTO cnt
+           FROM del
+           WHERE act=-1;
+
+    IF cnt>0
+      THEN
+        SELECT CONCAT(':: echo -: ', cnt ) as title;
+        SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
+        SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
+               FROM del,
+                    ruwiki_p.page
+               WHERE act=-1 AND
+                     id=page_id
+               ORDER BY page_title ASC;
+    END IF;
+  END;
+//
 
 DROP PROCEDURE IF EXISTS oscchull//
 CREATE PROCEDURE oscchull (OUT linkscount INT)
@@ -863,18 +900,22 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
 DROP PROCEDURE IF EXISTS filterscc//
 CREATE PROCEDURE filterscc (IN rank INT)
   BEGIN
+    DROP TABLE IF EXISTS newparent_grps;
+    CREATE TABLE newparent_grps (
+      gid int( 8 ) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS
+    SELECT DISTINCT rga.f as gid
+           FROM ga,
+                rga
+           WHERE ga.id=rga.id AND
+                 ga.f>rga.f;
+
     DELETE FROM todelete;
     INSERT INTO todelete
            SELECT id
-                  FROM ga
-                  WHERE f IN
-                        (
-                         SELECT DISTINCT rga.f
-                                FROM ga,
-                                     rga
-                                WHERE ga.id=rga.id AND
-                                      ga.f>rga.f
-                        );
+                  FROM ga,
+                       newparent_grps
+                  WHERE f=gid;
     INSERT INTO todelete
            SELECT ga.id
                   FROM ga,
@@ -1077,21 +1118,62 @@ CREATE PROCEDURE grpsplitrga ()
   END;
 //
 
+DROP FUNCTION IF EXISTS catuid//
+CREATE FUNCTION catuid (coolname VARCHAR(255))
+  RETURNS INT
+  DETERMINISTIC
+  BEGIN
+    DECLARE res INT;
+
+    SELECT uid INTO res
+           FROM orcat
+           WHERE coolcat=coolname;
+
+    RETURN res;
+  END;
+//
+
 # singlets
 DROP PROCEDURE IF EXISTS _1//
 CREATE PROCEDURE _1 (category VARCHAR(255))
   BEGIN
-    INSERT IGNORE INTO isolated
-    SELECT a_id as id,
-           a_title as title,
-           category as cat,
-           1 as act
-           FROM articles
-           WHERE a_id NOT IN
+    DECLARE catknown INT;
+    DECLARE cntr INT;
+
+    SELECT count(*) INTO cntr
+           FROM parented
+           WHERE pid NOT IN
                  (
                   SELECT lc_pid
                          FROM lc
                  );
+    IF cntr>0
+      THEN
+        SELECT count(*) INTO catknown
+               FROM orcat
+               WHERE coolcat=category;
+
+        IF catknown=0
+          THEN
+            INSERT INTO orcat
+            SELECT 0 as uid,
+                   CONCAT( 'Википедия:Изолированные_статьи/', category ) as cat,
+                   category as coolcat;
+        END IF;
+
+        INSERT INTO isolated
+        SELECT pid as id,
+               catuid(category) as cat,
+               1 as act
+               FROM parented
+               WHERE pid NOT IN
+                     (
+                      SELECT lc_pid
+                             FROM lc
+                     )
+        # now this is just for sure, rows added supposed to be unique
+        ON DUPLICATE KEY UPDATE act=0;
+    END IF;
   END;
 //
 
@@ -1118,6 +1200,7 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
                  (
                   SELECT id
                          FROM isolated
+                         WHERE act>=0
                  );
 
     CALL oscchull( @alldeleted );
@@ -1154,16 +1237,23 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
            FROM ga
            GROUP BY f;
 
-    INSERT IGNORE INTO isolated
+    # new categories added with temporal names in order to give them an id
+    INSERT IGNORE INTO orcat
+    SELECT 0 as uid,
+           CONCAT( 'Википедия:Изолированные_статьи/', upcat, '_', cnt ) as cat,
+           CONCAT(upcat,'_',cnt) as coolcat
+           FROM grp
+           GROUP BY cnt;
+
+    INSERT INTO isolated
     SELECT ga.id as id,
-           a_title as title,
-           CONCAT(upcat,'_',grp.cnt) as cat,
+           catuid(CONCAT(upcat,'_',grp.cnt)) as cat,
            1 as act
            FROM ga,
-                grp,
-                articles
-           WHERE grp.id=ga.f and
-                 ga.id=a_id;
+                grp
+           WHERE grp.id=ga.f
+    # now this is just for sure, rows added supposed to be unique
+    ON DUPLICATE KEY UPDATE act=0;
   END;
 //
 
@@ -1185,6 +1275,17 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
     IF maxsize>=2
       THEN CALL oscc( maxsize, upcat );
     END IF;
+
+    # used only for ..._1 clasters detection,
+    # provides the ability to use INSERT ... ON DUPLICATE KEY UPDATE ... there
+    # select from isolated maybe is too wide
+    DELETE FROM parented
+           WHERE pid IN
+                 (
+                  SELECT id
+                         FROM isolated
+                         WHERE act>=0
+                 );
   END;
 //
 
@@ -1199,7 +1300,7 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
     DECLARE tmp VARCHAR(255);
     DECLARE rank INT;
     DECLARE cnt INT;
-    DECLARE catknown INT;
+    DECLARE curcatuid INT;
 
     CALL isolated_layer(maxsize, claster_type);
 
@@ -1208,66 +1309,67 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
     SET rank=1;
     WHILE rank<=maxsize DO
       SET tmp=CONCAT(claster_type, '_', rank );
+      SET curcatuid=catuid(tmp);
 
       # if any SCC of type tmp found
       SELECT count( * ) INTO cnt
              FROM isolated 
-             WHERE cat=tmp;
+             WHERE cat=curcatuid and
+                   act >=0;
       IF cnt>0
         THEN
           # report on progress
-          SELECT CONCAT( ':: echo ', tmp ) as title;
-
-          SELECT count(*) INTO catknown
-                 FROM orcat
-                 WHERE coolcat=tmp;
-
-          IF catknown=0
-            THEN
-              INSERT INTO orcat
-              SELECT 0 as uid,
-                     CONCAT( 'Википедия:Изолированные_статьи/', tmp ) as cat,
-                     tmp as coolcat;
-          END IF;
-
+          SELECT CONCAT( ':: echo ', tmp, ': ', cnt ) as title;
 
           SELECT CONCAT( ':: out ', @fprefix, 'stat' );
           SELECT CONCAT( outprefix, '[[:Категория:', cat, '|', tmp, ']]: ', cnt )
                  FROM orcat
                  WHERE coolcat=tmp;
 
-          SELECT CONCAT( ':: out ', @fprefix, tmp, '.info' );
-          SELECT id,
-                 title
-                 FROM isolated
-                 WHERE cat=tmp
-                 ORDER BY title ASC; 
+          IF @enable_informative_output>0
+          THEN
+            SELECT CONCAT( ':: out ', @fprefix, tmp, '.info' );
+            SELECT id,
+                   a_title
+                   FROM isolated,
+                        articles
+                   WHERE cat=curcatuid and
+                         id=a_id and
+                         act>=0
+                   ORDER BY a_title ASC; 
+          END IF;
 
-          # mark known ones
-          UPDATE IGNORE isolated
-                 SET act=0
-                 WHERE cat=tmp and
-                       id IN
-                       (
-                        SELECT id
-                               FROM oc,
-                                    orcat
-                               WHERE catid=uid and
-                                     coolcat=tmp
-                       );
+          # if the orphaned category is changed for some of articles,
+          # there will be two rows in the table representing this article,
+          # one for an old category removal and other for a proper category
+          # let's save our edits combining remove and put operations
+          #
+          # code below is suggested by Baron P Schwartz (http://www.xaprb.com)
+          # it may look complicated but it efficiently does one simple thing:
+          # removes duplicates on id from isolated table having act equal to -1
+          #
+          SET @num := 0, @id := -1;
+          DELETE FROM isolated
+          WHERE GREATEST( 0,
+                          @num := if(id = @id, @num + 1, 0),
+                          LEAST(0, LENGTH(@id := id))
+                        ) > 1
+          ORDER BY id ASC, act ASC;
 
           SELECT count( * ) INTO cnt
                  FROM isolated 
-                 WHERE cat=tmp and
+                 WHERE cat=curcatuid and
                        act=1;
           IF cnt>0
             THEN
               SELECT CONCAT( ':: out ', @fprefix, tmp, '.txt' );
-              SELECT title
-                     FROM isolated
-                     WHERE cat=tmp AND
-                           act=1
-                     ORDER BY title ASC;
+              SELECT a_title
+                     FROM isolated,
+                          articles
+                     WHERE cat=curcatuid AND
+                           act=1 AND
+                           id=a_id
+                     ORDER BY a_title ASC;
           END IF;
 
           # prepare deep into the scc forest
@@ -1276,7 +1378,8 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
                        (
                         SELECT id
                                FROM isolated
-                               WHERE cat=tmp
+                               WHERE cat=curcatuid and
+                                     act>=0
                        );
 
           # recursive call
@@ -1349,7 +1452,6 @@ CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
   END;
 //
 
-
 DROP PROCEDURE IF EXISTS isolated//
 CREATE PROCEDURE isolated (maxsize INT)
   BEGIN
@@ -1368,7 +1470,8 @@ CREATE PROCEDURE isolated (maxsize INT)
       cat varchar(255) binary NOT NULL default '',
       coolcat varchar(255) binary NOT NULL default '',
       PRIMARY KEY (uid),
-      KEY( cat )
+      KEY(cat),
+      UNIQUE KEY(coolcat)
     ) ENGINE=MEMORY AS
     SELECT page_title as cat,
            convertcat( page_title ) as coolcat
@@ -1378,33 +1481,23 @@ CREATE PROCEDURE isolated (maxsize INT)
                       page_id=cl_from and
                       page_namespace=14;
 
-    # currently registered isolated articles and their categories
-    DROP TABLE IF EXISTS oc;
-    CREATE TABLE `oc` (
-      id int(8) unsigned NOT NULL default '0',
-      title varchar(255) binary NOT NULL default '',
-      catid int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (id)
-    ) ENGINE=MEMORY AS
-      SELECT cl_from as id,
-             CONCAT(getnsprefix(page_namespace), page_title) as title,
-             uid as catid
-             FROM ruwiki_p.categorylinks,
-                  ruwiki_p.page,
-                  orcat
-             WHERE cl_to=cat and
-                   page_id=cl_from;
-
     # main out table
+    # inited by currently registered isolated articles and their categories
     DROP TABLE IF EXISTS isolated;
     CREATE TABLE isolated (
       id int(8) unsigned NOT NULL default '0',
-      title varchar(255) binary NOT NULL default '',
-      cat varchar(255) binary NOT NULL default '',
+      cat int(8) unsigned NOT NULL default '0',
       act int(8) signed NOT NULL default '1',
-      PRIMARY KEY (id),
+      KEY (id),
+      PRIMARY KEY ( `id`, `cat` ),
       KEY (cat)
-    ) ENGINE=MEMORY; 
+    ) ENGINE=MEMORY#;
+    SELECT cl_from as id,
+           uid as cat,
+           -1 as act
+           FROM ruwiki_p.categorylinks,
+                orcat
+           WHERE cl_to=cat;
 
     # temporary table
     DROP TABLE IF EXISTS todelete;
@@ -1421,6 +1514,16 @@ CREATE PROCEDURE isolated (maxsize INT)
       PRIMARY KEY (lc_pid)
     ) ENGINE=MEMORY;
 
+    # temporary table
+    DROP TABLE IF EXISTS parented;
+    CREATE TABLE parented(
+      pid int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (pid)
+    ) ENGINE=MEMORY AS
+    SELECT a_id as pid
+           FROM articles
+           ORDER by a_id ASC;
+
     # choose right limit for recursion depth allowed
     CALL forest_walk(maxsize,'','*');
 
@@ -1435,38 +1538,107 @@ CREATE PROCEDURE isolated (maxsize INT)
     DROP TABLE IF EXISTS ga;
     DROP TABLE IF EXISTS eotl;
     
+    # from filterscc
+    DROP TABLE IF EXISTS newparent_grps;
+
     # from oscc
     DROP TABLE IF EXISTS otl;
 
     DROP TABLE todelete;
     DROP TABLE lc;
+    DROP TABLE parented;
 
     # ARTICLES TO BE REMOVED FROM THE CURRENT ISOLATED ARTICLES LIST
-    DROP TABLE IF EXISTS `orem`;
-    CREATE TABLE `orem` (
-      `or_title` varchar(255) binary NOT NULL default ''
+
+    SELECT count( * ) INTO cnt
+           FROM isolated 
+           WHERE act=-1;
+
+    IF cnt>0
+      THEN
+        SELECT CONCAT(':: echo parented isolates: ', cnt ) as title;
+        SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
+        SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
+               FROM isolated,
+                    ruwiki_p.page
+               WHERE act=-1 AND
+                     id=page_id
+               ORDER BY page_title ASC;
+    END IF;
+  END;
+//
+
+DROP PROCEDURE IF EXISTS combineandout//
+CREATE PROCEDURE combineandout ()
+  BEGIN
+    DECLARE cnt INT;
+
+    # create common list of articles to be edited
+    DROP TABLE IF EXISTS task;
+    CREATE TABLE task(
+      id int(8) unsigned NOT NULL default '0',
+      deact int(8) signed NOT NULL default '0',
+      isoact int(8) signed NOT NULL default '0',
+      isocat varchar(255) binary NOT NULL default '',
+      PRIMARY KEY (id)
     ) ENGINE=MEMORY AS
-    SELECT title as or_title
-           FROM oc
-           WHERE id NOT IN
-                 (
-                  SELECT id
-                         FROM isolated
-                 );
+    SELECT id,
+           0 as deact,
+           act as isoact,
+           coolcat as isocat
+           FROM isolated,
+                orcat
+           WHERE act!=0 and
+                 uid=isolated.cat;
+    INSERT INTO task
+    SELECT id,
+           act as deact,
+           0 as isoact,
+           '' as isocat
+           FROM del
+           WHERE act!=0
+    ON DUPLICATE KEY UPDATE deact=del.act;
 
-    DROP TABLE oc;
+    SELECT count( * ) INTO cnt
+           FROM task; 
 
-    CALL outifexists( 'orem', 'linked isolates', 'orem.txt', 'or_title' );
+    IF cnt>0
+      THEN
+        SELECT CONCAT(':: echo ', cnt, ' articles to be edited' ) as title;
+        SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
+        SELECT CONCAT(getnsprefix(page_namespace), page_title) as title,
+               deact,
+               isoact,
+               isocat
+               FROM task,
+                    ruwiki_p.page
+               WHERE id=page_id
+               ORDER BY deact+deact+isoact DESC, page_title ASC;
+    END IF;
   END;
 //
 
 delimiter ;
 ############################################################
 
+SET @starttime=now();
+
+CALL deadend();
+
+DROP TABLE linkers;
+
+SELECT CONCAT( ':: echo dead-end processing time: ', timediff(now(), @starttime));
+
+SET @starttime=now();
+
 CALL isolated( @max_scc_size );
 
 DROP TABLE l;
-DROP TABLE articles;
+
+SELECT CONCAT( ':: echo isolated processing time: ', timediff(now(), @starttime));
+SET @starttime=now();
+
+CALL combineandout();
 
 DROP TABLE IF EXISTS catvolume;
 CREATE TABLE catvolume (
@@ -1477,9 +1649,10 @@ CREATE TABLE catvolume (
 SELECT cl_to as cv_title,
        count(*) as cv_count
        FROM ruwiki_p.categorylinks,
-            ruwiki_p.page
-       WHERE page_id=cl_from and
-             page_namespace=0
+            articles
+       WHERE a_id=cl_from
        GROUP BY cl_to;
+
+SELECT CONCAT( ':: echo finishing time: ', timediff(now(), @starttime));
 
 -- </pre>
