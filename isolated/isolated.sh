@@ -18,7 +18,7 @@ fi
 dbhost="sql-s3"
 myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
 mypwd=$( cat ~/.my.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
-sql="mysql --host=$dbhost -A --user=${myusr} --password=${mypwd} --database=u_${myusr} -n"
+sql="mysql --host=$dbhost -A --user=${myusr} --password=${mypwd} --database=u_${myusr} -n -b"
 
 ruusr=$( cat ~/.ru.cnf | grep 'user ' | sed 's/^user = \"\([^\"]*\)\"$/\1/' )
 rupwd=$( cat ~/.ru.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
@@ -91,7 +91,7 @@ handle ()
 }
 
 time { 
-  $sql -N $debugmode <isolated.sql 2>&1 | { state=0; while read -r line ; do handle "$line" ; done }
+  $sql -N <isolated.sql 2>&1 | { state=0; while read -r line ; do handle "$line" ; done }
 
   rm -f today.7z
   7z a today.7z ./*.txt >7z.log 2>&1
@@ -104,6 +104,7 @@ time {
   7z a stat.7z ./*.stat >>7z.log 2>&1
   if [ "$do_apply" = "1" ]
   then
+    # cut three very first utf-8 bytes
     tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
   fi
 
