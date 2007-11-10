@@ -1344,17 +1344,29 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
           # one for an old category removal and other for a proper category
           # let's save our edits combining remove and put operations
           #
-          # code below is suggested by Baron P Schwartz (http://www.xaprb.com)
-          # it may look complicated but it efficiently does one simple thing:
-          # removes duplicates on id from isolated table having act equal to -1
-          #
-          SET @num := 0, @id := -1;
-          DELETE FROM isolated
-          WHERE GREATEST( 0,
-                          @num := if(id = @id, @num + 1, 0),
-                          LEAST(0, LENGTH(@id := id))
-                        ) > 1
-          ORDER BY id ASC, act ASC;
+          # first, who is duped
+          DROP TABLE IF EXISTS ttt;
+          CREATE TABLE ttt(
+            id int(8) unsigned NOT NULL default '0'
+          ) ENGINE=MEMORY AS
+          SELECT id
+                 FROM isolated
+                 GROUP BY id 
+                 HAVING count(*)>1;
+          # second, will be updated
+          UPDATE isolated
+                 SET act=1
+                 WHERE id IN (
+                              SELECT id
+                                     FROM ttt
+                             );
+          DROP TABLE ttt;
+          # third, now no need for copies
+          ALTER IGNORE TABLE isolated 
+                ADD UNIQUE KEY dup_killer(id);
+          # fourth, now no need for the constraint
+          ALTER TABLE isolated 
+                DROP INDEX dup_killer;
 
           SELECT count( * ) INTO cnt
                  FROM isolated 
@@ -1491,7 +1503,7 @@ CREATE PROCEDURE isolated (maxsize INT)
       KEY (id),
       PRIMARY KEY ( `id`, `cat` ),
       KEY (cat)
-    ) ENGINE=MEMORY#;
+    ) ENGINE=MEMORY
     SELECT cl_from as id,
            uid as cat,
            -1 as act
