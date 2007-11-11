@@ -9,6 +9,10 @@
 
 #!/bin/bash
 
+# set the maximal replication lag value in minutes, which is allowed for apply
+# probably, less than script actually works
+maxlag=10
+
 do_apply=0
 if [ "$1" = "apply" ]
 then
@@ -29,6 +33,7 @@ out='';
 handle ()
 {
   local line=$1
+  local replag=''
 
   if [ "${line:0:3}" = ':: ' ]
   then
@@ -46,25 +51,46 @@ handle ()
     then
       echo ${line:8}
     else
-      if [ "${line:3:4}" = 'out ' ]
+      if [ "${line:3:7}" = 'replag ' ]
       then
-        out=${line:7}
-        state=1 # file output
-        if [ ! -f $out ]
+        echo replag: ${line:10}
+        if [ "$do_apply" = "1" ]
         then
-          echo -ne \\0357\\0273\\0277 > $out
+          replag=${line:10};
+          hours=${replag%:*}
+          minutes=${hours#*:}
+          minutes=$[minutes]
+          hours=${hours%:*}
+          hours=$[$hours]
+          minutes=$[$minutes+60*$hours]
+          if [ $minutes -ge $maxlag ]
+          then
+            echo replag of $minutes minutes is to big, must be below $maxlag
+            echo nothing will be applied
+            do_apply=0
+          fi
         fi
       else
-        if [ "${line:3:7}" = 'upload ' ]
+        if [ "${line:3:4}" = 'out ' ]
         then
-          out=${line:10}
-          state=2 # upload and file output
-          collectedline=''
-          # need better way for url definition, maybe sql driven
-          outpage=${out:15:2}
+          out=${line:7}
+          state=1 # file output
           if [ ! -f $out ]
           then
             echo -ne \\0357\\0273\\0277 > $out
+           fi
+        else
+          if [ "${line:3:7}" = 'upload ' ]
+          then
+            out=${line:10}
+            state=2 # upload and file output
+            collectedline=''
+            # need better way for url definition, maybe sql driven
+            outpage=${out:15:2}
+            if [ ! -f $out ]
+            then
+              echo -ne \\0357\\0273\\0277 > $out
+            fi
           fi
         fi
       fi
@@ -91,7 +117,17 @@ handle ()
 }
 
 time { 
-  $sql -N <isolated.sql 2>&1 | { state=0; while read -r line ; do handle "$line" ; done }
+  $sql -N <isolated.sql 2>&1 | { 
+                                 state=0
+                                 while read -r line
+                                   do handle "$line"
+                                 done
+                                 if [ "$do_apply" = "1" ]
+                                 then
+                                   # cut three very first utf-8 bytes
+                                   tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
+                                 fi
+                               }
 
   rm -f today.7z
   7z a today.7z ./*.txt >7z.log 2>&1
@@ -102,11 +138,6 @@ time {
   rm -f ./*.info
 
   7z a stat.7z ./*.stat >>7z.log 2>&1
-  if [ "$do_apply" = "1" ]
-  then
-    # cut three very first utf-8 bytes
-    tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
-  fi
 
   todos 7z.log
 }
