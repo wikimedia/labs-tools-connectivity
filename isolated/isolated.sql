@@ -93,7 +93,7 @@ SELECT ':: echo init:' as title;
 
 # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
 # how old last edit there is?
-SELECT CONCAT( ':: echo replag: ', timediff(now(), max(rc_timestamp))) as title
+SELECT CONCAT( ':: replag ', timediff(now(), max(rc_timestamp))) as title
        FROM frwiki_p.recentchanges;
 
 SET @starttime=now();
