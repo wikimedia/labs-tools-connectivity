@@ -59,9 +59,9 @@ handle ()
           replag=${line:10};
           hours=${replag%:*}
           minutes=${hours#*:}
-          minutes=$[minutes]
+          minutes=`expr $minutes + 0`
           hours=${hours%:*}
-          hours=$[$hours]
+          hours=`expr $hours + 0`
           minutes=$[$minutes+60*$hours]
           if [ $minutes -ge $maxlag ]
           then
