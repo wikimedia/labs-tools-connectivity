@@ -59,7 +59,7 @@ set @max_scc_size=10;
  --       current sets of isolated and dead-end articles
  --
 
-set @enable_informative_output=0;
+set @enable_informative_output=1;
 
  --
  --       tune one if one of memory tables does not fit
@@ -1171,7 +1171,7 @@ CREATE PROCEDURE _1 (category VARCHAR(255))
                       SELECT lc_pid
                              FROM lc
                      )
-        # now this is just for sure, rows added supposed to be unique
+        # this disables any action for articles already registered properly
         ON DUPLICATE KEY UPDATE act=0;
     END IF;
   END;
@@ -1252,7 +1252,7 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
            FROM ga,
                 grp
            WHERE grp.id=ga.f
-    # now this is just for sure, rows added supposed to be unique
+    # this disables any action for articles already registered properly
     ON DUPLICATE KEY UPDATE act=0;
   END;
 //
@@ -1340,11 +1340,11 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
           END IF;
 
           # if the orphaned category is changed for some of articles,
-          # there will be two rows in the table representing this article,
-          # one for an old category removal and other for a proper category
+          # there will be two rows in the table representing each of them,
+          # one for old category removal and other new category 
           # let's save our edits combining remove and put operations
           #
-          # first, who is duped
+          # who is duped (changed category)
           DROP TABLE IF EXISTS ttt;
           CREATE TABLE ttt(
             id int(8) unsigned NOT NULL default '0'
@@ -1353,20 +1353,13 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
                  FROM isolated
                  GROUP BY id 
                  HAVING count(*)>1;
-          # second, will be updated
-          UPDATE isolated
-                 SET act=1
-                 WHERE id IN (
-                              SELECT id
-                                     FROM ttt
-                             );
+          # remove operation not needed
+          DELETE isolated
+                 FROM isolated,
+                      ttt
+                 WHERE isolated.id=ttt.id and
+                       isolated.act=-1;
           DROP TABLE ttt;
-          # third, now no need for copies
-          ALTER IGNORE TABLE isolated 
-                ADD UNIQUE KEY dup_killer(id);
-          # fourth, now no need for the constraint
-          ALTER TABLE isolated 
-                DROP INDEX dup_killer;
 
           SELECT count( * ) INTO cnt
                  FROM isolated 
