@@ -59,7 +59,7 @@ set @max_scc_size=10;
  --       current sets of isolated and dead-end articles
  --
 
-set @enable_informative_output=1;
+set @enable_informative_output=0;
 
  --
  --       tune one if one of memory tables does not fit
