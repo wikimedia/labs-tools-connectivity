@@ -43,16 +43,44 @@
  --             
  -- 
  -- Tune:
- --       choose the maximal oscc size
- --       for cached data
- --       5  takes up to 10 minutes,
- --       10 takes up to 15 minutes, 
- --       20 takes up to 20 minutes, 
- --       40 takes up to 25 minutes
- --       more articles requires @@max_heap_table_size=536870912
+ --
  -- <pre>
 
+
+ --
+ --       set the namespace for analysis
+ --       supported: 0 (main namespace) and 14 (categories)
+ --
+
+set @namespace=0;
+#set @namespace=14;
+
+ --
+ --       choose the maximal oscc size for namespace 0, note:
+ --          - 5  takes up to 10 minutes,
+ --          - 10 takes up to 15 minutes, 
+ --          - 20 takes up to 20 minutes, 
+ --          - 40 takes up to 25 minutes
+ --          - more articles requires @@max_heap_table_size=536870912
+ --
+ --       namespace 14 can be fully thrown within 45 minutes
+ --
+
+# namespace=0
 set @max_scc_size=10;
+# namespace=14
+#set @max_scc_size=100000;
+
+ --
+ --       choose right limit for recursion depth allowed
+ --       set the recursion depth to 255 for the first run
+ --       and then set it e.g. the critical path length doubled
+ --
+
+# namespace=0
+set max_sp_recursion_depth=10;
+# namespace=14
+#set max_sp_recursion_depth=255;
 
  --
  --       enable/disable informative output, such as
@@ -62,7 +90,7 @@ set @max_scc_size=10;
 set @enable_informative_output=0;
 
  --
- --       tune one if one of memory tables does not fit
+ --       tune if one of memory tables does not fit
  --
 
 #set @@max_heap_table_size=16777216;
@@ -74,37 +102,31 @@ set @@max_heap_table_size=268435456;
 #set @@max_heap_table_size=1073741824;
 
  --
- --       choose right limit for recursion depth allowed
- --       set the recursion depth to 255 for the first run
- --       and then set it e.g. the critical path length doubled
- --
-
-set max_sp_recursion_depth=10;
-#set max_sp_recursion_depth=255;
-
- --
- -- Initialization section: threading of the initial graph
- --                         need to know what will be the number of
- --                         articles, which will be got when user
- --                         clicks a link.
+ -- Initialization section: Threading of the initial graph.
  --
 
 SELECT ':: echo init:' as title;
 
 # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
-# how old last edit there is?
+# how old latest edit there is?
 SELECT CONCAT( ':: replag ', timediff(now(), max(rc_timestamp))) as title
        FROM frwiki_p.recentchanges;
 
 SET @starttime=now();
 
+# the name-prefix for all output files, distinct for each run
 SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
 
+# significant speedup
 SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 ############################################################
 delimiter //
 
+#
+# Outputs non-empty ordered table to stdout
+# Prepends the output with heading info on a rule to invoke in an outer handler
+#
 DROP PROCEDURE IF EXISTS outifexists//
 CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf VARCHAR(255), ordercol VARCHAR(255), rule VARCHAR(255) )
   BEGIN
@@ -130,193 +152,336 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
   END;
 //
       
+#
+# Caches the namespace given to local tables 
+#   r (for redirects),
+#   nr (for non-redirects) and
+#   pl (for links)
+# for speedup
+#
+DROP PROCEDURE IF EXISTS cache_namespace//
+CREATE PROCEDURE cache_namespace (num INT)
+  BEGIN
+    # requires @@max_heap_table_size not less than 134217728 for zero namespace;
+    DROP TABLE IF EXISTS p;
+    CREATE TABLE p (
+      p_id int(8) unsigned NOT NULL default '0',
+      p_title varchar(255) binary NOT NULL default '',
+      p_is_redirect tinyint(1) unsigned NOT NULL default '0',
+      PRIMARY KEY (p_id),
+      UNIQUE KEY rtitle (p_title)
+    ) ENGINE=MEMORY AS
+    SELECT page_id as p_id,
+           page_title as p_title,
+           page_is_redirect as p_is_redirect
+           FROM ruwiki_p.page
+           WHERE page_namespace=num;
+
+    SELECT CONCAT( ':: echo ', count(*), ' pages found for namespace ', num, ':' )
+           FROM p;
+
+    ## requested by qq[IrcCity]
+    #CALL outifexists( 'p', CONCAT( 'namespace ', num), 'p.info', 'p_title', 'out' );
+
+    # Non-redirects
+    DROP TABLE IF EXISTS nr;
+    CREATE TABLE nr (
+      nr_id int(8) unsigned NOT NULL default '0',
+      nr_title varchar(255) binary NOT NULL default ''
+    ) ENGINE=MEMORY AS
+    SELECT p_id as nr_id,
+           p_title as nr_title
+           FROM p
+           WHERE p_is_redirect=0;
+
+    SELECT CONCAT( ':: echo . non-redirects: ', count(*) )
+           FROM nr;
+
+    # Redirect pages
+    DROP TABLE IF EXISTS r;
+    CREATE TABLE r (
+      r_id int(8) unsigned NOT NULL default '0',
+      r_title varchar(255) binary NOT NULL default '',
+      PRIMARY KEY  (r_id),
+      UNIQUE KEY rtitle (r_title)
+    ) ENGINE=MEMORY AS
+    SELECT p_id as r_id,
+           p_title as r_title
+           FROM p
+           WHERE p_is_redirect=1;
+
+    SELECT CONCAT( ':: echo . redirects: ', count(*) )
+           FROM r;
+
+    # caching links for speedup
+    DROP TABLE IF EXISTS pl;
+    IF num=0
+      THEN
+        CREATE TABLE pl (
+          pl_from int(8) unsigned NOT NULL default '0',
+          pl_to int(8) unsigned NOT NULL default '0'
+        ) ENGINE=MEMORY AS
+        SELECT pl_from,
+               p_id as pl_to
+               FROM ruwiki_p.pagelinks,
+                    p
+               WHERE pl_namespace=num and
+                     pl_title=p_title;
+    END IF;
+    IF num=14
+      THEN
+        CREATE TABLE pl (
+          pl_from int(8) unsigned NOT NULL default '0',
+          pl_to int(8) unsigned NOT NULL default '0'
+        ) ENGINE=MEMORY AS
+        SELECT p_id as pl_from,
+               cl_from as pl_to
+               FROM ruwiki_p.categorylinks,
+                    p
+               WHERE cl_to=p_title;
+    END IF;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
+           FROM pl;
+
+    DROP TABLE p;
+  END;
+//
+
+#
+# Categorize non-redirect pages as
+#   articles, aka ins (able to be isolated) and
+#   its subset, linkers, aka outs (forming valid links)
+#
+DROP PROCEDURE IF EXISTS valid_inouts//
+CREATE PROCEDURE valid_inouts (namespace INT)
+  BEGIN
+    # Non-articles by category in main namespace
+    # inlcusion of some colloborational lists here is under discussion now
+    # The list is superflous, i.e. contains pages out of the @namespace
+    DROP TABLE IF EXISTS cna;
+    CREATE TABLE cna (
+      cna_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY  (cna_id)
+    ) ENGINE=MEMORY AS
+    SELECT DISTINCT cl_from as cna_id
+           FROM ruwiki_p.categorylinks 
+                 #      disambiguation pages
+           WHERE cl_to='Многозначные_термины' OR
+                 #      soft redirects
+                 cl_to='Википедия:Мягкие_перенаправления';
+
+    SELECT CONCAT( ':: echo ', count(*), ' categorized exclusions found' )
+           FROM cna;
+
+    # Articles (i.e. non-redirects and non-disambigs for main namespace)
+    DROP TABLE IF EXISTS articles;
+    CREATE TABLE articles (
+      a_id int(8) unsigned NOT NULL default '0',
+      a_title varchar(255) binary NOT NULL default '',
+      PRIMARY KEY  (a_id),
+      UNIQUE KEY title (a_title)
+    ) ENGINE=MEMORY AS
+    SELECT nr_id as a_id,
+           nr_title as a_title
+           FROM nr
+           WHERE nr_id NOT IN 
+                 (
+                  SELECT cna_id
+                         FROM cna
+                 );
+    DROP TABLE cna;
+    DROP TABLE nr;
+
+    SELECT CONCAT( ':: echo ', count(*), ' articles found' )
+           FROM articles;
+
+    IF namespace=0
+      THEN
+
+        # Articles non-forming valid links such as chronological articles
+        DROP TABLE IF EXISTS exclusions;
+        CREATE TABLE exclusions (
+          excl_id int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY  (excl_id)
+        ) ENGINE=MEMORY AS
+        SELECT DISTINCT a_id as excl_id
+               FROM articles
+                     #             Common Era years 
+               WHERE a_title LIKE '_!_год' escape '!' OR
+                     a_title LIKE '__!_год' escape '!' OR             
+                     a_title LIKE '___!_год' escape '!' OR             
+                     a_title LIKE '____!_год' escape '!' OR
+                     #             years B.C.
+                     a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
+                     #             decades
+                     a_title LIKE '_-е' escape '!' OR             
+                     a_title LIKE '__-е' escape '!' OR             
+                     a_title LIKE '___-е' escape '!' OR
+                     a_title LIKE '____-е' escape '!' OR
+                     #             decades B.C.
+                     a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
+                     #             centuries
+                     a_title LIKE '_!_век' escape '!' OR
+                     a_title LIKE '__!_век' escape '!' OR
+                     a_title LIKE '___!_век' escape '!' OR
+                     a_title LIKE '____!_век' escape '!' OR
+                     a_title LIKE '_____!_век' escape '!' OR
+                     a_title LIKE '______!_век' escape '!' OR
+                     #             centuries B.C.
+                     a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
+                     #             milleniums
+                     a_title LIKE '_!_тысячелетие' escape '!' OR
+                     a_title LIKE '__!_тысячелетие' escape '!' OR
+                     #             milleniums B.C.
+                     a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                     #             years in different application domains
+                     a_title LIKE '_!_год!_в!_%' escape '!' OR
+                     a_title LIKE '__!_год!_в!_%' escape '!' OR
+                     a_title LIKE '___!_год!_в!_%' escape '!' OR
+                     a_title LIKE '____!_год!_в!_%' escape '!' OR
+                     #             calendar dates in the year
+                     a_title LIKE '_!_января' escape '!' OR
+                     a_title LIKE '__!_января' escape '!' OR
+                     a_title LIKE '_!_февраля' escape '!' OR
+                     a_title LIKE '__!_февраля' escape '!' OR
+                     a_title LIKE '_!_марта' escape '!' OR
+                     a_title LIKE '__!_марта' escape '!' OR
+                     a_title LIKE '_!_апреля' escape '!' OR
+                     a_title LIKE '__!_апреля' escape '!' OR
+                     a_title LIKE '_!_мая' escape '!' OR
+                     a_title LIKE '__!_мая' escape '!' OR
+                     a_title LIKE '_!_июня' escape '!' OR
+                     a_title LIKE '__!_июня' escape '!' OR
+                     a_title LIKE '_!_июля' escape '!' OR
+                     a_title LIKE '__!_июля' escape '!' OR
+                     a_title LIKE '_!_августа' escape '!' OR
+                     a_title LIKE '__!_августа' escape '!' OR
+                     a_title LIKE '_!_сентября' escape '!' OR
+                     a_title LIKE '__!_сентября' escape '!' OR
+                     a_title LIKE '_!_октября' escape '!' OR
+                     a_title LIKE '__!_октября' escape '!' OR
+                     a_title LIKE '_!_ноября' escape '!' OR
+                     a_title LIKE '__!_ноября' escape '!' OR
+                     a_title LIKE '_!_декабря' escape '!' OR
+                     a_title LIKE '__!_декабря' escape '!' OR
+                     #             year lists by the first week day 
+                     a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
+                     a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
+
+        SELECT CONCAT( ':: echo ', count(*), ' chronological names found' )
+               FROM exclusions;
+
+        # List of articles forming valid links (referred to as linkers below)
+        DROP TABLE IF EXISTS linkers;
+        CREATE TABLE linkers (
+          lkr_id int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY  (lkr_id)
+        ) ENGINE=MEMORY AS
+        SELECT a_id as lkr_id
+               FROM articles
+               WHERE a_id NOT IN 
+                     (
+                      SELECT excl_id
+                             FROM exclusions
+                     );
+        DROP TABLE exclusions;
+
+        SELECT CONCAT( ':: echo ', count(*), ' linkers found' )
+               FROM linkers;
+
+    END IF;
+    IF namespace=14
+      THEN
+        # outs coinside to ins for categories
+        DROP TABLE IF EXISTS linkers;
+        CREATE TABLE linkers (
+          lkr_id int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY  (lkr_id)
+        ) ENGINE=MEMORY AS
+        SELECT a_id as lkr_id
+               FROM articles;
+    END IF;
+  END;
+//
+
+#
+# Forms wrong redirects table wr and filter redirects table
+# for namespace 14 outputs clean redirects list
+#
+DROP PROCEDURE IF EXISTS cleanup_redirects//
+CREATE PROCEDURE cleanup_redirects (namespace INT)
+  BEGIN
+    # the amount of links from redirect pages in a given namespace
+    # for wrong redirects recognition
+    DROP TABLE IF EXISTS `rlc`;
+    CREATE TABLE `rlc` (
+      `rlc_cnt` int(8) unsigned NOT NULL default '0',
+      `rlc_id` int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS
+    SELECT count(*) as rlc_cnt,
+           r_id as rlc_id
+           FROM pl,
+                r
+           WHERE pl_from=r_id
+           GROUP BY r_id;
+
+    # REDIRECT PAGES WITH MORE THAN ONE LINK
+    DROP TABLE IF EXISTS `wr`;
+    CREATE TABLE `wr` (
+      `wr_title` varchar(255) binary NOT NULL default '',
+      PRIMARY KEY (`wr_title`)
+    ) ENGINE=MEMORY AS
+    SELECT r_title as wr_title
+           FROM r,
+                rlc
+           WHERE rlc_cnt>1 and
+                 rlc_id=r_id;
+    DROP TABLE rlc;
+
+    CALL outifexists( 'wr', 'wrong redirects', 'wr.txt', 'wr_title', 'out' );
+
+    # prevent taking into account links from wrong redirects
+    DELETE FROM r
+           WHERE r_title IN
+                 (
+                  SELECT wr_title
+                         FROM wr
+                 );
+
+    IF namespace=14
+      THEN
+        CALL outifexists( 'r', CONCAT( 'namespace ', namespace), 'r.txt', 'r_title', 'out' );
+    END IF;
+  END;
+//
+
 delimiter ;
 ############################################################
 
-# caching all zero namespace pages for speedup
-# requires @@max_heap_table_size not less than 134217728;
-DROP TABLE IF EXISTS `p`;
-CREATE TABLE `p` (
-  `p_id` int(8) unsigned NOT NULL default '0',
-  `p_title` varchar(255) binary NOT NULL default '',
-  `p_is_redirect` tinyint(1) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`p_id`),
-  UNIQUE KEY `rtitle` (`p_title`)
-) ENGINE=MEMORY AS
-SELECT page_id as p_id,
-       page_title as p_title,
-       page_is_redirect as p_is_redirect
-       FROM ruwiki_p.page
-       WHERE page_namespace=0;
+# preload tables
+# requires @@max_heap_table_size not less than 134217728 for zero namespace;
+CALL cache_namespace( @namespace );
 
-## requested by qq[IrcCity]
-#CALL outifexists( 'p', 'zero namespace', 'p.info', 'p_title', 'out' );
+# define a set to be analyzed (articles)
+# and its subset issuing valid links (linkers)
+CALL valid_inouts( @namespace );
 
-# Non-redirects from main (zero) namespace
-DROP TABLE IF EXISTS `nrzn`;
-CREATE TABLE `nrzn` (
-  `nrzn_id` int(8) unsigned NOT NULL default '0',
-  `nrzn_title` varchar(255) binary NOT NULL default ''
-) ENGINE=MEMORY AS
-SELECT p_id as nrzn_id,
-       p_title as nrzn_title
-       FROM p
-       WHERE p_is_redirect=0;
-
-SELECT CONCAT( ':: echo ', count(*), ' main namespace non-redirects found' )
-       FROM nrzn;
-
-# Non-articles by category in main namespace
-DROP TABLE IF EXISTS `cna`;
-CREATE TABLE `cna` (
-  `cna_id` int(8) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`cna_id`)
-) ENGINE=MEMORY AS
-SELECT DISTINCT cl_from as cna_id
-       FROM ruwiki_p.categorylinks 
-             #      disambiguation pages
-       WHERE cl_to='Многозначные_термины' OR
-             #      soft redirects
-             cl_to='Википедия:Мягкие_перенаправления';
-
-# Articles (i.e. non-redirects and non-disambigs from main namespace)
-DROP TABLE IF EXISTS `articles`;
-CREATE TABLE `articles` (
-  `a_id` int(8) unsigned NOT NULL default '0',
-  `a_title` varchar(255) binary NOT NULL default '',
-  PRIMARY KEY  (`a_id`),
-  UNIQUE KEY `title` (`a_title`)
-) ENGINE=MEMORY AS
-SELECT nrzn_id as a_id,
-       nrzn_title as a_title
-       FROM nrzn
-       WHERE nrzn_id NOT IN 
-             (
-              SELECT cna_id
-                     FROM cna
-             );
-DROP TABLE cna;
-DROP TABLE nrzn;
-
-SELECT CONCAT( ':: echo ', count(*), ' articles found' )
-       FROM articles;
-
-# Articles non-forming valid links such as chronological articles
-DROP TABLE IF EXISTS `exclusions`;
-CREATE TABLE `exclusions` (
-  `excl_id` int(8) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`excl_id`)
-) ENGINE=MEMORY AS
-SELECT DISTINCT p_id as excl_id
-       FROM p
-             #             Common Era years 
-       WHERE p_title LIKE '_!_год' escape '!' OR
-             p_title LIKE '__!_год' escape '!' OR             
-             p_title LIKE '___!_год' escape '!' OR             
-             p_title LIKE '____!_год' escape '!' OR
-             #             years B.C.
-             p_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
-             p_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
-             p_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
-             p_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
-             #             decades
-             p_title LIKE '_-е' escape '!' OR             
-             p_title LIKE '__-е' escape '!' OR             
-             p_title LIKE '___-е' escape '!' OR
-             p_title LIKE '____-е' escape '!' OR
-             #             decades B.C.
-             p_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
-             p_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
-             p_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
-             #             centuries
-             p_title LIKE '_!_век' escape '!' OR
-             p_title LIKE '__!_век' escape '!' OR
-             p_title LIKE '___!_век' escape '!' OR
-             p_title LIKE '____!_век' escape '!' OR
-             p_title LIKE '_____!_век' escape '!' OR
-             p_title LIKE '______!_век' escape '!' OR
-             #             centuries B.C.
-             p_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
-             #             milleniums
-             p_title LIKE '_!_тысячелетие' escape '!' OR
-             p_title LIKE '__!_тысячелетие' escape '!' OR
-             #             milleniums B.C.
-             p_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
-             p_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
-             #             years in different application domains
-             p_title LIKE '_!_год!_в!_%' escape '!' OR
-             p_title LIKE '__!_год!_в!_%' escape '!' OR
-             p_title LIKE '___!_год!_в!_%' escape '!' OR
-             p_title LIKE '____!_год!_в!_%' escape '!' OR
-             #             calendar dates in the year
-             p_title LIKE '_!_января' escape '!' OR
-             p_title LIKE '__!_января' escape '!' OR
-             p_title LIKE '_!_февраля' escape '!' OR
-             p_title LIKE '__!_февраля' escape '!' OR
-             p_title LIKE '_!_марта' escape '!' OR
-             p_title LIKE '__!_марта' escape '!' OR
-             p_title LIKE '_!_апреля' escape '!' OR
-             p_title LIKE '__!_апреля' escape '!' OR
-             p_title LIKE '_!_мая' escape '!' OR
-             p_title LIKE '__!_мая' escape '!' OR
-             p_title LIKE '_!_июня' escape '!' OR
-             p_title LIKE '__!_июня' escape '!' OR
-             p_title LIKE '_!_июля' escape '!' OR
-             p_title LIKE '__!_июля' escape '!' OR
-             p_title LIKE '_!_августа' escape '!' OR
-             p_title LIKE '__!_августа' escape '!' OR
-             p_title LIKE '_!_сентября' escape '!' OR
-             p_title LIKE '__!_сентября' escape '!' OR
-             p_title LIKE '_!_октября' escape '!' OR
-             p_title LIKE '__!_октября' escape '!' OR
-             p_title LIKE '_!_ноября' escape '!' OR
-             p_title LIKE '__!_ноября' escape '!' OR
-             p_title LIKE '_!_декабря' escape '!' OR
-             p_title LIKE '__!_декабря' escape '!' OR
-             #             year lists by the first week day 
-             p_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
-             p_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
-
-SELECT CONCAT( ':: echo ', count(*), ' chronological names found' )
-       FROM exclusions;
-
-# List of articles forming valid links (refered as linkers below)
-DROP TABLE IF EXISTS `linkers`;
-CREATE TABLE `linkers` (
-  `lkr_id` int(8) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`lkr_id`)
-) ENGINE=MEMORY AS
-SELECT a_id as lkr_id
-       FROM articles
-       WHERE a_id NOT IN 
-             (
-              SELECT excl_id
-                     FROM exclusions
-             );
-DROP TABLE exclusions;
-
-SELECT CONCAT( ':: echo ', count(*), ' linkers found' )
-       FROM linkers;
-
-# Redirect pages in the main (zero) namespace
-DROP TABLE IF EXISTS `rzn`;
-CREATE TABLE `rzn` (
-  `rzn_id` int(8) unsigned NOT NULL default '0',
-  `rzn_title` varchar(255) binary NOT NULL default '',
-  PRIMARY KEY  (`rzn_id`),
-  UNIQUE KEY `rtitle` (`rzn_title`)
-) ENGINE=MEMORY AS
-SELECT p_id as rzn_id,
-       p_title as rzn_title
-       FROM p
-       WHERE p_is_redirect=1;
+# collect wrong redirects and cleanup redirects
+CALL cleanup_redirects( @namespace );
 
 # articles encapsulated directly into linkers
 DROP TABLE IF EXISTS `ea1`;
@@ -328,7 +493,8 @@ SELECT a_id as ea1_to,
        tl_from as ea1_from
        FROM ruwiki_p.templatelinks, 
             articles
-       WHERE tl_namespace=0 and
+                          # donno if this is true for ns=14
+       WHERE tl_namespace=@namespace and
              tl_from IN
              (
               SELECT lkr_id 
@@ -336,58 +502,7 @@ SELECT a_id as ea1_to,
              ) and
              a_title=tl_title;
 
-# caching links to zero namespace pages for speedup
-DROP TABLE IF EXISTS `pl`;
-CREATE TABLE `pl` (
-  `pl_from` int(8) unsigned NOT NULL default '0',
-  `pl_to` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS
-SELECT pl_from,
-       p_id as pl_to
-       FROM ruwiki_p.pagelinks,
-            p
-       WHERE pl_namespace=0 and
-             pl_title=p_title;
-DROP TABLE p;
-
-# the amount of links from main namespace redirect pages
-# for wrong redirects recognition
-DROP TABLE IF EXISTS `rlc`;
-CREATE TABLE `rlc` (
-  `rlc_cnt` int(8) unsigned NOT NULL default '0',
-  `rlc_id` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS
-SELECT count(*) as rlc_cnt,
-       rzn_id as rlc_id
-       FROM pl,
-            rzn
-       WHERE pl_from=rzn_id
-       GROUP BY rzn_id;
-
-# REDIRECT PAGES WITH MORE THAN ONE LINK
-DROP TABLE IF EXISTS `wr`;
-CREATE TABLE `wr` (
-  `wr_title` varchar(255) binary NOT NULL default '',
-  PRIMARY KEY (`wr_title`)
-) ENGINE=MEMORY AS
-SELECT rzn_title as wr_title
-       FROM rzn,
-            rlc
-       WHERE rlc_cnt>1 and
-             rlc_id=rzn_id;
-DROP TABLE rlc;
-
-CALL outifexists( 'wr', 'wrong redirects', 'wr.txt', 'wr_title', 'out' );
-
-# prevent taking into account links from wrong redirects
-DELETE FROM rzn
-       WHERE rzn_title IN
-             (
-              SELECT wr_title
-                     FROM wr
-             );
-
-# articles encapsulated into linkers via main namespace redirects
+# articles encapsulated into linkers via redirects from a given namespace
 DROP TABLE IF EXISTS `ea2`;
 CREATE TABLE ea2 (
   `ea2_to` int(8) unsigned NOT NULL default '0',
@@ -396,17 +511,17 @@ CREATE TABLE ea2 (
 SELECT a_id AS ea2_to,
        tl_from as ea2_from
        FROM ruwiki_p.templatelinks, 
-            rzn,
+            r,
             pl,
             articles
-       WHERE tl_namespace=0 and
+       WHERE tl_namespace=@namespace and
              tl_from IN
              (
               SELECT lkr_id 
                      FROM linkers
              ) and
-             rzn_title=tl_title and
-             pl_from=rzn_id and
+             r_title=tl_title and
+             pl_from=r_id and
              pl_to=a_id;
 
 # articles linked directly from linkers
@@ -427,25 +542,25 @@ SELECT a_id as l2a_to,
        pl_to=a_id and
        pl_from!=a_id;
 
-# all links from linkers to main namespace redirects
+# all links from linkers to redirects for a given namespace
 DROP TABLE IF EXISTS `l2r`;
 CREATE TABLE `l2r` (
   `l2r_to` int(8) unsigned NOT NULL default '0',
   `l2r_from` int(8) unsigned NOT NULL default '0',
   KEY (`l2r_to`)
 ) ENGINE=MEMORY AS 
-SELECT rzn_id as l2r_to,
+SELECT r_id as l2r_to,
        pl_from as l2r_from
        FROM pl,
-            rzn
+            r
        WHERE pl_from in
        (
         SELECT lkr_id 
                FROM linkers
        ) and
-       pl_to=rzn_id;
+       pl_to=r_id;
 
-# all links from linked main namespace redirects to articles
+# all links from linked redirects in a given namespace to articles
 DROP TABLE IF EXISTS `mnrl`;
 CREATE TABLE `mnrl` (
   `mnrl_to` int(8) unsigned NOT NULL default '0',
@@ -462,7 +577,7 @@ SELECT a_id as mnrl_to,
              ) and
              pl_to=a_id;
 
-# articles linked from linkers via a main namespace redirect
+# articles linked from linkers via redirect in a given namespace
 DROP TABLE IF EXISTS `l2r2a`;
 CREATE TABLE l2r2a (
   `l2r2a_to` int(8) unsigned NOT NULL default '0',
@@ -476,7 +591,7 @@ SELECT l2r_from as l2r2a_from,
              mnrl_to!=l2r_from;
 DROP TABLE mnrl;
 
-# all links from main namespace redirects to articles
+# all links from our namespace redirects to articles
 DROP TABLE IF EXISTS `rrl`;
 CREATE TABLE `rrl` (
   `rrl_to` int(8) unsigned NOT NULL default '0',
@@ -488,28 +603,28 @@ SELECT a_id as rrl_to,
             articles
        WHERE pl_from in
        (
-        SELECT rzn_id
-               FROM rzn
+        SELECT r_id
+               FROM r
        ) and
        pl_to=a_id;
 
-# all links from linked main namespace redirects to main namespace redirects
+# all links from linked our namespace redirects to our namespace redirects
 # there are a lot of double redirects but here only linked are considered
 DROP TABLE IF EXISTS r2r;
 CREATE TABLE `r2r` (
   `r2r_to` int(8) unsigned NOT NULL default '0',
   `r2r_from` int(8) unsigned NOT NULL default '0'
 ) ENGINE=MEMORY AS 
-SELECT rzn_id as r2r_to,
+SELECT r_id as r2r_to,
        pl_from as r2r_from
        FROM pl,
-            rzn
+            r
        WHERE pl_from in
        (
         SELECT l2r_to
                FROM l2r
        ) and
-       pl_to=rzn_id;
+       pl_to=r_id;
 DROP TABLE pl;
 
 # all links from redirects to articles via one more redirect
@@ -536,15 +651,15 @@ CREATE TABLE dr (
   `dr_via` varchar(255) binary NOT NULL default '',
   `dr_to` varchar(255) binary NOT NULL default ''
 ) ENGINE=MEMORY AS
-SELECT r1.rzn_title as dr_from,
-       r2.rzn_title as dr_via,
+SELECT r1.r_title as dr_from,
+       r2.r_title as dr_via,
        a_title as dr_to
        FROM r2r2a,
-            rzn as r1,
-            rzn as r2,
+            r as r1,
+            r as r2,
             articles
-       WHERE r2r2a_from=r1.rzn_id and
-             r2r2a_via=r2.rzn_id and
+       WHERE r2r2a_from=r1.r_id and
+             r2r2a_via=r2.r_id and
              r2r2a_to=a_id;
 
 CALL outifexists( 'dr', 'double redirects', 'dr.info', 'dr_from', 'upload' );
@@ -590,20 +705,20 @@ CREATE TABLE tr (
   `tr_via2` varchar(255) binary NOT NULL default '',
   `tr_to` varchar(255) binary NOT NULL default ''
 ) ENGINE=MEMORY AS
-SELECT r1.rzn_title as tr_from,
-       r2.rzn_title as tr_via1,
-       r3.rzn_title as tr_via2,
+SELECT r1.r_title as tr_from,
+       r2.r_title as tr_via1,
+       r3.r_title as tr_via2,
        a_title as tr_to
        FROM r2r2r2a,
-            rzn as r1,
-            rzn as r2,
-            rzn as r3,
+            r as r1,
+            r as r2,
+            r as r3,
             articles
-       WHERE r2r2r2a_from=r1.rzn_id and
-             r2r2r2a_via1=r2.rzn_id and
-             r2r2r2a_via2=r3.rzn_id and
+       WHERE r2r2r2a_from=r1.r_id and
+             r2r2r2a_via1=r2.r_id and
+             r2r2r2a_via2=r3.r_id and
              r2r2r2a_to=a_id;
-DROP TABLE rzn;
+DROP TABLE r;
 
 CALL outifexists( 'tr', 'triple redirects', 'tr.info', 'tr_from', 'upload' );
 
@@ -823,6 +938,7 @@ CREATE PROCEDURE deadend ()
   END;
 //
 
+# Obtains maximal isolated subgraph of a given graph
 DROP PROCEDURE IF EXISTS oscchull//
 CREATE PROCEDURE oscchull (OUT linkscount INT)
   BEGIN
@@ -1118,6 +1234,7 @@ CREATE PROCEDURE grpsplitrga ()
   END;
 //
 
+# returns unique isolated category identifier by a category pseudo-name
 DROP FUNCTION IF EXISTS catuid//
 CREATE FUNCTION catuid (coolname VARCHAR(255))
   RETURNS INT
@@ -1257,6 +1374,7 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
   END;
 //
 
+# look for isolated components of size less or equal to maxsize
 DROP PROCEDURE IF EXISTS isolated_layer//
 CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
   BEGIN
@@ -1457,6 +1575,7 @@ CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
   END;
 //
 
+# obtain all the scc's and chans for scc's of size less or equal to maxsize
 DROP PROCEDURE IF EXISTS isolated//
 CREATE PROCEDURE isolated (maxsize INT)
   BEGIN
@@ -1484,6 +1603,9 @@ CREATE PROCEDURE isolated (maxsize INT)
                 ruwiki_p.page
                 WHERE cl_to='Википедия:Изолированные_статьи' and
                       page_id=cl_from and
+                                     # this should be constant because
+                                     # isolates are registered with
+                                     # categories mechanism
                       page_namespace=14;
 
     # main out table
@@ -1573,6 +1695,8 @@ CREATE PROCEDURE isolated (maxsize INT)
   END;
 //
 
+# create a task with respect to edits count minimization (not for AWB),
+# but for automated uploader, which is supposed to be implemented
 DROP PROCEDURE IF EXISTS combineandout//
 CREATE PROCEDURE combineandout ()
   BEGIN
@@ -1645,6 +1769,8 @@ SET @starttime=now();
 
 CALL combineandout();
 
+# prepare some usefull data for web tool
+# "isolated articles for a particular category"
 DROP TABLE IF EXISTS catvolume;
 CREATE TABLE catvolume (
   `cv_title` varchar(255) binary NOT NULL default '',
