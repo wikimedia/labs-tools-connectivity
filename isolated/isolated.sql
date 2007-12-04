@@ -2,38 +2,45 @@
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
  -- Purpose: [[:en:Connectivity (graph theory)|Connectivity]] analysis script
- --          for [[:ru:|Russian Wikipedia]].
+ --          for [[:ru:|Russian Wikipedia]] and probably others if ready
+ --          to approve some guidances on
+ --            - what is an article and 
+ --            - what is a relevant link.
  -- 
  -- Use: Nice to be called from 
  --      '''[[:ru:User:Mashiah_Davidson\toolserver\isolated.sh|isolated.sh]]'''.
  --
  -- Output: There is some API, which can be threated as an output API,
  --         however, for now it is much easier to deal with output of 
- --         '''isolated.sh''', as well as the output of this script is located
+ --         '''isolated.sh''', as well as the output of that script is put
  --         into a set of files with mind-understandable names and content.
  --
  -- What is an article: Originally, the {{comment|Main|
  --                                               zero}} namespace has been
  --                                               itroduced for articles. 
- --                     Actually it also contains redirect pages for articles,
- --                     disambiguation pages, soft redirects and sometimes
- --                     some templates (which is wrong on my own opinion).
+ --                     Actually it does also contain the redirect pages for
+ --                     articles, disambiguation pages, soft redirects and
+ --                     sometimes some templates (which is wrong on my own
+ --                     opinion, but sometimes used).
  --
  -- Relevant linking concept: Links from chronological articles are not too
  --                           relevant, and they are threated as links from 
  --                           a time-oriented portal.
  --                           Some articles lists are not too relevant too,
- --                           so in the future all links from lists,
- --                           which are not voted as good or gold can
- --                           also become ignored.
+ --                           all the links from collaborational lists are
+ --                           also ignored.
  --
- -- Side effect: Some double and triple redirects are also collected by the
- --              way. It is strange for me to know that mediawiki engine
- --              does not recognize most of them.
- --              Wrong redirect pages can be found somitimes, and they are
- --              wrong because they work as redirects in the web but contain
- --              some garbage links making impossible any links analysis 
- --              in the database.
+ -- Side effects: Some double and triple redirects are also collected by the
+ --               way. It is strange for me to know that Mediawiki engine
+ --               does not recognize most of them.
+ --               Wrong redirect pages can be found somitimes, and they are
+ --               wrong because they work as redirects in the web but contain
+ --               some garbage links making impossible any links analysis 
+ --               in the database.
+ --               One more side effect is the ability to run the analysis for
+ --               categories tree and know if there any cycles or uncategorized
+ --               categories present.
+ --
  --
  -- Expected outputs: Isolated articles of various types, what's to tag
  --                   and what is to be untagged in relation to disconnexion.
@@ -41,29 +48,44 @@
  --                   than autocollected one in terms of article definition,
  --                   id est it is smarter dealing with zero namespace.
  --             
+ -- Types of isolated articles: The connectivity analysis here relies on
+ --                             some concepts from [[graphs theory]].
+ --                             One important thing is the concept of
+ --                             a [[strongly connected component]] 
+ --                             (aka scc or cluster), which is
+ --                             the subgraph of a graph given of the maximal
+ --                             possible size with every verticle (article)
+ --                             reachable from each other in this subgraph.
+ --                             We are interested in orphaned strongly
+ --                             connected components (aka oscc), and chains
+ --                             of such orphaned clusters.
+ --                             It is kwown after ... (do not remember)
+ --                             that clusters are constructed from cycles
+ --                             of various size.
  -- 
- -- Tune:
+ -- Namespace and complexity control:
  --
  -- <pre>
 
-
  --
- --       set the namespace for analysis
- --       supported: 0 (main namespace) and 14 (categories)
+ --       Choose the namespace for analysis.
+ --       Supported: 0 (main namespace) and 14 (categories)
  --
 
 set @namespace=0;
 #set @namespace=14;
 
  --
- --       choose the maximal oscc size for namespace 0, note:
+ --       Choose the maximal oscc size for namespace 0, note:
  --          - 5  takes up to 10 minutes,
  --          - 10 takes up to 15 minutes, 
  --          - 20 takes up to 20 minutes, 
  --          - 40 takes up to 25 minutes
- --          - more articles requires @@max_heap_table_size=536870912
+ --          - more articles requires @@max_heap_table_size=536870912.
  --
- --       namespace 14 can be fully thrown within 45 minutes
+ --       Namespace 14 can be fully thrown within 45 minutes,
+ --       the oscc size in this case set higher than amount of
+ --       verticles (categories).
  --
 
 # namespace=0
@@ -72,9 +94,9 @@ set @max_scc_size=10;
 #set @max_scc_size=100000;
 
  --
- --       choose right limit for recursion depth allowed
- --       set the recursion depth to 255 for the first run
- --       and then set it e.g. the critical path length doubled
+ --       Choose the right limit for recursion depth allowed.
+ --       Set the recursion depth to 255 for the first run
+ --       and then set it e.g. the maximal clusters chain length doubled.
  --
 
 # namespace=0
@@ -83,14 +105,14 @@ set max_sp_recursion_depth=10;
 #set max_sp_recursion_depth=255;
 
  --
- --       enable/disable informative output, such as
- --       current sets of isolated and dead-end articles
+ --       Enable/disable informative output, such as
+ --       current sets of isolated and dead-end articles.
  --
 
 set @enable_informative_output=0;
 
  --
- --       tune if one of memory tables does not fit
+ --       Tune if one of memory tables does not fit.
  --
 
 #set @@max_heap_table_size=16777216;
@@ -102,30 +124,24 @@ set @@max_heap_table_size=268435456;
 #set @@max_heap_table_size=1073741824;
 
  --
- -- Initialization section: Threading of the initial graph.
+ -- Significant speedup
  --
 
-SELECT ':: echo init:' as title;
-
-# ruwiki is placed on s3 and the largest wiki on s3 is frwiki
-# how old latest edit there is?
-SELECT CONCAT( ':: replag ', timediff(now(), max(rc_timestamp))) as title
-       FROM frwiki_p.recentchanges;
-
-SET @starttime=now();
-
-# the name-prefix for all output files, distinct for each run
-SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
-
-# significant speedup
 SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+ --
+ -- Functions and procedures definition
+ --
+
+set @fprefix='';
 
 ############################################################
 delimiter //
 
 #
-# Outputs non-empty ordered table to stdout
-# Prepends the output with heading info on a rule to invoke in an outer handler
+# Outputs non-empty ordered table to stdout.
+# Prepends the output with heading info on a rule to invoke in an outer handler.
+# Now '''isolated.sh''' is considered as the outer handler for this script.
 #
 DROP PROCEDURE IF EXISTS outifexists//
 CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf VARCHAR(255), ordercol VARCHAR(255), rule VARCHAR(255) )
@@ -155,14 +171,14 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
 #
 # Caches the namespace given to local tables 
 #   r (for redirects),
-#   nr (for non-redirects) and
+#   articles (for articles)
 #   pl (for links)
 # for speedup
 #
 DROP PROCEDURE IF EXISTS cache_namespace//
 CREATE PROCEDURE cache_namespace (num INT)
   BEGIN
-    # requires @@max_heap_table_size not less than 134217728 for zero namespace;
+    # Requires @@max_heap_table_size not less than 134217728 for zero namespace.
     DROP TABLE IF EXISTS p;
     CREATE TABLE p (
       p_id int(8) unsigned NOT NULL default '0',
@@ -213,52 +229,8 @@ CREATE PROCEDURE cache_namespace (num INT)
     SELECT CONCAT( ':: echo . redirects: ', count(*) )
            FROM r;
 
-    # caching links for speedup
-    DROP TABLE IF EXISTS pl;
-    IF num=0
-      THEN
-        CREATE TABLE pl (
-          pl_from int(8) unsigned NOT NULL default '0',
-          pl_to int(8) unsigned NOT NULL default '0'
-        ) ENGINE=MEMORY AS
-        SELECT pl_from,
-               p_id as pl_to
-               FROM ruwiki_p.pagelinks,
-                    p
-               WHERE pl_namespace=num and
-                     pl_title=p_title;
-    END IF;
-    IF num=14
-      THEN
-        CREATE TABLE pl (
-          pl_from int(8) unsigned NOT NULL default '0',
-          pl_to int(8) unsigned NOT NULL default '0'
-        ) ENGINE=MEMORY AS
-        SELECT p_id as pl_from,
-               cl_from as pl_to
-               FROM ruwiki_p.categorylinks,
-                    p
-               WHERE cl_to=p_title;
-    END IF;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
-           FROM pl;
-
-    DROP TABLE p;
-  END;
-//
-
-#
-# Categorize non-redirect pages as
-#   articles, aka ins (able to be isolated) and
-#   its subset, linkers, aka outs (forming valid links)
-#
-DROP PROCEDURE IF EXISTS valid_inouts//
-CREATE PROCEDURE valid_inouts (namespace INT)
-  BEGIN
-    # Non-articles by category in main namespace
-    # inlcusion of some colloborational lists here is under discussion now
-    # The list is superflous, i.e. contains pages out of the @namespace
+    # Non-articles by category in the namespace given.
+    # The list is superflous, i.e. contains pages outside namespace num
     DROP TABLE IF EXISTS cna;
     CREATE TABLE cna (
       cna_id int(8) unsigned NOT NULL default '0',
@@ -271,10 +243,10 @@ CREATE PROCEDURE valid_inouts (namespace INT)
                  #      soft redirects
                  cl_to='Википедия:Мягкие_перенаправления';
 
-    SELECT CONCAT( ':: echo ', count(*), ' categorized exclusions found' )
+    SELECT CONCAT( ':: echo ', count(*), ' categorized exclusion names found' )
            FROM cna;
 
-    # Articles (i.e. non-redirects and non-disambigs for main namespace)
+    # Articles (i.e. non-redirects and non-disambigs for current namespace)
     DROP TABLE IF EXISTS articles;
     CREATE TABLE articles (
       a_id int(8) unsigned NOT NULL default '0',
@@ -296,141 +268,56 @@ CREATE PROCEDURE valid_inouts (namespace INT)
     SELECT CONCAT( ':: echo ', count(*), ' articles found' )
            FROM articles;
 
-    IF namespace=0
+    DROP TABLE IF EXISTS pl;
+    IF num=0
       THEN
-
-        # Articles non-forming valid links such as chronological articles
-        DROP TABLE IF EXISTS exclusions;
-        CREATE TABLE exclusions (
-          excl_id int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY  (excl_id)
+        # caching page links for speedup
+        # todo: check if there any speedup possible with
+        #       adding one more caching layer for links from p
+        CREATE TABLE pl (
+          pl_from int(8) unsigned NOT NULL default '0',
+          pl_to int(8) unsigned NOT NULL default '0'
         ) ENGINE=MEMORY AS
-        SELECT DISTINCT a_id as excl_id
-               FROM articles
-                     #             Common Era years 
-               WHERE a_title LIKE '_!_год' escape '!' OR
-                     a_title LIKE '__!_год' escape '!' OR             
-                     a_title LIKE '___!_год' escape '!' OR             
-                     a_title LIKE '____!_год' escape '!' OR
-                     #             years B.C.
-                     a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
-                     a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
-                     a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
-                     a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
-                     #             decades
-                     a_title LIKE '_-е' escape '!' OR             
-                     a_title LIKE '__-е' escape '!' OR             
-                     a_title LIKE '___-е' escape '!' OR
-                     a_title LIKE '____-е' escape '!' OR
-                     #             decades B.C.
-                     a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
-                     a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
-                     a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
-                     #             centuries
-                     a_title LIKE '_!_век' escape '!' OR
-                     a_title LIKE '__!_век' escape '!' OR
-                     a_title LIKE '___!_век' escape '!' OR
-                     a_title LIKE '____!_век' escape '!' OR
-                     a_title LIKE '_____!_век' escape '!' OR
-                     a_title LIKE '______!_век' escape '!' OR
-                     #             centuries B.C.
-                     a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
-                     #             milleniums
-                     a_title LIKE '_!_тысячелетие' escape '!' OR
-                     a_title LIKE '__!_тысячелетие' escape '!' OR
-                     #             milleniums B.C.
-                     a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                     a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                     #             years in different application domains
-                     a_title LIKE '_!_год!_в!_%' escape '!' OR
-                     a_title LIKE '__!_год!_в!_%' escape '!' OR
-                     a_title LIKE '___!_год!_в!_%' escape '!' OR
-                     a_title LIKE '____!_год!_в!_%' escape '!' OR
-                     #             calendar dates in the year
-                     a_title LIKE '_!_января' escape '!' OR
-                     a_title LIKE '__!_января' escape '!' OR
-                     a_title LIKE '_!_февраля' escape '!' OR
-                     a_title LIKE '__!_февраля' escape '!' OR
-                     a_title LIKE '_!_марта' escape '!' OR
-                     a_title LIKE '__!_марта' escape '!' OR
-                     a_title LIKE '_!_апреля' escape '!' OR
-                     a_title LIKE '__!_апреля' escape '!' OR
-                     a_title LIKE '_!_мая' escape '!' OR
-                     a_title LIKE '__!_мая' escape '!' OR
-                     a_title LIKE '_!_июня' escape '!' OR
-                     a_title LIKE '__!_июня' escape '!' OR
-                     a_title LIKE '_!_июля' escape '!' OR
-                     a_title LIKE '__!_июля' escape '!' OR
-                     a_title LIKE '_!_августа' escape '!' OR
-                     a_title LIKE '__!_августа' escape '!' OR
-                     a_title LIKE '_!_сентября' escape '!' OR
-                     a_title LIKE '__!_сентября' escape '!' OR
-                     a_title LIKE '_!_октября' escape '!' OR
-                     a_title LIKE '__!_октября' escape '!' OR
-                     a_title LIKE '_!_ноября' escape '!' OR
-                     a_title LIKE '__!_ноября' escape '!' OR
-                     a_title LIKE '_!_декабря' escape '!' OR
-                     a_title LIKE '__!_декабря' escape '!' OR
-                     #             year lists by the first week day 
-                     a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
-                     a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
-
-        SELECT CONCAT( ':: echo ', count(*), ' chronological names found' )
-               FROM exclusions;
-
-        # List of articles forming valid links (referred to as linkers below)
-        DROP TABLE IF EXISTS linkers;
-        CREATE TABLE linkers (
-          lkr_id int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY  (lkr_id)
-        ) ENGINE=MEMORY AS
-        SELECT a_id as lkr_id
-               FROM articles
-               WHERE a_id NOT IN 
-                     (
-                      SELECT excl_id
-                             FROM exclusions
-                     );
-        DROP TABLE exclusions;
-
-        SELECT CONCAT( ':: echo ', count(*), ' linkers found' )
-               FROM linkers;
-
+        SELECT pl_from,
+               p_id as pl_to
+               FROM ruwiki_p.pagelinks,
+                    p
+               WHERE pl_namespace=num and
+                     pl_title=p_title;
     END IF;
-    IF namespace=14
+    IF num=14
       THEN
-        # outs coinside to ins for categories
-        DROP TABLE IF EXISTS linkers;
-        CREATE TABLE linkers (
-          lkr_id int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY  (lkr_id)
+        # caching category links for speedup
+        CREATE TABLE pl (
+          pl_from int(8) unsigned NOT NULL default '0',
+          pl_to int(8) unsigned NOT NULL default '0'
         ) ENGINE=MEMORY AS
-        SELECT a_id as lkr_id
-               FROM articles;
+        SELECT p_id as pl_from,
+               cl_from as pl_to
+               FROM ruwiki_p.categorylinks,
+                    p
+               WHERE cl_to=p_title;
     END IF;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
+           FROM pl;
+
+    DROP TABLE p;
   END;
 //
 
 #
-# Forms wrong redirects table wr and filter redirects table
-# for namespace 14 outputs clean redirects list
+# Forms wrong redirects table wr and filter redirects table appropriately.
+# For namespace 14 outputs a list of good redirects.
 #
 DROP PROCEDURE IF EXISTS cleanup_redirects//
 CREATE PROCEDURE cleanup_redirects (namespace INT)
   BEGIN
     # the amount of links from redirect pages in a given namespace
-    # for wrong redirects recognition
-    DROP TABLE IF EXISTS `rlc`;
-    CREATE TABLE `rlc` (
-      `rlc_cnt` int(8) unsigned NOT NULL default '0',
-      `rlc_id` int(8) unsigned NOT NULL default '0'
+    DROP TABLE IF EXISTS rlc;
+    CREATE TABLE rlc (
+      rlc_cnt int(8) unsigned NOT NULL default '0',
+      rlc_id int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY AS
     SELECT count(*) as rlc_cnt,
            r_id as rlc_id
@@ -440,10 +327,10 @@ CREATE PROCEDURE cleanup_redirects (namespace INT)
            GROUP BY r_id;
 
     # REDIRECT PAGES WITH MORE THAN ONE LINK
-    DROP TABLE IF EXISTS `wr`;
-    CREATE TABLE `wr` (
-      `wr_title` varchar(255) binary NOT NULL default '',
-      PRIMARY KEY (`wr_title`)
+    DROP TABLE IF EXISTS wr;
+    CREATE TABLE wr (
+      wr_title varchar(255) binary NOT NULL default '',
+      PRIMARY KEY (wr_title)
     ) ENGINE=MEMORY AS
     SELECT r_title as wr_title
            FROM r,
@@ -464,323 +351,262 @@ CREATE PROCEDURE cleanup_redirects (namespace INT)
 
     IF namespace=14
       THEN
+        # redirects in this namespace are prohibited
+        # they do not supply articles with proper categories
         CALL outifexists( 'r', CONCAT( 'namespace ', namespace), 'r.txt', 'r_title', 'out' );
     END IF;
   END;
 //
 
-delimiter ;
-############################################################
+#
+# Long redirects like double and triple do not work in web API,
+# thus they need to be straightened.
+# Reaching the target via a long redirect requires more than one click,
+# but all hyperlink jumps are uniquely defined and can be easily fixed.
+# Here links via long redirects are threated as valid links for
+# connectivity analysis.
+#
+DROP PROCEDURE IF EXISTS long_redirects//
+CREATE PROCEDURE long_redirects ()
+  BEGIN
+    # all links from our namespace redirects to articles
+    DROP TABLE IF EXISTS rrl;
+    CREATE TABLE rrl (
+      rrl_to int(8) unsigned NOT NULL default '0',
+      rrl_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT a_id as rrl_to,
+           pl_from as rrl_from
+           FROM pl,
+                articles
+           WHERE pl_from in
+                 (
+                  SELECT r_id
+                         FROM r
+                 ) and
+                 pl_to=a_id;
 
-# preload tables
-# requires @@max_heap_table_size not less than 134217728 for zero namespace;
-CALL cache_namespace( @namespace );
+    # All links from linked our namespace redirects to our namespace redirects.
+    # There are a lot of double redirects but here only linked are considered.
+    DROP TABLE IF EXISTS r2r;
+    CREATE TABLE r2r (
+      r2r_to int(8) unsigned NOT NULL default '0',
+      r2r_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT r_id as r2r_to,
+           pl_from as r2r_from
+           FROM pl,
+                r
+           WHERE pl_from in
+                 (
+                  SELECT l2r_to
+                         FROM l2r
+                 ) and
+                 pl_to=r_id;
 
-# define a set to be analyzed (articles)
-# and its subset issuing valid links (linkers)
-CALL valid_inouts( @namespace );
+    # all links from redirects to articles via one more redirect
+    DROP TABLE IF EXISTS r2r2a;
+    CREATE TABLE r2r2a (
+      r2r2a_to int(8) unsigned NOT NULL default '0',
+    # next one is for people who like double redirects resolving
+      r2r2a_via int(8) unsigned NOT NULL default '0',
+      r2r2a_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT r2r_from as r2r2a_from,
+    # next one is for people who like double redirects resolving
+           r2r_to as r2r2a_via,
+           rrl_to as r2r2a_to
+           FROM rrl,
+                r2r
+           WHERE rrl_from=r2r_to;
+    DROP TABLE rrl;
 
-# collect wrong redirects and cleanup redirects
-CALL cleanup_redirects( @namespace );
+    # DOUBLE REDIRECTS
+    DROP TABLE IF EXISTS dr;
+    CREATE TABLE dr (
+      dr_from varchar(255) binary NOT NULL default '',
+      dr_via varchar(255) binary NOT NULL default '',
+      dr_to varchar(255) binary NOT NULL default ''
+    ) ENGINE=MEMORY AS
+    SELECT r1.r_title as dr_from,
+           r2.r_title as dr_via,
+           a_title as dr_to
+           FROM r2r2a,
+                r as r1,
+                r as r2,
+                articles
+           WHERE r2r2a_from=r1.r_id and
+                 r2r2a_via=r2.r_id and
+                 r2r2a_to=a_id;
 
-# articles encapsulated directly into linkers
-DROP TABLE IF EXISTS `ea1`;
-CREATE TABLE ea1 (
-  `ea1_to` int(8) unsigned NOT NULL default '0',
-  `ea1_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS
-SELECT a_id as ea1_to,
-       tl_from as ea1_from
-       FROM ruwiki_p.templatelinks, 
-            articles
-                          # donno if this is true for ns=14
-       WHERE tl_namespace=@namespace and
-             tl_from IN
-             (
-              SELECT lkr_id 
-                     FROM linkers
-             ) and
-             a_title=tl_title;
+    CALL outifexists( 'dr', 'double redirects', 'dr.info', 'dr_from', 'upload' );
 
-# articles encapsulated into linkers via redirects from a given namespace
-DROP TABLE IF EXISTS `ea2`;
-CREATE TABLE ea2 (
-  `ea2_to` int(8) unsigned NOT NULL default '0',
-  `ea2_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS
-SELECT a_id AS ea2_to,
-       tl_from as ea2_from
-       FROM ruwiki_p.templatelinks, 
-            r,
-            pl,
-            articles
-       WHERE tl_namespace=@namespace and
-             tl_from IN
-             (
-              SELECT lkr_id 
-                     FROM linkers
-             ) and
-             r_title=tl_title and
-             pl_from=r_id and
-             pl_to=a_id;
+    # l now contain also links from articles to articles via double redirects.
+    INSERT IGNORE INTO l
+    SELECT r2r2a_to as l_to,
+           l2r_from as l_from
+           FROM l2r,
+                r2r2a
+           WHERE l2r_to=r2r2a_from and
+                 l2r_from!=r2r2a_to;
 
-# articles linked directly from linkers
-DROP TABLE IF EXISTS `l2a`;
-CREATE TABLE l2a (
-  `l2a_to` int(8) unsigned NOT NULL default '0',
-  `l2a_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT a_id as l2a_to,
-       pl_from as l2a_from
-       FROM pl,
-            articles
-       WHERE pl_from in
-       (
-        SELECT lkr_id 
-               FROM linkers
-       ) and
-       pl_to=a_id and
-       pl_from!=a_id;
+    # long chain as described by the name of the table
+    DROP TABLE IF EXISTS r2r2r2a;
+    CREATE TABLE r2r2r2a (
+      r2r2r2a_to int(8) unsigned NOT NULL default '0',
+    # next two are for people who like double redirects resolving
+      r2r2r2a_via1 int(8) unsigned NOT NULL default '0',
+      r2r2r2a_via2 int(8) unsigned NOT NULL default '0',
+      r2r2r2a_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT r2r_from as r2r2r2a_from,
+    # next two are for people who like double redirects resolving
+           r2r_to as r2r2r2a_via1,
+           r2r2a_via as r2r2r2a_via2,
+           r2r2a_to as r2r2r2a_to
+           FROM r2r,
+                r2r2a
+           WHERE r2r_to=r2r2a_from;
+    DROP TABLE r2r;
+    DROP TABLE r2r2a;
 
-# all links from linkers to redirects for a given namespace
-DROP TABLE IF EXISTS `l2r`;
-CREATE TABLE `l2r` (
-  `l2r_to` int(8) unsigned NOT NULL default '0',
-  `l2r_from` int(8) unsigned NOT NULL default '0',
-  KEY (`l2r_to`)
-) ENGINE=MEMORY AS 
-SELECT r_id as l2r_to,
-       pl_from as l2r_from
-       FROM pl,
-            r
-       WHERE pl_from in
-       (
-        SELECT lkr_id 
-               FROM linkers
-       ) and
-       pl_to=r_id;
+    # TRIPLE REDIRECTS
+    DROP TABLE IF EXISTS tr;
+    CREATE TABLE tr (
+      tr_from varchar(255) binary NOT NULL default '',
+      tr_via1 varchar(255) binary NOT NULL default '',
+      tr_via2 varchar(255) binary NOT NULL default '',
+      tr_to varchar(255) binary NOT NULL default ''
+    ) ENGINE=MEMORY AS
+    SELECT r1.r_title as tr_from,
+           r2.r_title as tr_via1,
+           r3.r_title as tr_via2,
+           a_title as tr_to
+           FROM r2r2r2a,
+                r as r1,
+                r as r2,
+                r as r3,
+                articles
+           WHERE r2r2r2a_from=r1.r_id and
+                 r2r2r2a_via1=r2.r_id and
+                 r2r2r2a_via2=r3.r_id and
+                 r2r2r2a_to=a_id;
 
-# all links from linked redirects in a given namespace to articles
-DROP TABLE IF EXISTS `mnrl`;
-CREATE TABLE `mnrl` (
-  `mnrl_to` int(8) unsigned NOT NULL default '0',
-  `mnrl_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT a_id as mnrl_to,
-       pl_from as mnrl_from
-       FROM pl,
-            articles
-       WHERE pl_from in
-             (
-              SELECT l2r_to
-                     FROM l2r
-             ) and
-             pl_to=a_id;
+    CALL outifexists( 'tr', 'triple redirects', 'tr.info', 'tr_from', 'upload' );
 
-# articles linked from linkers via redirect in a given namespace
-DROP TABLE IF EXISTS `l2r2a`;
-CREATE TABLE l2r2a (
-  `l2r2a_to` int(8) unsigned NOT NULL default '0',
-  `l2r2a_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT l2r_from as l2r2a_from,
-       mnrl_to as l2r2a_to
-       FROM mnrl,
-            l2r
-       WHERE mnrl_from=l2r_to and
-             mnrl_to!=l2r_from;
-DROP TABLE mnrl;
+    # l now contain links from article to article via triple redirects
+    INSERT IGNORE INTO l
+    SELECT r2r2r2a_to as l_to,
+           l2r_from as l_from
+           FROM l2r,
+                r2r2r2a
+           WHERE l2r_to=r2r2r2a_from and
+                 l2r_from!=r2r2r2a_to;
+    DROP TABLE r2r2r2a;
+  END;
+//
 
-# all links from our namespace redirects to articles
-DROP TABLE IF EXISTS `rrl`;
-CREATE TABLE `rrl` (
-  `rrl_to` int(8) unsigned NOT NULL default '0',
-  `rrl_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT a_id as rrl_to,
-       pl_from as rrl_from
-       FROM pl,
-            articles
-       WHERE pl_from in
-       (
-        SELECT r_id
-               FROM r
-       ) and
-       pl_to=a_id;
+#
+# Before any analysis running we need to identify all the valid links between
+# articles. Here the links table l is constructed as containing
+#  - direct links from article to article
+#  - links from article to article via a redirect from the namespace given
+#  - links from article to article via a long (double and triple) redirect
+#
+# Note: Now the links table requires @@max_heap_table_size 
+#       to be equal to 268435456 bytes for main namespace analysis in ruwiki.
+#
+DROP PROCEDURE IF EXISTS construct_links//
+CREATE PROCEDURE construct_links ()
+  BEGIN
+    # Table l is created here for all links, which are to be taken into account.
+    DROP TABLE IF EXISTS l;
+    CREATE TABLE l (
+      l_to int(8) unsigned NOT NULL default '0',
+      l_from int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (l_to,l_from)
+    ) ENGINE=MEMORY AS
+    #
+    # Here we adding articles linked directly from other articles.
+    #
+    SELECT a_id as l_to,
+           pl_from as l_from
+           FROM pl,
+                articles
+           WHERE pl_from in
+                 (
+                  SELECT a_id 
+                         FROM articles
+                 ) and
+                 pl_to=a_id and
+                 pl_from!=a_id;
 
-# all links from linked our namespace redirects to our namespace redirects
-# there are a lot of double redirects but here only linked are considered
-DROP TABLE IF EXISTS r2r;
-CREATE TABLE `r2r` (
-  `r2r_to` int(8) unsigned NOT NULL default '0',
-  `r2r_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT r_id as r2r_to,
-       pl_from as r2r_from
-       FROM pl,
-            r
-       WHERE pl_from in
-       (
-        SELECT l2r_to
-               FROM l2r
-       ) and
-       pl_to=r_id;
-DROP TABLE pl;
+    #
+    # Links from article to article via a redirect
+    #
 
-# all links from redirects to articles via one more redirect
-DROP TABLE IF EXISTS `r2r2a`;
-CREATE TABLE r2r2a (
-  `r2r2a_to` int(8) unsigned NOT NULL default '0',
-# next one is for people who like double redirects resolving
-  `r2r2a_via` int(8) unsigned NOT NULL default '0',
-  `r2r2a_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT r2r_from as r2r2a_from,
-# next one is for people who like double redirects resolving
-       r2r_to as r2r2a_via,
-       rrl_to as r2r2a_to
-       FROM rrl,
-            r2r
-       WHERE rrl_from=r2r_to;
-DROP TABLE rrl;
+    # all links from articles to redirects for a given namespace
+    DROP TABLE IF EXISTS l2r;
+    CREATE TABLE l2r (
+      l2r_to int(8) unsigned NOT NULL default '0',
+      l2r_from int(8) unsigned NOT NULL default '0',
+      KEY (l2r_to)
+    ) ENGINE=MEMORY AS 
+    SELECT r_id as l2r_to,
+           pl_from as l2r_from
+           FROM pl,
+                r
+           WHERE pl_from in
+                 (
+                  SELECT a_id 
+                         FROM articles
+                 ) and
+                 pl_to=r_id;
 
-# DOUBLE REDIRECTS
-DROP TABLE IF EXISTS `dr`;
-CREATE TABLE dr (
-  `dr_from` varchar(255) binary NOT NULL default '',
-  `dr_via` varchar(255) binary NOT NULL default '',
-  `dr_to` varchar(255) binary NOT NULL default ''
-) ENGINE=MEMORY AS
-SELECT r1.r_title as dr_from,
-       r2.r_title as dr_via,
-       a_title as dr_to
-       FROM r2r2a,
-            r as r1,
-            r as r2,
-            articles
-       WHERE r2r2a_from=r1.r_id and
-             r2r2a_via=r2.r_id and
-             r2r2a_to=a_id;
+    # all links from linked redirects in a given namespace to articles
+    DROP TABLE IF EXISTS mnrl;
+    CREATE TABLE mnrl (
+      mnrl_to int(8) unsigned NOT NULL default '0',
+      mnrl_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT a_id as mnrl_to,
+           pl_from as mnrl_from
+           FROM pl,
+                articles
+           WHERE pl_from in
+                 (
+                  SELECT l2r_to
+                         FROM l2r
+                 ) and
+                 pl_to=a_id;
 
-CALL outifexists( 'dr', 'double redirects', 'dr.info', 'dr_from', 'upload' );
+    # Links from articles to articles via a redirect are put here to l.
+    INSERT IGNORE INTO l
+    SELECT mnrl_to as l_to,
+           l2r_from as l_from
+           FROM mnrl,
+                l2r
+           WHERE mnrl_from=l2r_to and
+                 mnrl_to!=l2r_from;
+    DROP TABLE mnrl;
 
-# all links from redirects to articles via one more redirect
-DROP TABLE IF EXISTS `l2r2r2a`;
-CREATE TABLE l2r2r2a (
-  `l2r2r2a_to` int(8) unsigned NOT NULL default '0',
-  `l2r2r2a_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT l2r_from as l2r2r2a_from,
-       r2r2a_to as l2r2r2a_to
-       FROM l2r,
-            r2r2a
-       WHERE l2r_to=r2r2a_from and
-             l2r_from!=r2r2a_to;
+    #
+    # Long redirects do not work for web API.
+    # As well as long redirects are collected and even resolved automatically
+    # all the links via long redirects can be also added to table l.
+    #
+    # However, all the long redirects found are also output for resolving.
+    #
+    CALL long_redirects();
 
-# long chain as described by the name of the table
-DROP TABLE IF EXISTS `r2r2r2a`;
-CREATE TABLE r2r2r2a (
-  `r2r2r2a_to` int(8) unsigned NOT NULL default '0',
-# next two are for people who like double redirects resolving
-  `r2r2r2a_via1` int(8) unsigned NOT NULL default '0',
-  `r2r2r2a_via2` int(8) unsigned NOT NULL default '0',
-  `r2r2r2a_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT r2r_from as r2r2r2a_from,
-# next two are for people who like double redirects resolving
-       r2r_to as r2r2r2a_via1,
-       r2r2a_via as r2r2r2a_via2,
-       r2r2a_to as r2r2r2a_to
-       FROM r2r,
-            r2r2a
-       WHERE r2r_to=r2r2a_from;
-DROP TABLE r2r;
-DROP TABLE r2r2a;
+    DROP TABLE l2r;
+  END;
+//
 
-# TRIPLE REDIRECTS
-DROP TABLE IF EXISTS `tr`;
-CREATE TABLE tr (
-  `tr_from` varchar(255) binary NOT NULL default '',
-  `tr_via1` varchar(255) binary NOT NULL default '',
-  `tr_via2` varchar(255) binary NOT NULL default '',
-  `tr_to` varchar(255) binary NOT NULL default ''
-) ENGINE=MEMORY AS
-SELECT r1.r_title as tr_from,
-       r2.r_title as tr_via1,
-       r3.r_title as tr_via2,
-       a_title as tr_to
-       FROM r2r2r2a,
-            r as r1,
-            r as r2,
-            r as r3,
-            articles
-       WHERE r2r2r2a_from=r1.r_id and
-             r2r2r2a_via1=r2.r_id and
-             r2r2r2a_via2=r3.r_id and
-             r2r2r2a_to=a_id;
-DROP TABLE r;
-
-CALL outifexists( 'tr', 'triple redirects', 'tr.info', 'tr_from', 'upload' );
-
-# all links from redirects to articles via one more redirect
-DROP TABLE IF EXISTS `l2r2r2r2a`;
-CREATE TABLE l2r2r2r2a (
-  `l2r2r2r2a_to` int(8) unsigned NOT NULL default '0',
-  `l2r2r2r2a_from` int(8) unsigned NOT NULL default '0'
-) ENGINE=MEMORY AS 
-SELECT l2r_from as l2r2r2a_from,
-       r2r2r2a_to as l2r2r2r2a_to
-       FROM l2r,
-            r2r2r2a
-       WHERE l2r_to=r2r2r2a_from and
-             l2r_from!=r2r2r2a_to;
-DROP TABLE l2r;
-DROP TABLE r2r2r2a;
-
-# all links to be taken into account
-# requires @@max_heap_table_size not less than 268435456;
-DROP TABLE IF EXISTS `l`;
-CREATE TABLE `l` (
-  `l_to` int(8) unsigned NOT NULL default '0',
-  `l_from` int(8) unsigned NOT NULL default '0',
-  PRIMARY KEY (`l_to`,`l_from`)
-) ENGINE=MEMORY;
-INSERT IGNORE INTO `l`
-       SELECT l2a_to as l_to,
-              l2a_from as l_from
-              FROM l2a;
-DROP TABLE l2a;
-INSERT IGNORE INTO `l`
-       SELECT l2r2a_to as l_to,
-              l2r2a_from as l_from
-              FROM l2r2a;
-DROP TABLE l2r2a;
-INSERT IGNORE INTO `l`
-       SELECT l2r2r2a_to as l_to,
-              l2r2r2a_from as l_from
-              FROM l2r2r2a;
-DROP TABLE l2r2r2a;
-INSERT IGNORE INTO `l`
-       SELECT l2r2r2r2a_to as l_to,
-              l2r2r2r2a_from as l_from
-              FROM l2r2r2r2a;
-DROP TABLE l2r2r2r2a;
-INSERT IGNORE INTO `l`
-       SELECT ea1_to as l_to,
-              ea1_from as l_from
-              FROM ea1;
-DROP TABLE ea1;
-INSERT IGNORE INTO `l`
-       SELECT ea2_to as l_to,
-              ea2_from as l_from
-              FROM ea2;
-DROP TABLE ea2;
-
-SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
-
-############################################################
-delimiter //
-
+#
+# This function is useful for former articles moved out from zero namespace.
+# Returns namespace prefix by its numerical identifier.
+#
 DROP FUNCTION IF EXISTS getnsprefix//
 CREATE FUNCTION getnsprefix ( ns INT )
   RETURNS VARCHAR(255)
@@ -841,6 +667,12 @@ CREATE FUNCTION getnsprefix ( ns INT )
   END;
 //
 
+#
+# Collects dead-end articles, i.e. articles having no links to other
+# existent articles. Also forms the list of new dead-end articles for
+# registration and the list of pages wikified enough to be excluded
+# from registered dead-end articles list.
+#
 DROP PROCEDURE IF EXISTS deadend//
 CREATE PROCEDURE deadend ()
   BEGIN
@@ -850,11 +682,11 @@ CREATE PROCEDURE deadend ()
     SELECT ':: echo dead end pages processing:' as title;
 
     # DEAD-END PAGES REGISTERED AT THE MOMENT
-    DROP TABLE IF EXISTS `del`;
-    CREATE TABLE `del` (
-      `id` int(8) unsigned NOT NULL default '0',
-      `act` int(8) signed NOT NULL default '0',
-      PRIMARY KEY (`id`)
+    DROP TABLE IF EXISTS del;
+    CREATE TABLE del (
+      id int(8) unsigned NOT NULL default '0',
+      act int(8) signed NOT NULL default '0',
+      PRIMARY KEY (id)
     ) ENGINE=MEMORY AS
     SELECT cl_from as id,
            -1 as act
@@ -862,21 +694,21 @@ CREATE PROCEDURE deadend ()
            #            a category registering deadend articles
            WHERE cl_to='Википедия:Тупиковые_статьи';
 
-    # linkers with links to articles
-    DROP TABLE IF EXISTS `lwl`;
-    CREATE TABLE `lwl` (
-      `lwl_id` int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (`lwl_id`)
+    # articles with links to articles
+    DROP TABLE IF EXISTS lwl;
+    CREATE TABLE lwl (
+      lwl_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (lwl_id)
     ) ENGINE=MEMORY AS 
     SELECT DISTINCT l_from as lwl_id
            FROM l;
 
-    # CURRENT DEAD-END LINKERS
+    # CURRENT DEAD-END ARTICLES
     INSERT INTO del
-    SELECT lkr_id as id,
+    SELECT a_id as id,
            1 as act
-           FROM linkers
-           WHERE lkr_id NOT IN
+           FROM articles
+           WHERE a_id NOT IN
            (
             SELECT lwl_id
                    FROM lwl
@@ -938,7 +770,166 @@ CREATE PROCEDURE deadend ()
   END;
 //
 
-# Obtains maximal isolated subgraph of a given graph
+#
+# Filters links from timelines and collaboration lists.
+# Also adds links to {{templated}} articles, because they cannot be
+# considered as non-reachable.
+#
+DROP PROCEDURE IF EXISTS apply_linking_rules//
+CREATE PROCEDURE apply_linking_rules (namespace INT)
+  BEGIN
+    IF namespace=0
+      THEN
+
+        # deletion of links from timelines
+        DELETE FROM l
+               WHERE l_from IN
+                     (
+                      SELECT DISTINCT a_id as excl_id
+                             FROM articles
+                                   #             Common Era years 
+                             WHERE a_title LIKE '_!_год' escape '!' OR
+                                   a_title LIKE '__!_год' escape '!' OR             
+                                   a_title LIKE '___!_год' escape '!' OR             
+                                   a_title LIKE '____!_год' escape '!' OR
+                                   #             years B.C.
+                                   a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
+                                   a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
+                                   a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
+                                   a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
+                                   #             decades
+                                   a_title LIKE '_-е' escape '!' OR             
+                                   a_title LIKE '__-е' escape '!' OR             
+                                   a_title LIKE '___-е' escape '!' OR
+                                   a_title LIKE '____-е' escape '!' OR
+                                   #             decades B.C.
+                                   a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
+                                   a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
+                                   a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
+                                   #             centuries
+                                   a_title LIKE '_!_век' escape '!' OR
+                                   a_title LIKE '__!_век' escape '!' OR
+                                   a_title LIKE '___!_век' escape '!' OR
+                                   a_title LIKE '____!_век' escape '!' OR
+                                   a_title LIKE '_____!_век' escape '!' OR
+                                   a_title LIKE '______!_век' escape '!' OR
+                                   #             centuries B.C.
+                                   a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
+                                   #             milleniums
+                                   a_title LIKE '_!_тысячелетие' escape '!' OR
+                                   a_title LIKE '__!_тысячелетие' escape '!' OR
+                                   #             milleniums B.C.
+                                   a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                                   a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                                   #             years in different application domains
+                                   a_title LIKE '_!_год!_в!_%' escape '!' OR
+                                   a_title LIKE '__!_год!_в!_%' escape '!' OR
+                                   a_title LIKE '___!_год!_в!_%' escape '!' OR
+                                   a_title LIKE '____!_год!_в!_%' escape '!' OR
+                                   #             calendar dates in the year
+                                   a_title LIKE '_!_января' escape '!' OR
+                                   a_title LIKE '__!_января' escape '!' OR
+                                   a_title LIKE '_!_февраля' escape '!' OR
+                                   a_title LIKE '__!_февраля' escape '!' OR
+                                   a_title LIKE '_!_марта' escape '!' OR
+                                   a_title LIKE '__!_марта' escape '!' OR
+                                   a_title LIKE '_!_апреля' escape '!' OR
+                                   a_title LIKE '__!_апреля' escape '!' OR
+                                   a_title LIKE '_!_мая' escape '!' OR
+                                   a_title LIKE '__!_мая' escape '!' OR
+                                   a_title LIKE '_!_июня' escape '!' OR
+                                   a_title LIKE '__!_июня' escape '!' OR
+                                   a_title LIKE '_!_июля' escape '!' OR
+                                   a_title LIKE '__!_июля' escape '!' OR
+                                   a_title LIKE '_!_августа' escape '!' OR
+                                   a_title LIKE '__!_августа' escape '!' OR
+                                   a_title LIKE '_!_сентября' escape '!' OR
+                                   a_title LIKE '__!_сентября' escape '!' OR
+                                   a_title LIKE '_!_октября' escape '!' OR
+                                   a_title LIKE '__!_октября' escape '!' OR
+                                   a_title LIKE '_!_ноября' escape '!' OR
+                                   a_title LIKE '__!_ноября' escape '!' OR
+                                   a_title LIKE '_!_декабря' escape '!' OR
+                                   a_title LIKE '__!_декабря' escape '!' OR
+                                   #             year lists by the first week day 
+                                   a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
+                                   a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!'
+                     );
+
+        # deletion of links from collaborational lists
+        DELETE FROM l
+               WHERE l_from IN
+                     (
+                      SELECT DISTINCT cl_from as excl_id
+                             FROM ruwiki_p.categorylinks 
+                                   #      secondary lists
+                             WHERE cl_to='Списки_статей_для_координации_работ'
+                     );
+
+    END IF;
+
+    #
+    #  Well, next, if an article is {{included as a template}}
+    #  it is, probably, not isolated, because it is visible
+    #  even without any hyperlink jumping.
+    #
+
+    #
+    # {{templating}} of articles is equivalent to links
+    # from including articles to included ones.
+    #
+
+    # Articles encapsulated directly into other articles.
+    # Note: Fast when templating is completely unusual for articles.
+    #       Than more are templated than slower this selection.
+    INSERT IGNORE INTO l
+    SELECT a_id as l_to,
+           tl_from as l_from
+           FROM ruwiki_p.templatelinks, 
+                articles
+                              # donno if this is true for ns=14
+                              # e.g. I cannot imagine templating of a category
+           WHERE tl_namespace=@namespace and
+                 tl_from IN
+                 (
+                  SELECT a_id 
+                         FROM articles
+                 ) and
+                 a_title=tl_title;
+
+    # Articles encapsulated into other articles via our namespace redirects.
+    # Note: Even slower, so pleasure if the selection result is close to empty.
+    INSERT IGNORE INTO l
+    SELECT a_id as l_to,
+           tl_from as l_from
+           FROM ruwiki_p.templatelinks, 
+                r,
+                pl,
+                articles
+           WHERE tl_namespace=@namespace and
+                 tl_from IN
+                 (
+                  SELECT a_id 
+                         FROM articles
+                 ) and
+                 r_title=tl_title and
+                 pl_from=r_id and
+                 pl_to=a_id;
+    DROP TABLE r;
+    DROP TABLE pl;
+  END;
+//
+
+#
+# Obtains maximal isolated subgraph of a given graph.
+#
 DROP PROCEDURE IF EXISTS oscchull//
 CREATE PROCEDURE oscchull (OUT linkscount INT)
   BEGIN
@@ -1012,7 +1003,9 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
   END;
 //
 
+#
 # CORE, DELETION OF HUGE OR LINKED SCC's
+#
 DROP PROCEDURE IF EXISTS filterscc//
 CREATE PROCEDURE filterscc (IN rank INT)
   BEGIN
@@ -1062,6 +1055,9 @@ CREATE PROCEDURE filterscc (IN rank INT)
   END;
 //
 
+#
+# Look for cluster id for each article pretending to be isolated.
+#
 DROP PROCEDURE IF EXISTS grpsplitga//
 CREATE PROCEDURE grpsplitga ()
   BEGIN
@@ -1148,6 +1144,10 @@ CREATE PROCEDURE grpsplitga ()
   END;
 //
 
+#
+# Look for cluster id for each article pretending to be isolated
+# when all the links direction is inversed.
+#
 DROP PROCEDURE IF EXISTS grpsplitrga//
 CREATE PROCEDURE grpsplitrga ()
   BEGIN
@@ -1185,7 +1185,7 @@ CREATE PROCEDURE grpsplitrga ()
 
     REPEAT
 
-      # simple copy of ga, name changed to mftmp
+      # simple copy of rga, name changed to mftmp
       DROP TABLE IF EXISTS mftmp;
       CREATE TABLE mftmp (
         f int(8) unsigned NOT NULL default '0',
@@ -1234,7 +1234,9 @@ CREATE PROCEDURE grpsplitrga ()
   END;
 //
 
-# returns unique isolated category identifier by a category pseudo-name
+#
+# Returns unique isolated category identifier by a category pseudo-name.
+#
 DROP FUNCTION IF EXISTS catuid//
 CREATE FUNCTION catuid (coolname VARCHAR(255))
   RETURNS INT
@@ -1250,7 +1252,9 @@ CREATE FUNCTION catuid (coolname VARCHAR(255))
   END;
 //
 
-# singlets
+#
+# Identifies isolated singlets (orphanes).
+#
 DROP PROCEDURE IF EXISTS _1//
 CREATE PROCEDURE _1 (category VARCHAR(255))
   BEGIN
@@ -1294,7 +1298,9 @@ CREATE PROCEDURE _1 (category VARCHAR(255))
   END;
 //
 
-# orphaned strongly connected components (oscc) of size <= maxsize
+#
+# Orphaned strongly connected components (oscc) with 1 < size <= maxsize.
+#
 DROP PROCEDURE IF EXISTS oscc//
 CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
   BEGIN
@@ -1374,43 +1380,47 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
   END;
 //
 
-# look for isolated components of size less or equal to maxsize
+#
+# Look for isolated components of size less or equal to maxsize.
+#
 DROP PROCEDURE IF EXISTS isolated_layer//
 CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
   BEGIN
-    # parenting links count for each parented article
-    DELETE FROM lc;
-    INSERT INTO lc
-           SELECT l_to as lc_pid,
-                  count( * ) as lc_amnt
-                  FROM l
-                  GROUP BY l_to;
-
     IF maxsize>=1
-      THEN CALL _1( CONCAT(upcat, '_1') );
-    END IF;
+      THEN
+        # parenting links count for each parented article
+        DELETE FROM lc;
+        INSERT INTO lc
+               SELECT l_to as lc_pid,
+                      count( * ) as lc_amnt
+                      FROM l
+                      GROUP BY l_to;
+        
+        CALL _1( CONCAT(upcat, '_1') );
 
-    IF maxsize>=2
-      THEN CALL oscc( maxsize, upcat );
-    END IF;
+        IF maxsize>=2
+          THEN CALL oscc( maxsize, upcat );
+        END IF;
 
-    # used only for ..._1 clasters detection,
-    # provides the ability to use INSERT ... ON DUPLICATE KEY UPDATE ... there
-    # select from isolated maybe is too wide
-    DELETE FROM parented
-           WHERE pid IN
-                 (
-                  SELECT id
-                         FROM isolated
-                         WHERE act>=0
-                 );
+        # used only for ..._1 clasters detection,
+        # provides the ability to use INSERT ... ON DUPLICATE KEY UPDATE ... there
+        # select from isolated maybe is too wide
+        DELETE FROM parented
+               WHERE pid IN
+                     (
+                      SELECT id
+                             FROM isolated
+                             WHERE act>=0
+                     );
+    END IF;
   END;
 //
 
 #
-# This procedure may need to be rewritten with a statement prepare
-# to avoid running trough all numbers from 1 upto maxsize
+# Identifies isolated clusters and sub-chains for a given chain node.
 #
+# Note: This procedure may need to be rewritten with a statement prepare
+#       to avoid running trough all numbers from 1 upto maxsize.
 #
 DROP PROCEDURE IF EXISTS forest_walk//
 CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix VARCHAR(255))
@@ -1457,10 +1467,10 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
                    ORDER BY a_title ASC; 
           END IF;
 
-          # if the orphaned category is changed for some of articles,
+          # If the orphaned category is changed for some of articles,
           # there will be two rows in the table representing each of them,
-          # one for old category removal and other new category 
-          # let's save our edits combining remove and put operations
+          # one for old category removal and other is a new category.
+          # Let's save our edits combining remove and put operations.
           #
           # who is duped (changed category)
           DROP TABLE IF EXISTS ttt;
@@ -1513,7 +1523,9 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
   END;
 //
 
-# converts human-readable? orcat names to really usefull and clear
+#
+# Converts human-readable? orcat names to really usefull and clear.
+#
 DROP FUNCTION IF EXISTS convertcat//
 CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
   RETURNS VARCHAR(255)
@@ -1575,7 +1587,9 @@ CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
   END;
 //
 
-# obtain all the scc's and chans for scc's of size less or equal to maxsize
+#
+# Obtain all the scc's and chans for scc's of size less or equal to maxsize.
+#
 DROP PROCEDURE IF EXISTS isolated//
 CREATE PROCEDURE isolated (maxsize INT)
   BEGIN
@@ -1616,7 +1630,7 @@ CREATE PROCEDURE isolated (maxsize INT)
       cat int(8) unsigned NOT NULL default '0',
       act int(8) signed NOT NULL default '1',
       KEY (id),
-      PRIMARY KEY ( `id`, `cat` ),
+      PRIMARY KEY ( id, cat ),
       KEY (cat)
     ) ENGINE=MEMORY
     SELECT cl_from as id,
@@ -1695,8 +1709,10 @@ CREATE PROCEDURE isolated (maxsize INT)
   END;
 //
 
-# create a task with respect to edits count minimization (not for AWB),
-# but for automated uploader, which is supposed to be implemented
+#
+# Create a task with respect to edits count minimization (not for AWB),
+# but for automated uploader, which is supposed to be implemented.
+#
 DROP PROCEDURE IF EXISTS combineandout//
 CREATE PROCEDURE combineandout ()
   BEGIN
@@ -1747,43 +1763,101 @@ CREATE PROCEDURE combineandout ()
   END;
 //
 
+#
+# Do all the connectivity analysis.
+#
+DROP PROCEDURE IF EXISTS connectivity//
+CREATE PROCEDURE connectivity ()
+  BEGIN
+    #
+    #  CONNECTIVITY ANALYSIS INITIALIZIATION
+    #
+    SET @starttime=now();
+
+    SELECT ':: echo init:' as title;
+
+    # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
+    # how old the latest edit there is?
+    SELECT CONCAT( ':: replag ', timediff(now(), max(rc_timestamp))) as title
+           FROM frwiki_p.recentchanges;
+
+    # the name-prefix for all output files, distinct for each run
+    SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
+
+    # preloads tables and recognizes redirects and articles
+    # requires @@max_heap_table_size not less than 134217728 for zero namespace;
+    CALL cache_namespace( @namespace );
+
+    # collect wrong redirects and cleanup redirects
+    CALL cleanup_redirects( @namespace );
+
+    # construct table of valid links named l
+    CALL construct_links();
+
+    SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
+
+    #
+    #  DEAD-END ARTICLES PROCESSING
+    #
+    SET @starttime=now();
+
+    CALL deadend();
+
+    SELECT CONCAT( ':: echo dead-end processing time: ', timediff(now(), @starttime));
+
+    #
+    #  ISOLATED ARTICLES PROCESSING
+    #
+    SET @starttime=now();
+
+    # For isolated articles analysis some articles like
+    # timelines and collaborational lists do not form relevant linking.
+    # All irrelevant links are excluded from valid links here.
+    # One more thing is the {{templated articles}} are obviously always
+    # parented, their content is visible even without any hyperlink jumps.
+    CALL apply_linking_rules( @namespace );
+
+    CALL isolated( @max_scc_size );
+
+    # this table is pretty well worn here after isolated processing
+    DROP TABLE l;
+
+    SELECT CONCAT( ':: echo isolated processing time: ', timediff(now(), @starttime));
+
+    # socket for the template maintainer
+    # minimizes amount of edits combining results for deadend and isolated analysis
+    CALL combineandout();
+
+    #
+    #  prepare some usefull data for web tool
+    #    "ISOLATED ARTICLES FOR A CATEGORY"
+    #
+    SET @starttime=now();
+
+    DROP TABLE IF EXISTS catvolume;
+    CREATE TABLE catvolume (
+      cv_title varchar(255) binary NOT NULL default '',
+      cv_count int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (cv_title)
+    ) ENGINE=MEMORY AS
+    SELECT cl_to as cv_title,
+           count(*) as cv_count
+           FROM ruwiki_p.categorylinks,
+                articles
+           WHERE a_id=cl_from
+           GROUP BY cl_to;
+
+    SELECT CONCAT( ':: echo category related stuff time: ', timediff(now(), @starttime));
+  END;
+//
+
+
 delimiter ;
 ############################################################
 
-SET @starttime=now();
-
-CALL deadend();
-
-DROP TABLE linkers;
-
-SELECT CONCAT( ':: echo dead-end processing time: ', timediff(now(), @starttime));
-
-SET @starttime=now();
-
-CALL isolated( @max_scc_size );
-
-DROP TABLE l;
-
-SELECT CONCAT( ':: echo isolated processing time: ', timediff(now(), @starttime));
-SET @starttime=now();
-
-CALL combineandout();
-
-# prepare some usefull data for web tool
-# "isolated articles for a particular category"
-DROP TABLE IF EXISTS catvolume;
-CREATE TABLE catvolume (
-  `cv_title` varchar(255) binary NOT NULL default '',
-  `cv_count` int(8) unsigned NOT NULL default '0',
-  PRIMARY KEY (cv_title)
-) ENGINE=MEMORY AS
-SELECT cl_to as cv_title,
-       count(*) as cv_count
-       FROM ruwiki_p.categorylinks,
-            articles
-       WHERE a_id=cl_from
-       GROUP BY cl_to;
-
-SELECT CONCAT( ':: echo finishing time: ', timediff(now(), @starttime));
+#
+# This call can be now performed from outside, it does all we need.
+#
+CALL connectivity();
 
 -- </pre>
