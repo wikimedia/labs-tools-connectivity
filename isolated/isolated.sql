@@ -271,9 +271,11 @@ CREATE PROCEDURE cache_namespace (num INT)
     DROP TABLE IF EXISTS pl;
     IF num=0
       THEN
-        # caching page links for speedup
-        # todo: check if there any speedup possible with
-        #       adding one more caching layer for links from p
+
+        # Cahing page links to the given namespace for speedup.
+        # Note: One of the key points here is that we do not try
+        #       to save pl_title to memory, the table this way will
+        #       be too large.
         CREATE TABLE pl (
           pl_from int(8) unsigned NOT NULL default '0',
           pl_to int(8) unsigned NOT NULL default '0'
@@ -284,6 +286,22 @@ CREATE PROCEDURE cache_namespace (num INT)
                     p
                WHERE pl_namespace=num and
                      pl_title=p_title;
+
+        # Delete everything going from other namespaces.
+        # Note: No proof for necessity of this operation in terms
+        #       of speedup. However, it also does not look making
+        #       the analysis slower. 
+        #       Can help when for projects with Meta part developed well.
+        DELETE FROM pl
+               WHERE pl_from NOT IN
+                     (
+                      SELECT p_id 
+                             FROM p
+                     );
+
+        SELECT CONCAT( ':: echo ', count(*), ' namespace ', num, ' links point namespace ', num )
+               FROM pl;
+
     END IF;
     IF num=14
       THEN
@@ -297,10 +315,10 @@ CREATE PROCEDURE cache_namespace (num INT)
                FROM ruwiki_p.categorylinks,
                     p
                WHERE cl_to=p_title;
-    END IF;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
-           FROM pl;
+        SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
+               FROM pl;
+    END IF;
 
     DROP TABLE p;
   END;
@@ -369,25 +387,12 @@ CREATE PROCEDURE cleanup_redirects (namespace INT)
 DROP PROCEDURE IF EXISTS long_redirects//
 CREATE PROCEDURE long_redirects ()
   BEGIN
-    # all links from our namespace redirects to articles
-    DROP TABLE IF EXISTS rrl;
-    CREATE TABLE rrl (
-      rrl_to int(8) unsigned NOT NULL default '0',
-      rrl_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT a_id as rrl_to,
-           pl_from as rrl_from
-           FROM pl,
-                articles
-           WHERE pl_from in
-                 (
-                  SELECT r_id
-                         FROM r
-                 ) and
-                 pl_to=a_id;
+    DECLARE cnt INT;
+    DECLARE chainlen INT DEFAULT '2';
 
-    # All links from linked our namespace redirects to our namespace redirects.
-    # There are a lot of double redirects but here only linked are considered.
+    #
+    # All links from and to redirects in our namespace.
+    #
     DROP TABLE IF EXISTS r2r;
     CREATE TABLE r2r (
       r2r_to int(8) unsigned NOT NULL default '0',
@@ -399,110 +404,124 @@ CREATE PROCEDURE long_redirects ()
                 r
            WHERE pl_from in
                  (
-                  SELECT l2r_to
-                         FROM l2r
+                  SELECT r_id
+                         FROM r
                  ) and
                  pl_to=r_id;
+    DROP TABLE pl;
 
-    # all links from redirects to articles via one more redirect
-    DROP TABLE IF EXISTS r2r2a;
-    CREATE TABLE r2r2a (
-      r2r2a_to int(8) unsigned NOT NULL default '0',
-    # next one is for people who like double redirects resolving
-      r2r2a_via int(8) unsigned NOT NULL default '0',
-      r2r2a_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT r2r_from as r2r2a_from,
-    # next one is for people who like double redirects resolving
-           r2r_to as r2r2a_via,
-           rrl_to as r2r2a_to
-           FROM rrl,
-                r2r
-           WHERE rrl_from=r2r_to;
-    DROP TABLE rrl;
+    SELECT CONCAT( ':: echo ', count(*), ' links from redirects to redirects' )
+           FROM r2r;
 
-    # DOUBLE REDIRECTS
-    DROP TABLE IF EXISTS dr;
-    CREATE TABLE dr (
-      dr_from varchar(255) binary NOT NULL default '',
-      dr_via varchar(255) binary NOT NULL default '',
-      dr_to varchar(255) binary NOT NULL default ''
+    #
+    # Names of redirect pages linking other redirects.
+    # This table contain everything required for multiple redirects resolving.
+    #
+    DROP TABLE IF EXISTS mr;
+    CREATE TABLE mr (
+      mr_title varchar(255) binary NOT NULL default ''
     ) ENGINE=MEMORY AS
-    SELECT r1.r_title as dr_from,
-           r2.r_title as dr_via,
-           a_title as dr_to
-           FROM r2r2a,
-                r as r1,
-                r as r2,
-                articles
-           WHERE r2r2a_from=r1.r_id and
-                 r2r2a_via=r2.r_id and
-                 r2r2a_to=a_id;
-
-    CALL outifexists( 'dr', 'double redirects', 'dr.info', 'dr_from', 'upload' );
-
-    # l now contain also links from articles to articles via double redirects.
-    INSERT IGNORE INTO l
-    SELECT r2r2a_to as l_to,
-           l2r_from as l_from
-           FROM l2r,
-                r2r2a
-           WHERE l2r_to=r2r2a_from and
-                 l2r_from!=r2r2a_to;
-
-    # long chain as described by the name of the table
-    DROP TABLE IF EXISTS r2r2r2a;
-    CREATE TABLE r2r2r2a (
-      r2r2r2a_to int(8) unsigned NOT NULL default '0',
-    # next two are for people who like double redirects resolving
-      r2r2r2a_via1 int(8) unsigned NOT NULL default '0',
-      r2r2r2a_via2 int(8) unsigned NOT NULL default '0',
-      r2r2r2a_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT r2r_from as r2r2r2a_from,
-    # next two are for people who like double redirects resolving
-           r2r_to as r2r2r2a_via1,
-           r2r2a_via as r2r2r2a_via2,
-           r2r2a_to as r2r2r2a_to
+    SELECT r_title as mr_title
            FROM r2r,
-                r2r2a
-           WHERE r2r_to=r2r2a_from;
+                r
+           WHERE r2r_from=r_id;
+
+    CALL outifexists( 'mr', 'multiple redirects', 'mr.info', 'mr_title', 'upload' );
+
+    #
+    # Let now X be one of:
+    #             - r
+    #             - r2r
+    #             - r2r2r
+    #             - etc.
+    #
+
+    #
+    # All links from linked redirects in our namespace to redirects chain X.
+    # Note: Here X=r.
+    #
+    DROP TABLE IF EXISTS lr2X;
+    CREATE TABLE lr2X (
+      lr2X_to int(8) unsigned NOT NULL default '0',
+      lr2X_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT r2r_to as lr2X_to,
+           r2r_from as lr2X_from
+           FROM r2r
+           WHERE r2r_from in
+                 (
+                  SELECT a2r_to
+                         FROM a2r
+                 );
+
+    SELECT count(*) INTO cnt
+           FROM lr2X;
+
+    WHILE cnt>0 DO
+      SELECT CONCAT( ':: echo ', cnt, ' linked chains of ', chainlen, ' redirects found' );
+
+      #
+      # All links from linked redirects to articles via a redirects chain X.
+      #
+      DROP TABLE IF EXISTS lr2X2a;
+      CREATE TABLE lr2X2a (
+        lr2X2a_to int(8) unsigned NOT NULL default '0',
+        lr2X2a_from int(8) unsigned NOT NULL default '0'
+      ) ENGINE=MEMORY AS 
+      SELECT lr2X_from as lr2X2a_from,
+             r2a_to as lr2X2a_to
+             FROM r2a,
+                  lr2X
+             WHERE r2a_from=lr2X_to;
+
+      SELECT CONCAT( ':: echo ', count(*), ' linked chains of ', chainlen, ' redirects linking articles found' )
+             FROM lr2X2a;
+
+      #
+      # Add article to article links via a redirects chain r2X.
+      # 
+      INSERT IGNORE INTO l
+      SELECT lr2X2a_to as l_to,
+             a2r_from as l_from
+             FROM a2r,
+                  lr2X2a
+             WHERE a2r_to=lr2X2a_from and
+                   a2r_from!=lr2X2a_to;
+      DROP TABLE lr2X2a;
+
+      SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles (direct or via a chain of up to ', chainlen, ' redirects) found' )
+             FROM l;
+
+      #
+      # Connect redirects to ends of linked redirect chains.
+      # Note: Columns are prepared for renaming of the table.
+      #
+      DROP TABLE IF EXISTS lr2X2r;
+      CREATE TABLE lr2X2r (
+        lr2X_to int(8) unsigned NOT NULL default '0',
+        lr2X_from int(8) unsigned NOT NULL default '0'
+      ) ENGINE=MEMORY AS 
+      SELECT lr2X_from,
+             r2r_to as lr2X_to
+             FROM lr2X,
+                  r2r
+             WHERE lr2X_to=r2r_from;
+      DROP TABLE lr2X;
+
+      #
+      # Now X=X2r everywhere
+      # 
+      RENAME TABLE lr2X2r TO lr2X;
+
+      SET chainlen=chainlen+1;
+
+      SELECT count(*) INTO cnt
+             FROM lr2X;
+
+    END WHILE;
+
+    DROP TABLE lr2X;
     DROP TABLE r2r;
-    DROP TABLE r2r2a;
-
-    # TRIPLE REDIRECTS
-    DROP TABLE IF EXISTS tr;
-    CREATE TABLE tr (
-      tr_from varchar(255) binary NOT NULL default '',
-      tr_via1 varchar(255) binary NOT NULL default '',
-      tr_via2 varchar(255) binary NOT NULL default '',
-      tr_to varchar(255) binary NOT NULL default ''
-    ) ENGINE=MEMORY AS
-    SELECT r1.r_title as tr_from,
-           r2.r_title as tr_via1,
-           r3.r_title as tr_via2,
-           a_title as tr_to
-           FROM r2r2r2a,
-                r as r1,
-                r as r2,
-                r as r3,
-                articles
-           WHERE r2r2r2a_from=r1.r_id and
-                 r2r2r2a_via1=r2.r_id and
-                 r2r2r2a_via2=r3.r_id and
-                 r2r2r2a_to=a_id;
-
-    CALL outifexists( 'tr', 'triple redirects', 'tr.info', 'tr_from', 'upload' );
-
-    # l now contain links from article to article via triple redirects
-    INSERT IGNORE INTO l
-    SELECT r2r2r2a_to as l_to,
-           l2r_from as l_from
-           FROM l2r,
-                r2r2r2a
-           WHERE l2r_to=r2r2r2a_from and
-                 l2r_from!=r2r2r2a_to;
-    DROP TABLE r2r2r2a;
   END;
 //
 
@@ -527,7 +546,7 @@ CREATE PROCEDURE construct_links ()
       PRIMARY KEY (l_to,l_from)
     ) ENGINE=MEMORY AS
     #
-    # Here we adding articles linked directly from other articles.
+    # Here we adding direct links to articles from other articles.
     #
     SELECT a_id as l_to,
            pl_from as l_from
@@ -541,19 +560,22 @@ CREATE PROCEDURE construct_links ()
                  pl_to=a_id and
                  pl_from!=a_id;
 
+    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles' )
+           FROM l;
+
     #
     # Links from article to article via a redirect
     #
 
-    # all links from articles to redirects for a given namespace
-    DROP TABLE IF EXISTS l2r;
-    CREATE TABLE l2r (
-      l2r_to int(8) unsigned NOT NULL default '0',
-      l2r_from int(8) unsigned NOT NULL default '0',
-      KEY (l2r_to)
+    # All links from articles to redirects for a given namespace.
+    DROP TABLE IF EXISTS a2r;
+    CREATE TABLE a2r (
+      a2r_to int(8) unsigned NOT NULL default '0',
+      a2r_from int(8) unsigned NOT NULL default '0',
+      KEY (a2r_to)
     ) ENGINE=MEMORY AS 
-    SELECT r_id as l2r_to,
-           pl_from as l2r_from
+    SELECT r_id as a2r_to,
+           pl_from as a2r_from
            FROM pl,
                 r
            WHERE pl_from in
@@ -563,43 +585,70 @@ CREATE PROCEDURE construct_links ()
                  ) and
                  pl_to=r_id;
 
-    # all links from linked redirects in a given namespace to articles
-    DROP TABLE IF EXISTS mnrl;
-    CREATE TABLE mnrl (
-      mnrl_to int(8) unsigned NOT NULL default '0',
-      mnrl_from int(8) unsigned NOT NULL default '0'
+    SELECT CONCAT( ':: echo ', count(*), ' links from articles to redirects' )
+           FROM a2r;
+
+    # All links from our namespace redirects to articles.
+    DROP TABLE IF EXISTS r2a;
+    CREATE TABLE r2a (
+      r2a_to int(8) unsigned NOT NULL default '0',
+      r2a_from int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY AS 
-    SELECT a_id as mnrl_to,
-           pl_from as mnrl_from
+    SELECT a_id as r2a_to,
+           pl_from as r2a_from
            FROM pl,
                 articles
            WHERE pl_from in
                  (
-                  SELECT l2r_to
-                         FROM l2r
+                  SELECT r_id
+                         FROM r
                  ) and
                  pl_to=a_id;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from redirects to articles' )
+           FROM r2a;
+
+    # All links from linked redirects in a given namespace to articles.
+    DROP TABLE IF EXISTS lr2a;
+    CREATE TABLE lr2a (
+      mnrl_to int(8) unsigned NOT NULL default '0',
+      mnrl_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS 
+    SELECT r2a_to as mnrl_to,
+           r2a_from as mnrl_from
+           FROM r2a
+           WHERE r2a_from in
+                 (
+                  SELECT a2r_to
+                         FROM a2r
+                 );
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from linked redirects to articles' )
+           FROM lr2a;
 
     # Links from articles to articles via a redirect are put here to l.
     INSERT IGNORE INTO l
     SELECT mnrl_to as l_to,
-           l2r_from as l_from
-           FROM mnrl,
-                l2r
-           WHERE mnrl_from=l2r_to and
-                 mnrl_to!=l2r_from;
-    DROP TABLE mnrl;
+           a2r_from as l_from
+           FROM lr2a,
+                a2r
+           WHERE mnrl_from=a2r_to and
+                 mnrl_to!=a2r_from;
+    DROP TABLE lr2a;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles (direct or via a redirect)' )
+           FROM l;
 
     #
     # Long redirects do not work for web API.
     # As well as long redirects are collected and even resolved automatically
     # all the links via long redirects can be also added to table l.
     #
-    # However, all the long redirects found are also output for resolving.
+    # All the long redirects found are also output for resolving.
     #
     CALL long_redirects();
 
-    DROP TABLE l2r;
+    DROP TABLE a2r;
   END;
 //
 
@@ -911,7 +960,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
            tl_from as l_from
            FROM ruwiki_p.templatelinks, 
                 r,
-                pl,
+                r2a,
                 articles
            WHERE tl_namespace=@namespace and
                  tl_from IN
@@ -920,10 +969,10 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
                          FROM articles
                  ) and
                  r_title=tl_title and
-                 pl_from=r_id and
-                 pl_to=a_id;
+                 r2a_from=r_id and
+                 r2a_to=a_id;
     DROP TABLE r;
-    DROP TABLE pl;
+    DROP TABLE r2a;
   END;
 //
 
@@ -1706,6 +1755,10 @@ CREATE PROCEDURE isolated (maxsize INT)
                      id=page_id
                ORDER BY page_title ASC;
     END IF;
+
+    SELECT CONCAT( ':: echo ', count(*), ' isolated articles found' )
+           FROM isolated
+           WHERE act>=0;
   END;
 //
 
