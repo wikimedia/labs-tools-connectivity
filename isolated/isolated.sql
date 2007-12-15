@@ -30,9 +30,9 @@
  --                           all the links from collaborational lists are
  --                           also ignored.
  --
- -- Side effects: Some double and triple redirects are also collected by the
- --               way. It is strange for me to know that Mediawiki engine
- --               does not recognize most of them.
+ -- Side effects: Some multiple (double, triple, etc) redirects are also
+ --               collected by the way. It is strange for me to know that
+ --               Mediawiki engine does not recognize most of them.
  --               Wrong redirect pages can be found somitimes, and they are
  --               wrong because they work as redirects in the web but contain
  --               some garbage links making impossible any links analysis 
@@ -60,7 +60,7 @@
  --                             connected components (aka oscc), and chains
  --                             of such orphaned clusters.
  --                             It is kwown after ... (do not remember)
- --                             that clusters are constructed from cycles
+ --                             that clusters are all constructed from cycles
  --                             of various size.
  -- 
  -- Namespace and complexity control:
@@ -326,7 +326,7 @@ CREATE PROCEDURE cache_namespace (num INT)
 
 #
 # Forms wrong redirects table wr and filter redirects table appropriately.
-# For namespace 14 outputs a list of good redirects.
+# For namespace 14 outputs a list of all redirects because they are prohibited.
 #
 DROP PROCEDURE IF EXISTS cleanup_redirects//
 CREATE PROCEDURE cleanup_redirects (namespace INT)
@@ -410,12 +410,9 @@ CREATE PROCEDURE long_redirects ()
                  pl_to=r_id;
     DROP TABLE pl;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links from redirects to redirects' )
-           FROM r2r;
-
     #
     # Names of redirect pages linking other redirects.
-    # This table contain everything required for multiple redirects resolving.
+    # This table contains everything required for multiple redirects resolving.
     #
     DROP TABLE IF EXISTS mr;
     CREATE TABLE mr (
@@ -426,7 +423,7 @@ CREATE PROCEDURE long_redirects ()
                 r
            WHERE r2r_from=r_id;
 
-    CALL outifexists( 'mr', 'multiple redirects', 'mr.info', 'mr_title', 'upload' );
+    CALL outifexists( 'mr', 'redirects linking redirects', 'mr.info', 'mr_title', 'upload' );
 
     #
     # Let now X be one of:
@@ -530,10 +527,11 @@ CREATE PROCEDURE long_redirects ()
 # articles. Here the links table l is constructed as containing
 #  - direct links from article to article
 #  - links from article to article via a redirect from the namespace given
-#  - links from article to article via a long (double and triple) redirect
+#  - links from article to article via a long (double, triple, etc) redirect
 #
-# Note: Now the links table requires @@max_heap_table_size 
-#       to be equal to 268435456 bytes for main namespace analysis in ruwiki.
+# Notes: Now the links table requires @@max_heap_table_size 
+#        to be equal to 268435456 bytes for main namespace analysis in ruwiki.
+#        Namespace 14 probably must be free of redirect links - todo.
 #
 DROP PROCEDURE IF EXISTS construct_links//
 CREATE PROCEDURE construct_links ()
@@ -1645,6 +1643,7 @@ CREATE PROCEDURE isolated (maxsize INT)
     DECLARE tmp VARCHAR(255);
     DECLARE rank INT;
     DECLARE cnt INT;
+    DECLARE overall INT;
 
     SELECT ':: echo isolated processing:' as title;
 
@@ -1756,9 +1755,15 @@ CREATE PROCEDURE isolated (maxsize INT)
                ORDER BY page_title ASC;
     END IF;
 
-    SELECT CONCAT( ':: echo ', count(*), ' isolated articles found' )
+    SELECT count(*) INTO overall
            FROM isolated
            WHERE act>=0;
+
+    SELECT CONCAT( ':: echo ', overall, ' isolated articles found' );
+    
+    SELECT CONCAT( ':: out ', @fprefix, 'stat' );
+    SELECT CONCAT( 'Общее количество изолированных статей: ', overall );
+
   END;
 //
 
@@ -1909,7 +1914,7 @@ delimiter ;
 ############################################################
 
 #
-# This call can be now performed from outside, it does all we need.
+# This call can be now performed from outside, it does everything we need.
 #
 CALL connectivity();
 
