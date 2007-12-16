@@ -1,3 +1,12 @@
+ # 
+ # Data uploader for 
+ # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.
+ # 
+ # Works on the Toolserver and uploads connectivity analysis statistics
+ # and multiple redirects list to Russian Wikipedia.
+ #
+ # <pre>
+
 #!/usr/bin/perl
 
 use strict; # 'strict' insists that all variables be declared
@@ -25,7 +34,8 @@ chomp $current;
 my $text;
 if( $mode eq 'pre' )
 {
-  $text = '<pre>';
+  # the constant is split to look better in the web
+  $text = '<'.'pre'.'>';
 } elsif( $mode eq 'stat') {
   $text='{| class="wikitable"'."\n".'|-'."\n";
 }
@@ -52,7 +62,8 @@ while( <> )
 }
 if( $mode eq 'pre' )
 {
-  $text=$text.'</pre>';
+  # the constant is split to look better in the web
+  $text=$text.'</'.'pre'.'>';
 } elsif( $mode eq 'stat') {
   $text=$text.'|}'."\n";
 }
@@ -72,3 +83,5 @@ else
 
   print "data successfully upload\n";
 }
+
+# </pre>
