@@ -659,58 +659,20 @@ CREATE FUNCTION getnsprefix ( ns INT )
   RETURNS VARCHAR(255)
   DETERMINISTIC
   BEGIN
-    CASE ns
-      WHEN 0
-        THEN
-          RETURN '';
-      WHEN 1
-        THEN
-          RETURN 'Обсуждение:';
-      WHEN 2
-        THEN
-          RETURN 'Участник:';
-      WHEN 3
-        THEN
-          RETURN 'Обсуждение_участника:';
-      WHEN 4
-        THEN
-          RETURN 'Википедия:';
-      WHEN 5
-        THEN
-          RETURN 'Обсуждение_Википедии:';
-      WHEN 6
-        THEN
-          RETURN 'Изображение:';
-      WHEN 7
-        THEN
-          RETURN 'Обсуждение_изображения:';
-      WHEN 8
-        THEN
-          RETURN 'MediaWiki:';
-      WHEN 9
-        THEN
-          RETURN 'Обсуждение_MediaWiki:';
-      WHEN 10
-        THEN
-          RETURN 'Шаблон:';
-      WHEN 11
-        THEN
-          RETURN 'Обсуждение_шаблона:';
-      WHEN 12
-        THEN
-          RETURN 'Справка:';
-      WHEN 13
-        THEN
-          RETURN 'Обсуждение_справки:';
-      WHEN 14
-        THEN
-          RETURN 'Категория:';
-      WHEN 15
-        THEN
-          RETURN 'Обсуждение_категории:';
-      ELSE
-        RETURN 'unknownnamespace:';
-    END CASE;
+    DECLARE wrconstruct VARCHAR(255);
+
+    SELECT ns_name INTO wrconstruct
+           FROM toolserver.namespace
+           WHERE dbname='ruwiki_p' AND
+                 ns_id=ns;
+
+    IF wrconstruct != ''
+      THEN
+        SET wrconstruct=CONCAT( wrconstruct, ':' );
+    END IF;
+
+    RETURN wrconstruct;
+
   END;
 //
 
@@ -1490,7 +1452,7 @@ CREATE PROCEDURE forest_walk (maxsize INT, claster_type VARCHAR(255), outprefix 
       SELECT count( * ) INTO cnt
              FROM isolated 
              WHERE cat=curcatuid and
-                   act >=0;
+                   act>=0;
       IF cnt>0
         THEN
           # report on progress
@@ -1670,8 +1632,12 @@ CREATE PROCEDURE isolated (maxsize INT)
                                      # categories mechanism
                       page_namespace=14;
 
-    # main out table
-    # inited by currently registered isolated articles and their categories
+    #
+    # Main out table.
+    #
+    # Initialized with currently registered isolated articles
+    # and their categories.
+    #
     DROP TABLE IF EXISTS isolated;
     CREATE TABLE isolated (
       id int(8) unsigned NOT NULL default '0',
