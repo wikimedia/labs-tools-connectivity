@@ -22,7 +22,7 @@ fi
 dbhost="sql-s3"
 myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
 mypwd=$( cat ~/.my.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
-sql="mysql --host=$dbhost -A --user=${myusr} --password=${mypwd} --database=u_${myusr} -n -b"
+sql="mysql --host=$dbhost -A --user=${myusr} --password=${mypwd} --database=u_${myusr} -n -b -N"
 
 ruusr=$( cat ~/.ru.cnf | grep 'user ' | sed 's/^user = \"\([^\"]*\)\"$/\1/' )
 rupwd=$( cat ~/.ru.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
@@ -117,17 +117,41 @@ handle ()
 }
 
 time { 
-  $sql -N <isolated.sql 2>&1 | { 
-                                 state=0
-                                 while read -r line
-                                   do handle "$line"
-                                 done
-                                 if [ "$do_apply" = "1" ]
-                                 then
-                                   # cut three very first utf-8 bytes
-                                   tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
-                                 fi
-                               }
+  {
+    echo "set @namespace=0;"
+
+    #
+    # Choose the maximal oscc size for namespace 0, note:
+    #        - 5  takes up to 10 minutes,
+    #        - 10 takes up to 15 minutes, 
+    #        - 20 takes up to 20 minutes, 
+    #        - 40 takes up to 25 minutes
+    #        - more articles requires @@max_heap_table_size=536870912.
+    #
+
+    echo "set @max_scc_size=10;"
+
+    #
+    # Choose the right limit for recursion depth allowed.
+    # Set the recursion depth to 255 for the first run
+    # and then set it e.g. the maximal clusters chain length doubled.
+    #
+
+    echo "set max_sp_recursion_depth=10;"
+
+    cat isolated.sql
+
+  } | $sql 2>&1 | { 
+                    state=0
+                    while read -r line
+                      do handle "$line"
+                    done
+                    if [ "$do_apply" = "1" ]
+                    then
+                      # cut three very first utf-8 bytes
+                      tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
+                    fi
+                  }
 
   rm -f today.7z
   7z a today.7z ./*.txt >7z.log 2>&1
@@ -140,6 +164,33 @@ time {
   7z a stat.7z ./*.stat >>7z.log 2>&1
 
   todos 7z.log
+
+  {
+    echo "set @namespace=14;"
+
+    #
+    # Namespace 14 can be fully thrown within 45 minutes,
+    # the oscc size in this case is set to zero, which means no limit.
+    #
+
+    echo "set @max_scc_size=0;"
+
+    #
+    # Choose the right limit for recursion depth allowed.
+    # Set the recursion depth to 255 for the first run
+    # and then set it e.g. the maximal clusters chain length doubled.
+    #
+
+    echo "set max_sp_recursion_depth=255;"
+
+    cat isolated.sql
+
+  } | $sql 2>&1 | { 
+                    state=0
+                    while read -r line
+                      do handle "$line"
+                    done
+                  }
 }
 
 # </pre>
