@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+ <head>
+  <title>Mashiah's Projects</title><link rel="stylesheet" type="text/css" href="/~mashiah/main.css" media="all" /><style type="text/css">
+  
+  </style>
+ </head>
+ <body>
+ 
+  <a href="/"><img id="poweredbyicon" src="/~mashiah/wikimedia-toolserver-button.png" alt="Powered by
+    Wikimedia-Toolserver" /></a>
+  <h1>Mashiah's Projects</h1>
+
+<h2>contact</h2>
+<ul>
+<li>see <a href="http://ru.wikipedia.org/wiki/User:Mashiah_Davidson">my russian userpage</a>, <a href="http://ru.wikipedia.org/wiki/User:Голем">my bot's page</a> and <a href="http://ru.wikipedia.org/wiki/User Talk:Голем">our shared discussion</a></li>
+<li>look for me (nick: mashiah) in <a href="irc://irc.freenode.net/wikimedia-toolserver">#wikimedia-toolserver</a> on freenode</li>
+</ul>
+<h2>projects</h2>
+<p align=justify>I'm running just one project for Russian Wikipedia at the moment. This project
+is related to connectivity analysis and the script solving this task is published <a href="http://ru.wikipedia.org/wiki/%D0%A3%D1%87%D0%B0%D1%81%D1%82%D0%BD%D0%B8%D0%BA:Mashiah_Davidson/toolserver">here</a>.</p>
+
+<h2><a href="./cgi-bin/category.sh">isolated articles for a particular category (ruwiki)</a></h2>
+
+<h2><a href="./cgi-bin/category14.sh">categorytree connectivity (ruwiki)</a></h2>
+
+<h2><a href="./cgi-bin/suggest.sh">suggest a link for isolated articles (ruwiki)</a></h2>
+
+<h2>motivation</h2>
+<p align=justify>MediaWiki collects two lists: orphaned and deadend pages. 
+It is important to understand what the difference between page and article is.
+Page is everything in main namespace, which is not a redirect, including
+disambiguation pages. The page is linked when any link from other page points
+to the page we are considering. Even when this link is from other namespace
+(page has been considered to be deleted e.g. or just a discussion about this
+page taken place somewhere) or from disambiguation page (disambiguations are
+to be unlinked, so links from them do not help connecting articles one to another).
+</p>
+
+<p align=justify>MediaWiki also does not recognise links from lists or chronological articles.
+Such links are rarely relevant and nobody usually came from them. Other rules
+can also be introduced when we need to understand how well connected our
+articles are.</p>
+
+<p align=justify>Thinking about connectivity we may need to consider more
+than just orphanes. There may be two, three or more pages connecting to each other
+but without any links from outside of a group, i.e. isolated clusters (or 
+strongly connected components). One cluster may link other and there may be
+a chain of isolated clusters, which is not linked from the main connected 
+component containing most part of good articles. MediaWiki does not recognize
+isolated articles at all.</p>
+
+<p align=justify>When MediaWiki locates dead-end pages it looks if the
+page contain a link. It doesn't matter for the engine if this link is
+set from a template and just talks about some problems in a page or the
+link is to an article. Links to disambiguation pages are also threated
+as valid by the engine.</p>
+
+<p align=justify>Connectivity analysis for articles allows to authors
+make their articles better adding them an attention of other people, who
+are authors of other articles or just readers following links.</p>
+
+<p align=justify>One more point to begin with connectivity analysis is that this
+task is usually solved in with procedural languages analyzing offline links bases.
+In order to make the connectivity data more actual it is necessary to
+run the analyzer closer to severs to avoid large data transmittal. So,
+it is required to be written in SQL, and there were no SQL solutions
+for oriented graph connectivity analysis introduced. So, here we go.</p>
+
+<h2>scope</h2>
+Let suppose we have an article defined as non-redirect and non-disambiguation
+page from the main namespace. Let also suppose article has a link from other 
+article if this is a direct or redirected link from non-chronological article
+(can be easily disabled if necessary). Let suppose the article is not a dead-end
+page if it contains one or more links to other existent articles.
+
+The following tasks are now solved:
+<ul>
+ <li>Dead-end articles list according to the above definition</li>
+ <li>Orphaned articles list according to the above definition</li>
+ <li>All types of isolated clusters and chains of isolated clusters,
+     which are present and have size less than some threshold</li>
+</ul>
+
+Tasks solved by the way:
+<ul>
+ <li>List of double and triple redirects, which for unknown reason is more
+     complete than the list MediaWiki produces</li>
+ <li>List of wrong redirects (having uncommented text with links after
+     redirection magic.</li>
+ <li>Statistics for isolated clusters amount for different types of
+     clusters</li>
+ <li>Data for querying isolated articles for each particular category (see the bottom of this page)</li>
+</ul>
+
+<h2>how does it work</h2>
+<p align=justify>There are two mains scrips. One is <a href="http://fisheye.ts.wikimedia.org/browse/mashiah/isolated/isolated.sh">isolated.sh</a>,
+it runs on hemlock to drive the process. The second script <a href="http://fisheye.ts.wikimedia.org/browse/mashiah/isolated/isolated.sql">isolated.sql</a>
+is called by isolated.sh, works yarrow (for ruwiki at the moment) and does 
+all the connectivity analysis. When some sort of articles is found,
+the sql scripts puts some command to stdout, which is controlled by
+isolated.sh, and switches the output handler to put data to a file,
+upload it to Wikipedia or do something specific.</p>
+
+<p align=justify>Hope, following above links more data on how does connectivity
+analysis work can be found.</p>
+
+<h3>what's wrong with it</h3>
+<p align=justify>It is ok for 200 000 articles, but for enwiki it is too slow yet.</p>
+<p align=justify>to apply the data (set/remove some templates) AWB is actually used.
+Will be solved when my stupid brain overcome the task of templates management in perl, or
+may be when one or more smart brains will come with their help.</p>
+
+ </body>
+</html>
