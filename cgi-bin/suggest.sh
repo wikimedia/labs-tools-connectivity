@@ -80,7 +80,7 @@ then
   echo "</ol>"
   echo "end of the list"
 else
-  echo "<h4>$title</h4>"
+  echo "<h4><a href=\"http://ru.wikipedia.org/wiki/$title\">$title</a></h4>"
   echo "Based on disambiguation links analysis, this isolated article may become linked from the following articles:<br />"
 
   echo "<font color=red>"
