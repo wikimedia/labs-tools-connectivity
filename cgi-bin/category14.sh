@@ -145,6 +145,7 @@ cat << EOM
 
 <h2><a href="./category.sh">isolated articles for a particular category (ruwiki)</a></h2>
 <h2><a href="./suggest.sh">suggest a link for isolated articles (ruwiki)</a></h2>
+<h2><a href="./creators.sh">isolated articles creators (ruwiki)</a></h2>
 
  <body>
 </html>
