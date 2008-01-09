@@ -425,8 +425,6 @@ CREATE PROCEDURE long_redirects ()
                          FROM r
                  ) and
                  pl_to=r_id;
-# postponed till dlinks construction
-#    DROP TABLE pl;
 
     #
     # Names of redirect pages linking other redirects.
@@ -536,8 +534,6 @@ CREATE PROCEDURE long_redirects ()
     END WHILE;
 
     DROP TABLE lr2X;
-# postponed till disambig redirection
-#    DROP TABLE r2r;
   END;
 //
 
@@ -660,8 +656,6 @@ CREATE PROCEDURE construct_links ()
     #
     CALL long_redirects();
 
-# postponed till dlinks construction
-#    DROP TABLE a2r;
   END;
 //
 
@@ -1191,10 +1185,6 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
                      (
                        SELECT cllt_id
                               FROM cllt
-#                      SELECT DISTINCT cl_from as excl_id
-#                             FROM ruwiki_p.categorylinks 
-#                                   #      secondary lists
-#                             WHERE cl_to='Списки_статей_для_координации_работ'
                      );
 
         SELECT CONCAT( ':: echo ', count(*), ' links after collaborative lists cleanup' )
@@ -2169,6 +2159,275 @@ CREATE PROCEDURE combineandout ()
 //
 
 #
+# Prepare interwiki based linking suggestions for one language
+#
+DROP PROCEDURE IF EXISTS inter_lang//
+CREATE PROCEDURE inter_lang( language VARCHAR(10) )
+  BEGIN
+    DECLARE st VARCHAR(255);
+
+    SELECT CONCAT( ':: echo processing ', language );
+
+    #
+    # How many pages do link interwiki partners of our isolates.
+    #
+    SET @st=CONCAT( 'INSERT INTO liwl SELECT pl_from as fr, id as t FROM ', language, "wiki_p.pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language, "';" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis found" )
+           FROM liwl;
+
+    SET @st=CONCAT( 'INSERT INTO rinfo SELECT fr, page_is_redirect, page_title, t FROM ', language, 'wiki_p.page, liwl WHERE page_id=fr GROUP BY fr;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo . ', count(*), ' existent ', language, ' pages link interwiki partners' )
+           FROM rinfo;
+
+    #
+    # We need no interwikified redirects for suggestion tool.
+    #
+    DELETE liwl
+           FROM liwl,
+                rinfo
+           WHERE page_is_redirect=1 and
+                 rinfo.fr=liwl.fr;
+
+    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after redirects cleanup" )
+           FROM liwl;
+
+    SET @st=CONCAT( 'INSERT INTO liwl SELECT pl_from as fr, t FROM ', language, 'wiki_p.pagelinks, rinfo WHERE page_is_redirect=1 and pl_title=page_title and pl_namespace=0;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after redirects throwing" )
+           FROM liwl;
+
+    DELETE FROM rinfo;
+
+    SET @st=CONCAT( 'INSERT INTO dinfo SELECT cl_from FROM d_i18n, ', language, "wiki_p.categorylinks WHERE lang='", language, "' and cl_to=dn;" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo . ', count(*), ' disambiguation pages found' )
+           FROM dinfo;
+
+    #
+    # No need to suggest disambiguation pages translation.
+    #
+    DELETE liwl 
+           FROM liwl,
+                dinfo 
+           WHERE fr=did;
+    
+    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after disambiguations cleanup" )
+           FROM liwl;
+
+    DELETE FROM dinfo;
+
+    SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as isolated, '", language,"' as lang FROM ", language, "wiki_p.langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo . ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
+           FROM res
+           WHERE lang=language;
+
+    SET @st=CONCAT( 'DELETE liwl FROM ', language, "wiki_p.langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after exclusion of already translated" )
+           FROM liwl;
+
+    SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as isolated, '", language, "' as lang FROM ", language, 'wiki_p.page, liwl WHERE page_id=fr and page_namespace=0;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    DELETE FROM liwl;
+
+    SELECT CONCAT( ':: echo . ', count(DISTINCT isolated), ' isolates can be linked with main namespace page translation from ', language )
+           FROM tres
+           WHERE lang=language;
+
+  END;
+//
+
+#
+# Prepare interwiki based linking suggestions for isolated articles.
+#
+DROP PROCEDURE IF EXISTS inter_langs//
+CREATE PROCEDURE inter_langs()
+  BEGIN
+    #
+    # Interwiki links for isolated articles
+    #
+    DROP TABLE IF EXISTS iwl;
+    CREATE TABLE iwl (
+      id int(8) unsigned not null default '0',
+      title varchar(255) not null default '',
+      lang varchar(10) not null default '',
+      KEY (title)
+    ) ENGINE=MEMORY AS
+    SELECT id,
+           REPLACE(ll_title,' ','_') as title,
+           ll_lang as lang
+           FROM ruwiki_p.langlinks, 
+                ruwiki0 
+           WHERE id=ll_from;
+
+    SELECT CONCAT( ':: echo ', count(*), ' interwiki links for isolated articles found' )
+           FROM iwl;
+
+    #
+    # Exclusion of disambiguation pages requires the categoryname.
+    # We can obtain it from interwiki links fir the local disambiguations
+    # category.
+    #
+    DROP TABLE IF EXISTS d_i18n;
+    CREATE TABLE d_i18n (
+      lang varchar(10) binary NOT NULL default '',
+      dn varchar(255) binary NOT NULL default ''
+    ) ENGINE=MEMORY AS
+    SELECT ll_lang as lang,
+           REPLACE(SUBSTRING(ll_title,LOCATE(':',ll_title)+1), ' ', '_') as dn
+           FROM ruwiki_p.langlinks,
+                ruwiki_p.page
+           WHERE page_title='Многозначные_термины' and
+                 page_namespace=14 and
+                 ll_from=page_id;
+
+    DROP TABLE IF EXISTS liwl;
+    CREATE TABLE liwl (
+      fr int(8) unsigned not null default '0',
+      t int(8) unsigned not null default '0'
+    ) ENGINE=MEMORY;
+
+    DROP TABLE IF EXISTS rinfo;
+    CREATE TABLE rinfo (
+      fr int(8) unsigned not null default '0',
+      page_is_redirect tinyint(1) unsigned not null default '0',
+      page_title varchar(255) not null default '',
+      t int(8) unsigned not null default '0',
+      KEY (page_is_redirect, page_title)
+    ) ENGINE=MEMORY;
+
+    DROP TABLE IF EXISTS dinfo;
+    CREATE TABLE dinfo (
+      did int(8) unsigned not null default '0',
+      PRIMARY KEY (did)
+    ) ENGINE=MEMORY;
+
+    DROP TABLE IF EXISTS res;
+    CREATE TABLE res (
+      suggestn varchar(255) not null default '',
+      isolated int(8) unsigned not null default '0',
+      lang varchar(10) not null default ''
+    ) ENGINE=MEMORY;
+
+    DROP TABLE IF EXISTS tres;
+    CREATE TABLE tres (
+      suggestn varchar(255) not null default '',
+      isolated int(8) unsigned not null default '0',
+      lang varchar(10) not null default ''
+    ) ENGINE=MEMORY;
+
+    CALL inter_lang( 'en' );
+
+    # de is unreachable
+
+    CALL inter_lang( 'fr' );
+
+    # it is unreachable
+    # pl is unreachable
+
+    CALL inter_lang( 'es' );
+
+    # nl is unreachable
+    # sv is unreachable
+
+    CALL inter_lang( 'ja' );
+
+    # pt is unreachable
+    # fi is unreachable
+
+    CALL inter_lang( 'uk' );
+
+    # zh is unreachable
+    # no is unreachable
+    # cs is unreachable
+
+    CALL inter_lang( 'da' );
+    CALL inter_lang( 'sk' );
+    CALL inter_lang( 'hu' );
+    CALL inter_lang( 'he' );
+    CALL inter_lang( 'ca' );
+
+    # eo is unreachable
+
+    CALL inter_lang( 'ro' );
+
+    # tr is unreachable
+
+    CALL inter_lang( 'sr' );
+
+    CALL inter_lang( 'ko' );
+
+    # id is unreachable
+
+    CALL inter_lang( 'sl' );
+
+    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
+           FROM res;
+
+    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT isolated), ' isolates can be linked with translation' )
+           FROM tres;
+
+    INSERT INTO isocat
+    SELECT cv_title as ic_title,
+           count(DISTINCT isolated) as ic_count
+           FROM ruwiki_p.categorylinks,
+                res,
+                catvolume
+           WHERE cl_from=isolated and
+                 cl_to=cv_title
+           GROUP BY cv_title;
+        
+    UPDATE catvolume,
+           isocat
+           SET cv_ilscount=ic_count
+           WHERE ic_title=cv_title;
+    DELETE FROM isocat;
+
+    INSERT INTO isocat
+    SELECT cv_title as ic_title,
+           count(DISTINCT isolated) as ic_count
+           FROM ruwiki_p.categorylinks,
+                tres,
+                catvolume
+           WHERE cl_from=isolated and
+                 cl_to=cv_title
+           GROUP BY cv_title;
+        
+    UPDATE catvolume,
+           isocat
+           SET cv_tlscount=ic_count
+           WHERE ic_title=cv_title;
+    DELETE FROM isocat;
+
+  END;
+//
+
+
+#
 # Preparing data to use in external tools.
 #
 DROP PROCEDURE IF EXISTS outertools//
@@ -2196,6 +2455,43 @@ CREATE PROCEDURE outertools ()
                     articles
                WHERE a_id=cl_from
                GROUP BY cl_to;
+
+        ALTER TABLE catvolume ADD (
+          cv_isocount int(8) unsigned NOT NULL default '0',
+          cv_dsgcount int(8) unsigned NOT NULL default '0',
+          cv_ilscount int(8) unsigned NOT NULL default '0',
+          cv_tlscount int(8) unsigned NOT NULL default '0'
+        );
+
+        #
+        # No need to create additional stat for isolated categories.
+        # Pretend they are not exist.
+        #
+        DELETE catvolume
+               FROM catvolume,
+                    orcat
+               WHERE cv_title=cat;
+
+        DROP TABLE IF EXISTS isocat;
+        CREATE TABLE isocat (
+          ic_title varchar(255) binary NOT NULL default '',
+          ic_count int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (ic_title)
+        ) ENGINE=MEMORY AS
+        SELECT cv_title as ic_title,
+               count( * ) as ic_count
+               FROM ruwiki_p.categorylinks,
+                    ruwiki0,
+                    catvolume
+                    WHERE id=cl_from and
+                          cv_title=cl_to
+                    GROUP BY cl_to;
+
+        UPDATE catvolume,
+               isocat
+               SET cv_isocount=ic_count
+               WHERE ic_title=cv_title;
+        DELETE FROM isocat;
 
         #
         # List of isolated articles by cluster they belong to.
@@ -2226,27 +2522,28 @@ CREATE PROCEDURE outertools ()
         DROP TABLE IF EXISTS d2i;
         CREATE TABLE d2i (
           d2i_from int(8) unsigned NOT NULL default '0',
-          d2i_to int(8) unsigned NOT NULL default '0'
+          d2i_to varchar(255) binary NOT NULL default '',
+          KEY (d2i_to)
         ) ENGINE=MEMORY AS
         SELECT ld_from as d2i_from,
-               id as d2i_to
-               FROM isolated,
+               title as d2i_to
+               FROM ruwiki0,
                     ld
-               WHERE act>=0 and
-                     id=ld_to;
+               WHERE id=ld_to;
 
         SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to isolated articles' )
                FROM d2i;
 
 
         #
-        # Links from articles to isolated articles through disambiguation pages.
+        # Links from articles to articles through disambiguation pages linking isolates.
         # 
         DROP TABLE IF EXISTS a2i;
         CREATE TABLE a2i (
           a2i_from int(8) unsigned NOT NULL default '0',
           a2i_via int(8) unsigned NOT NULL default '0',
-          a2i_to int(8) unsigned NOT NULL default '0'
+          a2i_to varchar(255) binary NOT NULL default '',
+          KEY (a2i_to)
         ) ENGINE=MEMORY AS
         SELECT dl_from as a2i_from,
                d2i_from as a2i_via,
@@ -2255,11 +2552,29 @@ CREATE PROCEDURE outertools ()
                     d2i
                WHERE dl_to=d2i_from;
 
-        SELECT CONCAT( ':: echo ', count(*), ' links from articles to isolated articles through a disambiguation page' )
+        SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles through disambiguation pages linking isolates' )
                FROM a2i;
 
         SELECT CONCAT( ':: echo ', count(DISTINCT a2i_to), ' isolated articles may become linked' )
                FROM a2i;
+
+        INSERT INTO isocat
+        SELECT cv_title as ic_title,
+               count(DISTINCT a2i_to) as ic_count
+               FROM ruwiki_p.categorylinks,
+                    ruwiki0,
+                    a2i,
+                    catvolume
+               WHERE cl_from=id and
+                     title=a2i_to and
+                     cl_to=cv_title
+               GROUP BY cv_title;
+
+        UPDATE catvolume,
+               isocat
+               SET cv_dsgcount=ic_count
+               WHERE ic_title=cv_title;
+        DELETE FROM isocat;
 
     END IF;
     IF @namespace=14
@@ -2307,6 +2622,47 @@ CREATE PROCEDURE outertools ()
 
         DROP TABLE IF EXISTS wr14;
         RENAME TABLE wr TO wr14;
+
+        #
+        # For use in "ISOLATES WITH LINKED INTERWIKI".
+        #
+        # Note: postponed because takes too much time.
+        CALL inter_langs();
+
+        #
+        # For use in "ISOLATES ARTICLES CREATORS".
+        #
+
+        DROP TABLE IF EXISTS firstrev;
+        CREATE TABLE firstrev (
+          title varchar(255) binary NOT NULL default '',
+          garbage int(8) unsigned NOT NULL default '0',
+          revision int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (revision)
+        ) ENGINE=MEMORY AS
+        SELECT title,
+               rev_page as garbage,
+               min(rev_id) as revision
+               FROM ruwiki_p.revision,
+                    ruwiki0
+               WHERE rev_page=id
+               GROUP BY rev_page;
+
+        DROP TABLE IF EXISTS creators;
+        CREATE TABLE creators (
+          title varchar(255) binary NOT NULL default '',
+          user int(8) unsigned NOT NULL default '0',
+          user_text varchar(255) binary NOT NULL default ''
+        ) ENGINE=MEMORY AS
+        SELECT title,
+               rev_user as user,
+               rev_user_text as user_text
+               FROM ruwiki_p.revision,
+                    firstrev
+               WHERE revision=rev_id;
+
+        SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
+               FROM creators;
     END IF;
   END;
 //
@@ -2317,7 +2673,7 @@ CREATE PROCEDURE outertools ()
 # pages.
 #
 DROP PROCEDURE IF EXISTS dsuggest//
-CREATE PROCEDURE dsuggest (iid INT)
+CREATE PROCEDURE dsuggest (iid VARCHAR(255))
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE via_title VARCHAR(255);
@@ -2331,15 +2687,77 @@ CREATE PROCEDURE dsuggest (iid INT)
       FETCH cur INTO via_title, via_id;
       IF NOT done
         THEN
-          SELECT CONCAT( '::', via_title, ':::' );
+          SELECT CONCAT( '::', via_title );
           
-          SELECT DISTINCT CONCAT( '::::' , page_title, '!!!' )
+          SELECT DISTINCT CONCAT( ':::' , page_title )
                  FROM a2i,
                       ruwiki_p.page
                  WHERE a2i_to=iid and
                        a2i_via=via_id and
                        a2i_from=page_id
                  ORDER BY page_title ASC;
+
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE cur;
+  END;
+//
+
+DROP PROCEDURE IF EXISTS interwiki_suggest//
+CREATE PROCEDURE interwiki_suggest (iid VARCHAR(255))
+  BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE language VARCHAR(10);
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM res, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+
+    OPEN cur;
+
+    REPEAT
+      FETCH cur INTO language;
+      IF NOT done
+        THEN
+          SELECT CONCAT( '::', language );
+          
+          SELECT DISTINCT CONCAT( ':::' , suggestn )
+                 FROM res,
+                      ruwiki0
+                 WHERE title=iid and
+                       id=isolated and
+                       lang=language
+                 ORDER BY suggestn ASC;
+
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE cur;
+  END;
+//
+
+DROP PROCEDURE IF EXISTS interwiki_suggest_translate//
+CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
+  BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE language VARCHAR(10);
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM tres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+
+    OPEN cur;
+
+    REPEAT
+      FETCH cur INTO language;
+      IF NOT done
+        THEN
+          SELECT CONCAT( '::', language );
+          
+          SELECT DISTINCT CONCAT( ':::' , suggestn )
+                 FROM tres,
+                      ruwiki0
+                 WHERE title=iid and
+                       id=isolated and
+                       lang=language
+                 ORDER BY suggestn ASC;
 
       END IF;
     UNTIL done END REPEAT;
@@ -2478,7 +2896,7 @@ CREATE PROCEDURE connectivity ()
     DROP TABLE isolated;
     DROP TABLE orcat;
 
-    SELECT CONCAT( ':: echo category related stuff time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo outer tools related stuff time: ', timediff(now(), @starttime));
   END;
 //
 
