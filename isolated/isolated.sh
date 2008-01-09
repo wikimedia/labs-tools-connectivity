@@ -42,7 +42,15 @@ handle ()
     then
       if [ "$do_apply" = "1" ]
       then
-        echo $collectedline | perl r.pl $outpage "$ruusr" "$rupwd" 'pre'
+        elem=${#collection[*]}
+        {
+          iter=0
+          while [ $iter -lt $elem ]
+          do
+            echo ${collection[$iter]}
+            iter=$(($iter+1))
+          done
+        } | perl mr.pl "$ruusr" "$rupwd"
       fi
     fi
     state=0
@@ -100,6 +108,10 @@ handle ()
     0) if [ "${line:0:20}" = 'ERROR 2003 (HY000): ' ]
        then
          echo $dbhost is unavailable
+
+         echo errors in sql script
+         echo nothing will be applied
+         do_apply=0
        else
          if [ "$line" != '' ]
          then
@@ -109,7 +121,7 @@ handle ()
     1) echo -ne $line\\r\\n >> $out
        ;;
     2) echo -ne $line\\r\\n >> $out
-       collectedline=$(echo -ne "${collectedline}\\r${line}")
+        collection[${#collection[*]}]=$line
        ;;
     *) echo $line;;
     esac
