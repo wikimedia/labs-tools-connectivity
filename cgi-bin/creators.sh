@@ -79,8 +79,7 @@ Example: Maximaximax
 EOM
 
 usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
-pwd=$( cat ~/.my.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
-sql="mysql --host=sql-s3 -A --user=${usr} --password=${pwd} --database=u_${usr} -N"
+sql="mysql --defaults-file=/home/mashiah/.my.cnf --host=sql-s3 -A --database=u_${usr} -N"
 
 parse_query user
 parse_query registered
