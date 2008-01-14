@@ -143,8 +143,7 @@ cat << EOM
 EOM
 
 usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
-pwd=$( cat ~/.my.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
-sql="mysql --host=sql-s3 -A --user=${usr} --password=${pwd} --database=u_${usr} -N"
+sql="mysql --defaults-file=/home/mashiah/.my.cnf --host=sql-s3 -A --database=u_${usr} -N"
 
 parse_query title
 parse_query listby
@@ -162,6 +161,7 @@ case $listby in
     if [ "$category" = '' ]
     then
       echo "<h3>Suggestions by article categories for</h4>"
+      echo "<font color=red>What if it does not suggest?</font> Most likely the article has no or low on interwiki links, add few and wait for hope one or two days, then look again, the suggestions may have slightly changed."
       echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
       echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlinkcat\">linking based on interwiki</a></h4>"
       echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
@@ -190,7 +190,7 @@ case $listby in
           echo SELECT DISTINCT title                           \
                       FROM ruwiki_p.categorylinks,             \
                            ruwiki0,                            \
-                           a2i                                 \
+                           isdis                               \
                            WHERE id=cl_from and                \
                                  cl_to=\'${convertedcat}\' and \
                                  a2i_to=title                  \
@@ -219,7 +219,7 @@ case $listby in
           echo SELECT DISTINCT title                           \
                       FROM ruwiki_p.categorylinks,             \
                            ruwiki0,                            \
-                           res                                 \
+                           isres                               \
                            WHERE id=cl_from and                \
                                  cl_to=\'${convertedcat}\' and \
                                  isolated=id                   \
@@ -248,7 +248,7 @@ case $listby in
           echo SELECT DISTINCT title                           \
                       FROM ruwiki_p.categorylinks,             \
                            ruwiki0,                            \
-                           tres                                \
+                           istres                              \
                            WHERE id=cl_from and                \
                                  cl_to=\'${convertedcat}\' and \
                                  isolated=id                   \
@@ -339,7 +339,7 @@ case $listby in
   echo "<ol>"
   {
     echo SELECT DISTINCT a2i_to \
-                FROM a2i        \
+                FROM isdis        \
                 ORDER BY a2i_to ASC\;
   } | $sql 2>&1 | {
                     while read -r line
@@ -402,7 +402,7 @@ case $listby in
   echo "<ol>"
   {
     echo SELECT DISTINCT title    \
-                FROM res,         \
+                FROM isres,       \
                      ruwiki0      \
                 WHERE id=isolated \
                 ORDER BY title ASC\;
@@ -467,7 +467,7 @@ case $listby in
   echo "<ol>"
   {
     echo SELECT DISTINCT title    \
-                FROM tres,        \
+                FROM istres,      \
                      ruwiki0      \
                 WHERE id=isolated \
                 ORDER BY title ASC\;
