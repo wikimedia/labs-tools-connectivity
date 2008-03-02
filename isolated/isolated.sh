@@ -9,127 +9,37 @@
 
 #!/bin/bash
 
-# set the maximal replication lag value in minutes, which is allowed for apply
-# probably, less than script actually works
-maxlag=10
-
-do_apply=0
-if [ "$1" = "apply" ]
+do_templates=0
+do_stat=0
+do_mr=0
+if [ "$1" = "templates" ] || [ "$2" = "templates" ] || [ "$3" = "templates" ]
 then
-  do_apply=1
+  do_templates=1
+fi
+if [ "$1" = "mr" ] || [ "$2" = "mr" ] || [ "$3" = "mr" ]
+then
+  do_mr=1
+fi
+if [ "$1" = "stat" ] || [ "$2" = "stat" ] || [ "$3" = "stat" ]
+then
+  do_stat=1
 fi
 
 dbhost="sql-s3"
+dbhost2="sql-s2"
 myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
-mypwd=$( cat ~/.my.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
-sql="mysql --host=$dbhost -A --user=${myusr} --password=${mypwd} --database=u_${myusr} -n -b -N"
+sql="mysql --host=$dbhost -A --database=u_${myusr} -n -b -N --connect_timeout=10"
+sql2="mysql --host=$dbhost2 -A --database=u_${myusr} -n -b -N --connect_timeout=10"
 
 ruusr=$( cat ~/.ru.cnf | grep 'user ' | sed 's/^user = \"\([^\"]*\)\"$/\1/' )
 rupwd=$( cat ~/.ru.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
 
-rm -f ./*.info ./*.txt ./*.stat debug.log
-
-out='';
-handle ()
-{
-  local line=$1
-  local replag=''
-
-  if [ "${line:0:3}" = ':: ' ]
-  then
-    # apply previous command if necessary
-    if [ "$state" = '2' ]
-    then
-      if [ "$do_apply" = "1" ]
-      then
-        elem=${#collection[*]}
-        {
-          iter=0
-          while [ $iter -lt $elem ]
-          do
-            echo ${collection[$iter]}
-            iter=$(($iter+1))
-          done
-        } | perl mr.pl "$ruusr" "$rupwd"
-      fi
-    fi
-    state=0
-    # recognize current command
-    if [ "${line:3:5}" = 'echo ' ]
-    then
-      echo ${line:8}
-    else
-      if [ "${line:3:7}" = 'replag ' ]
-      then
-        echo replag: ${line:10}
-        if [ "$do_apply" = "1" ]
-        then
-          replag=${line:10};
-          hours=${replag%:*}
-          minutes=${hours#*:}
-          minutes=`expr $minutes + 0`
-          hours=${hours%:*}
-          hours=`expr $hours + 0`
-          minutes=$[$minutes+60*$hours]
-          if [ $minutes -ge $maxlag ]
-          then
-            echo replag of $minutes minutes is to big, must be below $maxlag
-            echo nothing will be applied
-            do_apply=0
-          fi
-        fi
-      else
-        if [ "${line:3:4}" = 'out ' ]
-        then
-          out=${line:7}
-          state=1 # file output
-          if [ ! -f $out ]
-          then
-            echo -ne \\0357\\0273\\0277 > $out
-           fi
-        else
-          if [ "${line:3:7}" = 'upload ' ]
-          then
-            out=${line:10}
-            state=2 # upload and file output
-            collectedline=''
-            # need better way for url definition, maybe sql driven
-            outpage=${out:15:2}
-            if [ ! -f $out ]
-            then
-              echo -ne \\0357\\0273\\0277 > $out
-            fi
-          fi
-        fi
-      fi
-    fi
-  else
-    case $state in           # Can't connect to MySQL server on '$dbhost' (111)'
-    0) if [ "${line:0:20}" = 'ERROR 2003 (HY000): ' ]
-       then
-         echo $dbhost is unavailable
-
-         echo errors in sql script
-         echo nothing will be applied
-         do_apply=0
-       else
-         if [ "$line" != '' ]
-         then
-           echo -ne $line\\r\\n >> debug.log
-         fi
-       fi;;
-    1) echo -ne $line\\r\\n >> $out
-       ;;
-    2) echo -ne $line\\r\\n >> $out
-        collection[${#collection[*]}]=$line
-       ;;
-    *) echo $line;;
-    esac
-  fi
-}
+rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log
 
 time { 
   {
+    cat iwikispy.sql
+
     echo "set @namespace=0;"
 
     #
@@ -154,14 +64,16 @@ time {
     cat isolated.sql
 
   } | $sql 2>&1 | { 
-                    state=0
-                    while read -r line
-                      do handle "$line"
-                    done
-                    if [ "$do_apply" = "1" ]
+                    ./handle.sh $1 $2 $3
+                    if [ "$do_stat" = "1" ]
                     then
-                      # cut three very first utf-8 bytes
-                      tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
+                      if [ -f no_stat.log ]
+                      then
+                        do_stat=0
+                      else
+                        # cut three very first utf-8 bytes
+                        tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
+                      fi
                     fi
                   }
 
@@ -195,14 +107,11 @@ time {
 
     echo "set max_sp_recursion_depth=255;"
 
-    cat isolated.sql
+    echo "set @@max_heap_table_size=134217728;"
 
-  } | $sql 2>&1 | { 
-                    state=0
-                    while read -r line
-                      do handle "$line"
-                    done
-                  }
+    echo 'CALL connectivity();'
+
+  } | $sql 2>&1 | ./handle.sh $1 $2 $3
 }
 
 # </pre>
