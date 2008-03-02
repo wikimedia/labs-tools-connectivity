@@ -61,7 +61,7 @@
  --                             of such orphaned clusters.
  --                             It is kwown after ... (do not remember)
  --                             that clusters are all constructed from cycles
- --                             of various size.
+ --                             of various sizes.
  -- 
  -- Namespace and complexity control:
  --
@@ -91,8 +91,8 @@ set @enable_informative_output=0;
 #set @@max_heap_table_size=33554432;
 #set @@max_heap_table_size=67108864;
 #set @@max_heap_table_size=134217728;
-set @@max_heap_table_size=268435456;
-#set @@max_heap_table_size=536870912;
+#set @@max_heap_table_size=268435456;
+set @@max_heap_table_size=536870912;
 #set @@max_heap_table_size=1073741824;
 
  --
@@ -203,55 +203,108 @@ CREATE PROCEDURE cache_namespace (num INT)
     SELECT CONCAT( ':: echo . redirects: ', count(*) )
            FROM r;
 
+    # Categories cache for non-redirects
+    # Requires @@max_heap_table_size not less than 536870912 for zero namespace.
+    DROP TABLE IF EXISTS nrcat;
+    CREATE TABLE nrcat (
+      nrc_id int(8) unsigned NOT NULL default '0',
+      nrc_to varchar(255) binary NOT NULL default '',
+      KEY (nrc_id)
+    ) ENGINE=MEMORY AS
+    SELECT nr_id as nrc_id,
+           cl_to as nrc_to
+           FROM ruwiki_p.categorylinks,
+                nr
+           WHERE nr_id=cl_from;
+
+    SELECT CONCAT( ':: echo ', count(*), ' categorizing links for non-redirects' )
+           FROM nrcat;
+
+    #
     # Disambiguation pages collected here to make suggestions isolates lining.
-    # The list is superflous, i.e. contains pages outside namespace num
+    # The list is superflous, i.e. contains pages outside namespace num.
+    #
+    # With namespace=14 it does show if disambiguations category is split into
+    # subcategories.
+    #
     DROP TABLE IF EXISTS d;
     CREATE TABLE d (
       d_id int(8) unsigned NOT NULL default '0',
       PRIMARY KEY  (d_id)
     ) ENGINE=MEMORY AS
-    SELECT DISTINCT cl_from as d_id
-           FROM ruwiki_p.categorylinks 
+    SELECT DISTINCT nrc_id as d_id
+           FROM nrcat
                  #      disambiguation pages
-           WHERE cl_to='Многозначные_термины';
+           WHERE nrc_to='Многозначные_термины';
 
     SELECT CONCAT( ':: echo ', count(*), ' disambiguation names found' )
            FROM d;
 
+    #
     # Collaborative lists collected here to for links table filtering.
     # The list is superflous, i.e. contains pages outside namespace num
+    #
+    #
+    # With namespace=14 it does show if secondary lists category is split into
+    # subcategories.
+    #
     DROP TABLE IF EXISTS cllt;
     CREATE TABLE cllt (
       cllt_id int(8) unsigned NOT NULL default '0',
       PRIMARY KEY  (cllt_id)
     ) ENGINE=MEMORY AS
-    SELECT DISTINCT cl_from as cllt_id
-           FROM ruwiki_p.categorylinks 
+    SELECT DISTINCT nrc_id as cllt_id
+           FROM nrcat
                 #      secondary lists
-           WHERE cl_to='Списки_статей_для_координации_работ';
+           WHERE nrc_to='Списки_статей_для_координации_работ';
 
     SELECT CONCAT( ':: echo ', count(*), ' secondary list names found' )
            FROM cllt;
 
-    # Non-articles by category in the namespace given.
-    # The list is superflous, i.e. contains pages outside namespace num
+    #
+    # Categorized non-articles.
+    #
+    # With namespace=14 is not used because of nature of links and pages.
+    #
     DROP TABLE IF EXISTS cna;
     CREATE TABLE cna (
       cna_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY  (cna_id)
-    ) ENGINE=MEMORY AS
-    SELECT d_id as cna_id
-           FROM d;
+      KEY  (cna_id)
+    ) ENGINE=MEMORY;
+ 
+    #
+    # Categorization does not allow category namespace pages to be of
+    # different types, since they all work as regular categories.
+    #
+    IF num!=14
+      THEN
+        #
+        # Add disambiguations to cna.
+        #
+        INSERT INTO cna
+        SELECT d_id as cna_id
+               FROM d;
 
-    # Add soft redirects to cna.
-    INSERT INTO cna
-    SELECT DISTINCT cl_from as cna_id
-           FROM ruwiki_p.categorylinks 
-                 #      soft redirects
-           WHERE cl_to='Википедия:Мягкие_перенаправления';
+        #
+        # Add soft redirects to cna.
+        #
+        INSERT INTO cna
+        SELECT DISTINCT nrc_id as cna_id
+               FROM nrcat
+                     #      soft redirects
+               WHERE nrc_to='Википедия:Мягкие_перенаправления';
 
-    SELECT CONCAT( ':: echo ', count(*), ' categorized exclusion names found' )
-           FROM cna;
+        #
+        # Add collaborative lists to cna.
+        #
+        INSERT INTO cna
+        SELECT cllt_id as cna_id
+               FROM cllt;
+
+        SELECT CONCAT( ':: echo ', count(*), ' categorized exclusion names found' )
+               FROM cna;
+    END IF;
+    DROP TABLE cllt;
 
     # Articles (i.e. non-redirects and non-disambigs for current namespace)
     DROP TABLE IF EXISTS articles;
@@ -266,11 +319,10 @@ CREATE PROCEDURE cache_namespace (num INT)
            FROM nr
            WHERE nr_id NOT IN 
                  (
-                  SELECT cna_id
+                  SELECT DISTINCT cna_id
                          FROM cna
                  );
     DROP TABLE cna;
-    DROP TABLE nr;
 
     SELECT count(*) INTO acount
            FROM articles;
@@ -279,24 +331,115 @@ CREATE PROCEDURE cache_namespace (num INT)
 
     # No restriction on maximal scc size does not mean infinite
     # computational resources, but it is known for sure that maximal
-    # scc size does not exceed the amount of elements in a set.
+    # scc size does not exceed the amount of elements in the set.
     IF @max_scc_size=0
       THEN
         SET @max_scc_size=acount;
     END IF;
 
+    #
+    # Chrono articles
+    #
+    DROP TABLE IF EXISTS chrono;
+    CREATE TABLE chrono (
+      chr_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY  (chr_id)
+    ) ENGINE=MEMORY AS
+    SELECT DISTINCT a_id as chr_id
+           FROM articles
+                 #             Common Era years 
+           WHERE a_title LIKE '_!_год' escape '!' OR
+                 a_title LIKE '__!_год' escape '!' OR             
+                 a_title LIKE '___!_год' escape '!' OR             
+                 a_title LIKE '____!_год' escape '!' OR
+                 #             years B.C.
+                 a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
+                 a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
+                 a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
+                 a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
+                 #             decades
+                 a_title LIKE '_-е' escape '!' OR             
+                 a_title LIKE '__-е' escape '!' OR             
+                 a_title LIKE '___-е' escape '!' OR
+                 a_title LIKE '____-е' escape '!' OR
+                 #             decades B.C.
+                 a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
+                 a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
+                 a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
+                 #             centuries
+                 a_title LIKE '_!_век' escape '!' OR
+                 a_title LIKE '__!_век' escape '!' OR
+                 a_title LIKE '___!_век' escape '!' OR
+                 a_title LIKE '____!_век' escape '!' OR
+                 a_title LIKE '_____!_век' escape '!' OR
+                 a_title LIKE '______!_век' escape '!' OR
+                 #             centuries B.C.
+                 a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
+                 #             milleniums
+                 a_title LIKE '_!_тысячелетие' escape '!' OR
+                 a_title LIKE '__!_тысячелетие' escape '!' OR
+                 #             milleniums B.C.
+                 a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                 a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                 #             years in different application domains
+                 a_title LIKE '_!_год!_в!_%' escape '!' OR
+                 a_title LIKE '__!_год!_в!_%' escape '!' OR
+                 a_title LIKE '___!_год!_в!_%' escape '!' OR
+                 a_title LIKE '____!_год!_в!_%' escape '!' OR
+                 #             calendar dates in the year
+                 a_title LIKE '_!_января' escape '!' OR
+                 a_title LIKE '__!_января' escape '!' OR
+                 a_title LIKE '_!_февраля' escape '!' OR
+                 a_title LIKE '__!_февраля' escape '!' OR
+                 a_title LIKE '_!_марта' escape '!' OR
+                 a_title LIKE '__!_марта' escape '!' OR
+                 a_title LIKE '_!_апреля' escape '!' OR
+                 a_title LIKE '__!_апреля' escape '!' OR
+                 a_title LIKE '_!_мая' escape '!' OR
+                 a_title LIKE '__!_мая' escape '!' OR
+                 a_title LIKE '_!_июня' escape '!' OR
+                 a_title LIKE '__!_июня' escape '!' OR
+                 a_title LIKE '_!_июля' escape '!' OR
+                 a_title LIKE '__!_июля' escape '!' OR
+                 a_title LIKE '_!_августа' escape '!' OR
+                 a_title LIKE '__!_августа' escape '!' OR
+                 a_title LIKE '_!_сентября' escape '!' OR
+                 a_title LIKE '__!_сентября' escape '!' OR
+                 a_title LIKE '_!_октября' escape '!' OR
+                 a_title LIKE '__!_октября' escape '!' OR
+                 a_title LIKE '_!_ноября' escape '!' OR
+                 a_title LIKE '__!_ноября' escape '!' OR
+                 a_title LIKE '_!_декабря' escape '!' OR
+                 a_title LIKE '__!_декабря' escape '!' OR
+                 #             year lists by the first week day 
+                 a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
+                 a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
+
+    SELECT CONCAT( ':: echo ', count(*), ' chronological articles found' )
+           FROM chrono;
+
     DROP TABLE IF EXISTS pl;
-    IF num=0
+    IF num!=14
       THEN
 
+        #
         # Cahing page links to the given namespace for speedup.
-        # Note: One of the key points here is that we do not try
-        #       to save pl_title to memory, the table this way will
-        #       be too large.
+        #
+        # Notes: 1) Links to existant pages cached only, i.e. no "red links".
+        #        2) One of the key points here is that we do not try
+        #           to save pl_title to memory, the table this way will
+        #           be too large.
         CREATE TABLE pl (
           pl_from int(8) unsigned NOT NULL default '0',
           pl_to int(8) unsigned NOT NULL default '0'
-        ) ENGINE=MEMORY AS
+        ) ENGINE=MEMORY AS /* SLOW_OK */
         SELECT pl_from,
                p_id as pl_to
                FROM ruwiki_p.pagelinks,
@@ -304,7 +447,9 @@ CREATE PROCEDURE cache_namespace (num INT)
                WHERE pl_namespace=num and
                      pl_title=p_title;
 
+        #
         # Delete everything going from other namespaces.
+        #
         # Note: No proof for necessity of this operation in terms
         #       of speedup. However, it also does not look making
         #       the analysis slower. 
@@ -319,19 +464,19 @@ CREATE PROCEDURE cache_namespace (num INT)
         SELECT CONCAT( ':: echo ', count(*), ' namespace ', num, ' links point namespace ', num )
                FROM pl;
 
-    END IF;
-    IF num=14
-      THEN
-        # caching category links for speedup
+      ELSE
+        #
+        # Caching category links for speedup.
+        #
         CREATE TABLE pl (
           pl_from int(8) unsigned NOT NULL default '0',
           pl_to int(8) unsigned NOT NULL default '0'
         ) ENGINE=MEMORY AS
         SELECT p_id as pl_from,
-               cl_from as pl_to
-               FROM ruwiki_p.categorylinks,
+               nrc_id as pl_to
+               FROM nrcat,
                     p
-               WHERE cl_to=p_title;
+               WHERE nrc_to=p_title;
 
         SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
                FROM pl;
@@ -376,7 +521,7 @@ CREATE PROCEDURE cleanup_redirects (namespace INT)
 
     CALL outifexists( 'wr', 'wrong redirects', 'wr.txt', 'wr_title', 'out' );
 
-    # prevent taking into account links from wrong redirects
+    # prevent taking wrong redirects into account
     DELETE FROM r
            WHERE r_title IN
                  (
@@ -840,7 +985,8 @@ CREATE PROCEDURE construct_dlinks ()
     DROP TABLE IF EXISTS d2r;
     CREATE TABLE d2r (
       d2r_to int(8) unsigned NOT NULL default '0',
-      d2r_from int(8) unsigned NOT NULL default '0'
+      d2r_from int(8) unsigned NOT NULL default '0',
+      KEY (d2r_to)
     ) ENGINE=MEMORY AS 
     SELECT r_id as d2r_to,
            pl_from as d2r_from
@@ -890,7 +1036,7 @@ CREATE PROCEDURE construct_dlinks ()
     SELECT CONCAT( ':: echo ', count(*), ' links from redirects linked by disambiguations to articles' )
            FROM lr2a;
 
-    # Links from articles to disambiguations via a redirect are put here to dl.
+    # Links fro articles to disambiguations via a redirect are put here to dl.
     INSERT IGNORE INTO dl
     SELECT lr2d_to as dl_to,
            a2r_from as dl_from
@@ -910,6 +1056,7 @@ CREATE PROCEDURE construct_dlinks ()
                 d2r
            WHERE lr2a_from=d2r_to;
     DROP TABLE lr2a;
+    DROP TABLE d2r;
 
     SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to articles (direct or via a redirect)' )
            FROM ld;
@@ -929,10 +1076,10 @@ CREATE PROCEDURE construct_dlinks ()
 
     #
     # Linking rings between articles and disambiguation pages are constructed
-    # with technical links like {{tl|otheruses}}.
+    # with technical links like {{tl|otheruses}} we do not to take this
+    # special type of linking into account.
     #
-    DELETE dl,
-           ld
+    DELETE dl
            FROM dl,
                 ld
            WHERE dl_to=ld_from and
@@ -941,145 +1088,30 @@ CREATE PROCEDURE construct_dlinks ()
     SELECT CONCAT( ':: echo ', count(*), ' one way links from articles to disambigs' )
            FROM dl;
 
-    SELECT CONCAT( ':: echo ', count(*), ' one way links from disambigs to articles' )
-           FROM ld;
-
-  END;
-//
-
-
-#
-# This function is useful for former articles moved out from zero namespace.
-# Returns namespace prefix by its numerical identifier.
-#
-DROP FUNCTION IF EXISTS getnsprefix//
-CREATE FUNCTION getnsprefix ( ns INT )
-  RETURNS VARCHAR(255)
-  DETERMINISTIC
-  BEGIN
-    DECLARE wrconstruct VARCHAR(255);
-
-    SELECT ns_name INTO wrconstruct
-           FROM toolserver.namespace
-           WHERE dbname='ruwiki_p' AND
-                 ns_id=ns;
-
-    IF wrconstruct != ''
-      THEN
-        SET wrconstruct=CONCAT( wrconstruct, ':' );
-    END IF;
-
-    RETURN wrconstruct;
-
-  END;
-//
-
-#
-# Collects dead-end articles, i.e. articles having no links to other
-# existent articles. Also forms the list of new dead-end articles for
-# registration and the list of pages wikified enough to be excluded
-# from registered dead-end articles list.
-#
-DROP PROCEDURE IF EXISTS deadend//
-CREATE PROCEDURE deadend ()
-  BEGIN
-    DECLARE cnt INT;
-
-    # Begin the procedure for dead end pages
-    SELECT ':: echo dead end pages processing:' as title;
-
-    # DEAD-END PAGES REGISTERED AT THE MOMENT
-    DROP TABLE IF EXISTS del;
-    CREATE TABLE del (
-      id int(8) unsigned NOT NULL default '0',
-      act int(8) signed NOT NULL default '0',
-      PRIMARY KEY (id)
+    # statistics for amount of links from articles to each linked disambig
+    DROP TABLE IF EXISTS dsstat;
+    CREATE TABLE dsstat (
+      dss_id int(8) unsigned NOT NULL default '0',
+      dss_cnt int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (dss_id)
     ) ENGINE=MEMORY AS
-    SELECT cl_from as id,
-           -1 as act
-           FROM ruwiki_p.categorylinks
-           #            a category registering deadend articles
-           WHERE cl_to='Википедия:Тупиковые_статьи';
+    SELECT dl_to as dss_id,
+           count(*) as dss_cnt
+           FROM dl
+           GROUP BY dl_to;
 
-    # articles with links to articles
-    DROP TABLE IF EXISTS lwl;
-    CREATE TABLE lwl (
-      lwl_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (lwl_id)
-    ) ENGINE=MEMORY AS 
-    SELECT DISTINCT l_from as lwl_id
-           FROM l;
-
-    # CURRENT DEAD-END ARTICLES
-    INSERT INTO del
-    SELECT a_id as id,
-           1 as act
-           FROM articles
-           WHERE a_id NOT IN
-           (
-            SELECT lwl_id
-                   FROM lwl
-           )
-    ON DUPLICATE KEY UPDATE act=0;
-
-    DROP TABLE lwl;
-
-    SELECT count(*) INTO cnt
-           FROM del
-           WHERE act>=0;
-    SELECT CONCAT(':: echo total: ', cnt ) as title;
-
-    IF cnt>0
-      THEN
-        IF @enable_informative_output>0
-          THEN
-            SELECT CONCAT(':: out ', @fprefix, 'de.info' ) as title;
-            SELECT id,
-                   a_title
-                   FROM del,
-                        articles
-                   WHERE a_id=id and
-                         act>=0
-                   ORDER BY a_title ASC;
-        END IF;
-
-        IF @namespace=0
-          THEN
-            SELECT count( * ) INTO cnt
-                   FROM del
-                   WHERE act=1;
-            IF cnt>0
-              THEN
-                SELECT CONCAT(':: echo +: ', cnt ) as title;
-                SELECT CONCAT( ':: out ', @fprefix, 'deset.txt' );
-                SELECT a_title
-                       FROM del,
-                            articles
-                       WHERE act=1 AND
-                             id=a_id
-                       ORDER BY a_title ASC;
-            END IF;
-        END IF;
-    END IF;
-
-    IF @namespace=0
-      THEN
-        SELECT count( * ) INTO cnt
-               FROM del
-               WHERE act=-1;
-
-        IF cnt>0
-          THEN
-            SELECT CONCAT(':: echo -: ', cnt ) as title;
-            SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
-            SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
-                   FROM del,
-                        ruwiki_p.page
-                   WHERE act=-1 AND
-                         id=page_id
-                   ORDER BY page_title ASC;
-        END IF;
-    END IF;
+    DROP TABLE IF EXISTS disambiguate;
+    CREATE TABLE disambiguate (
+      d_title varchar(255) binary NOT NULL default '',
+      d_cnt int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS
+    SELECT nr_title as d_title,
+           dss_cnt as d_cnt
+           FROM dsstat,
+                nr
+           WHERE nr_id=dss_id
+           ORDER BY dss_cnt DESC;
+    DROP TABLE dsstat;
   END;
 //
 
@@ -1098,96 +1130,11 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
         DELETE FROM l
                WHERE l_from IN
                      (
-                      SELECT DISTINCT a_id as excl_id
-                             FROM articles
-                                   #             Common Era years 
-                             WHERE a_title LIKE '_!_год' escape '!' OR
-                                   a_title LIKE '__!_год' escape '!' OR             
-                                   a_title LIKE '___!_год' escape '!' OR             
-                                   a_title LIKE '____!_год' escape '!' OR
-                                   #             years B.C.
-                                   a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
-                                   a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
-                                   a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
-                                   a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
-                                   #             decades
-                                   a_title LIKE '_-е' escape '!' OR             
-                                   a_title LIKE '__-е' escape '!' OR             
-                                   a_title LIKE '___-е' escape '!' OR
-                                   a_title LIKE '____-е' escape '!' OR
-                                   #             decades B.C.
-                                   a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
-                                   a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
-                                   a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
-                                   #             centuries
-                                   a_title LIKE '_!_век' escape '!' OR
-                                   a_title LIKE '__!_век' escape '!' OR
-                                   a_title LIKE '___!_век' escape '!' OR
-                                   a_title LIKE '____!_век' escape '!' OR
-                                   a_title LIKE '_____!_век' escape '!' OR
-                                   a_title LIKE '______!_век' escape '!' OR
-                                   #             centuries B.C.
-                                   a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
-                                   #             milleniums
-                                   a_title LIKE '_!_тысячелетие' escape '!' OR
-                                   a_title LIKE '__!_тысячелетие' escape '!' OR
-                                   #             milleniums B.C.
-                                   a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                                   a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                                   #             years in different application domains
-                                   a_title LIKE '_!_год!_в!_%' escape '!' OR
-                                   a_title LIKE '__!_год!_в!_%' escape '!' OR
-                                   a_title LIKE '___!_год!_в!_%' escape '!' OR
-                                   a_title LIKE '____!_год!_в!_%' escape '!' OR
-                                   #             calendar dates in the year
-                                   a_title LIKE '_!_января' escape '!' OR
-                                   a_title LIKE '__!_января' escape '!' OR
-                                   a_title LIKE '_!_февраля' escape '!' OR
-                                   a_title LIKE '__!_февраля' escape '!' OR
-                                   a_title LIKE '_!_марта' escape '!' OR
-                                   a_title LIKE '__!_марта' escape '!' OR
-                                   a_title LIKE '_!_апреля' escape '!' OR
-                                   a_title LIKE '__!_апреля' escape '!' OR
-                                   a_title LIKE '_!_мая' escape '!' OR
-                                   a_title LIKE '__!_мая' escape '!' OR
-                                   a_title LIKE '_!_июня' escape '!' OR
-                                   a_title LIKE '__!_июня' escape '!' OR
-                                   a_title LIKE '_!_июля' escape '!' OR
-                                   a_title LIKE '__!_июля' escape '!' OR
-                                   a_title LIKE '_!_августа' escape '!' OR
-                                   a_title LIKE '__!_августа' escape '!' OR
-                                   a_title LIKE '_!_сентября' escape '!' OR
-                                   a_title LIKE '__!_сентября' escape '!' OR
-                                   a_title LIKE '_!_октября' escape '!' OR
-                                   a_title LIKE '__!_октября' escape '!' OR
-                                   a_title LIKE '_!_ноября' escape '!' OR
-                                   a_title LIKE '__!_ноября' escape '!' OR
-                                   a_title LIKE '_!_декабря' escape '!' OR
-                                   a_title LIKE '__!_декабря' escape '!' OR
-                                   #             year lists by the first week day 
-                                   a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
-                                   a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!'
+                      SELECT chr_id
+                             FROM chrono
                      );
 
         SELECT CONCAT( ':: echo ', count(*), ' links after chrono-cleanup' )
-               FROM l;
-
-        # deletion of links from collaborational lists
-        DELETE FROM l
-               WHERE l_from IN
-                     (
-                       SELECT cllt_id
-                              FROM cllt
-                     );
-
-        SELECT CONCAT( ':: echo ', count(*), ' links after collaborative lists cleanup' )
                FROM l;
     END IF;
 
@@ -1250,6 +1197,188 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
         DROP TABLE r;
     END IF;
     DROP TABLE r2a;
+  END;
+//
+
+#
+# This function is useful for former articles moved out from zero namespace.
+# Returns namespace prefix by its numerical identifier.
+#
+DROP FUNCTION IF EXISTS getnsprefix//
+CREATE FUNCTION getnsprefix ( ns INT )
+  RETURNS VARCHAR(255)
+  DETERMINISTIC
+  BEGIN
+    DECLARE wrconstruct VARCHAR(255);
+
+    SELECT ns_name INTO wrconstruct
+           FROM toolserver.namespace
+           WHERE dbname='ruwiki_p' AND
+                 ns_id=ns;
+
+    IF wrconstruct != ''
+      THEN
+        SET wrconstruct=CONCAT( wrconstruct, ':' );
+    END IF;
+
+    RETURN wrconstruct;
+
+  END;
+//
+
+#
+# Collects dead-end articles, i.e. articles having no links to other
+# existent articles. Also forms the list of new dead-end articles for
+# registration and the list of pages wikified enough to be excluded
+# from registered dead-end articles list.
+#
+DROP PROCEDURE IF EXISTS deadend//
+CREATE PROCEDURE deadend (namespace INT)
+  BEGIN
+    DECLARE cnt INT;
+
+    # temporarily delete links to chrono articles
+    IF namespace=0
+      THEN
+        # List of links from articles to chrono articles
+        DROP TABLE IF EXISTS a2cr;
+        CREATE TABLE a2cr (
+          a2cr_to INT(8) unsigned NOT NULL default '0',
+          a2cr_from INT(8) unsigned NOT NULL default '0',
+          KEY ( a2cr_to )
+        ) ENGINE=MEMORY AS
+        SELECT l_to as a2cr_to,
+               l_from as a2cr_from
+               FROM l
+               WHERE l_to IN
+                     (
+                      SELECT chr_id
+                             FROM chrono
+                     );
+
+        SELECT CONCAT( ':: echo ', count(*), ' to be excluded as links to chrono articles' )
+               FROM a2cr;
+
+        # deletion of links to timelines and colloborational lists,
+        # recoverable, since we have a2cr
+        DELETE FROM l
+               WHERE l_to IN
+                     (
+                      SELECT DISTINCT a2cr_to
+                             FROM a2cr
+                     );
+
+        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
+               FROM l;
+
+    END IF;
+
+    # Begin the procedure for dead end pages
+    SELECT ':: echo dead end pages processing:' as title;
+
+    # DEAD-END PAGES REGISTERED AT THE MOMENT
+    DROP TABLE IF EXISTS del;
+    CREATE TABLE del (
+      id int(8) unsigned NOT NULL default '0',
+      act int(8) signed NOT NULL default '0',
+      PRIMARY KEY (id)
+    ) ENGINE=MEMORY AS
+    SELECT nrc_id as id,
+           -1 as act
+           FROM nrcat
+           #            a category registering deadend articles
+           WHERE nrc_to='Википедия:Тупиковые_статьи';
+
+    # articles with links to articles
+    DROP TABLE IF EXISTS lwl;
+    CREATE TABLE lwl (
+      lwl_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (lwl_id)
+    ) ENGINE=MEMORY AS 
+    SELECT DISTINCT l_from as lwl_id
+           FROM l;
+
+    # CURRENT DEAD-END ARTICLES
+    INSERT INTO del
+    SELECT a_id as id,
+           1 as act
+           FROM articles
+           WHERE a_id NOT IN
+           (
+            SELECT lwl_id
+                   FROM lwl
+           )
+    ON DUPLICATE KEY UPDATE act=0;
+
+    DROP TABLE lwl;
+
+    SELECT count(*) INTO cnt
+           FROM del
+           WHERE act>=0;
+    SELECT CONCAT(':: echo total: ', cnt ) as title;
+
+    IF cnt>0
+      THEN
+        IF @enable_informative_output>0
+          THEN
+            SELECT CONCAT(':: out ', @fprefix, 'de.info' ) as title;
+            SELECT id,
+                   a_title
+                   FROM del,
+                        articles
+                   WHERE a_id=id and
+                         act>=0
+                   ORDER BY a_title ASC;
+        END IF;
+
+        IF namespace=0
+          THEN
+            SELECT count( * ) INTO cnt
+                   FROM del
+                   WHERE act=1;
+            IF cnt>0
+              THEN
+                SELECT CONCAT(':: echo +: ', cnt ) as title;
+                SELECT CONCAT( ':: out ', @fprefix, 'deset.txt' );
+                SELECT a_title
+                       FROM del,
+                            articles
+                       WHERE act=1 AND
+                             id=a_id
+                       ORDER BY a_title ASC;
+            END IF;
+        END IF;
+    END IF;
+
+    IF namespace=0
+      THEN
+        SELECT count( * ) INTO cnt
+               FROM del
+               WHERE act=-1;
+
+        IF cnt>0
+          THEN
+            SELECT CONCAT(':: echo -: ', cnt ) as title;
+            SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
+            SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
+                   FROM del,
+                        ruwiki_p.page
+                   WHERE act=-1 AND
+                         id=page_id
+                   ORDER BY page_title ASC;
+        END IF;
+
+        # Restore previously deleted links to cronological articles
+        INSERT INTO l
+        SELECT a2cr_to as l_to,
+               a2cr_from as l_from
+               FROM a2cr;
+
+        DROP TABLE a2cr;
+
+        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links restore' )
+               FROM l;
+     END IF;
   END;
 //
 
@@ -2000,12 +2129,12 @@ CREATE PROCEDURE isolated (maxsize INT)
     # isolated articles and their categories.
     #
     INSERT INTO isolated
-    SELECT cl_from as id,
+    SELECT nrc_id as id,
            uid as cat,
            -1 as act
-           FROM ruwiki_p.categorylinks,
+           FROM nrcat,
                 orcat
-           WHERE cl_to=cat;
+           WHERE nrc_to=cat;
 
     # temporary table
     DROP TABLE IF EXISTS todelete;
@@ -2159,275 +2288,6 @@ CREATE PROCEDURE combineandout ()
 //
 
 #
-# Prepare interwiki based linking suggestions for one language
-#
-DROP PROCEDURE IF EXISTS inter_lang//
-CREATE PROCEDURE inter_lang( language VARCHAR(10) )
-  BEGIN
-    DECLARE st VARCHAR(255);
-
-    SELECT CONCAT( ':: echo processing ', language );
-
-    #
-    # How many pages do link interwiki partners of our isolates.
-    #
-    SET @st=CONCAT( 'INSERT INTO liwl SELECT pl_from as fr, id as t FROM ', language, "wiki_p.pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language, "';" );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis found" )
-           FROM liwl;
-
-    SET @st=CONCAT( 'INSERT INTO rinfo SELECT fr, page_is_redirect, page_title, t FROM ', language, 'wiki_p.page, liwl WHERE page_id=fr GROUP BY fr;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo . ', count(*), ' existent ', language, ' pages link interwiki partners' )
-           FROM rinfo;
-
-    #
-    # We need no interwikified redirects for suggestion tool.
-    #
-    DELETE liwl
-           FROM liwl,
-                rinfo
-           WHERE page_is_redirect=1 and
-                 rinfo.fr=liwl.fr;
-
-    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after redirects cleanup" )
-           FROM liwl;
-
-    SET @st=CONCAT( 'INSERT INTO liwl SELECT pl_from as fr, t FROM ', language, 'wiki_p.pagelinks, rinfo WHERE page_is_redirect=1 and pl_title=page_title and pl_namespace=0;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after redirects throwing" )
-           FROM liwl;
-
-    DELETE FROM rinfo;
-
-    SET @st=CONCAT( 'INSERT INTO dinfo SELECT cl_from FROM d_i18n, ', language, "wiki_p.categorylinks WHERE lang='", language, "' and cl_to=dn;" );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo . ', count(*), ' disambiguation pages found' )
-           FROM dinfo;
-
-    #
-    # No need to suggest disambiguation pages translation.
-    #
-    DELETE liwl 
-           FROM liwl,
-                dinfo 
-           WHERE fr=did;
-    
-    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after disambiguations cleanup" )
-           FROM liwl;
-
-    DELETE FROM dinfo;
-
-    SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as isolated, '", language,"' as lang FROM ", language, "wiki_p.langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo . ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
-           FROM res
-           WHERE lang=language;
-
-    SET @st=CONCAT( 'DELETE liwl FROM ', language, "wiki_p.langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo . ', count(*), " links to isolate's interwikis after exclusion of already translated" )
-           FROM liwl;
-
-    SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as isolated, '", language, "' as lang FROM ", language, 'wiki_p.page, liwl WHERE page_id=fr and page_namespace=0;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    DELETE FROM liwl;
-
-    SELECT CONCAT( ':: echo . ', count(DISTINCT isolated), ' isolates can be linked with main namespace page translation from ', language )
-           FROM tres
-           WHERE lang=language;
-
-  END;
-//
-
-#
-# Prepare interwiki based linking suggestions for isolated articles.
-#
-DROP PROCEDURE IF EXISTS inter_langs//
-CREATE PROCEDURE inter_langs()
-  BEGIN
-    #
-    # Interwiki links for isolated articles
-    #
-    DROP TABLE IF EXISTS iwl;
-    CREATE TABLE iwl (
-      id int(8) unsigned not null default '0',
-      title varchar(255) not null default '',
-      lang varchar(10) not null default '',
-      KEY (title)
-    ) ENGINE=MEMORY AS
-    SELECT id,
-           REPLACE(ll_title,' ','_') as title,
-           ll_lang as lang
-           FROM ruwiki_p.langlinks, 
-                ruwiki0 
-           WHERE id=ll_from;
-
-    SELECT CONCAT( ':: echo ', count(*), ' interwiki links for isolated articles found' )
-           FROM iwl;
-
-    #
-    # Exclusion of disambiguation pages requires the categoryname.
-    # We can obtain it from interwiki links fir the local disambiguations
-    # category.
-    #
-    DROP TABLE IF EXISTS d_i18n;
-    CREATE TABLE d_i18n (
-      lang varchar(10) binary NOT NULL default '',
-      dn varchar(255) binary NOT NULL default ''
-    ) ENGINE=MEMORY AS
-    SELECT ll_lang as lang,
-           REPLACE(SUBSTRING(ll_title,LOCATE(':',ll_title)+1), ' ', '_') as dn
-           FROM ruwiki_p.langlinks,
-                ruwiki_p.page
-           WHERE page_title='Многозначные_термины' and
-                 page_namespace=14 and
-                 ll_from=page_id;
-
-    DROP TABLE IF EXISTS liwl;
-    CREATE TABLE liwl (
-      fr int(8) unsigned not null default '0',
-      t int(8) unsigned not null default '0'
-    ) ENGINE=MEMORY;
-
-    DROP TABLE IF EXISTS rinfo;
-    CREATE TABLE rinfo (
-      fr int(8) unsigned not null default '0',
-      page_is_redirect tinyint(1) unsigned not null default '0',
-      page_title varchar(255) not null default '',
-      t int(8) unsigned not null default '0',
-      KEY (page_is_redirect, page_title)
-    ) ENGINE=MEMORY;
-
-    DROP TABLE IF EXISTS dinfo;
-    CREATE TABLE dinfo (
-      did int(8) unsigned not null default '0',
-      PRIMARY KEY (did)
-    ) ENGINE=MEMORY;
-
-    DROP TABLE IF EXISTS res;
-    CREATE TABLE res (
-      suggestn varchar(255) not null default '',
-      isolated int(8) unsigned not null default '0',
-      lang varchar(10) not null default ''
-    ) ENGINE=MEMORY;
-
-    DROP TABLE IF EXISTS tres;
-    CREATE TABLE tres (
-      suggestn varchar(255) not null default '',
-      isolated int(8) unsigned not null default '0',
-      lang varchar(10) not null default ''
-    ) ENGINE=MEMORY;
-
-    CALL inter_lang( 'en' );
-
-    # de is unreachable
-
-    CALL inter_lang( 'fr' );
-
-    # it is unreachable
-    # pl is unreachable
-
-    CALL inter_lang( 'es' );
-
-    # nl is unreachable
-    # sv is unreachable
-
-    CALL inter_lang( 'ja' );
-
-    # pt is unreachable
-    # fi is unreachable
-
-    CALL inter_lang( 'uk' );
-
-    # zh is unreachable
-    # no is unreachable
-    # cs is unreachable
-
-    CALL inter_lang( 'da' );
-    CALL inter_lang( 'sk' );
-    CALL inter_lang( 'hu' );
-    CALL inter_lang( 'he' );
-    CALL inter_lang( 'ca' );
-
-    # eo is unreachable
-
-    CALL inter_lang( 'ro' );
-
-    # tr is unreachable
-
-    CALL inter_lang( 'sr' );
-
-    CALL inter_lang( 'ko' );
-
-    # id is unreachable
-
-    CALL inter_lang( 'sl' );
-
-    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
-           FROM res;
-
-    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT isolated), ' isolates can be linked with translation' )
-           FROM tres;
-
-    INSERT INTO isocat
-    SELECT cv_title as ic_title,
-           count(DISTINCT isolated) as ic_count
-           FROM ruwiki_p.categorylinks,
-                res,
-                catvolume
-           WHERE cl_from=isolated and
-                 cl_to=cv_title
-           GROUP BY cv_title;
-        
-    UPDATE catvolume,
-           isocat
-           SET cv_ilscount=ic_count
-           WHERE ic_title=cv_title;
-    DELETE FROM isocat;
-
-    INSERT INTO isocat
-    SELECT cv_title as ic_title,
-           count(DISTINCT isolated) as ic_count
-           FROM ruwiki_p.categorylinks,
-                tres,
-                catvolume
-           WHERE cl_from=isolated and
-                 cl_to=cv_title
-           GROUP BY cv_title;
-        
-    UPDATE catvolume,
-           isocat
-           SET cv_tlscount=ic_count
-           WHERE ic_title=cv_title;
-    DELETE FROM isocat;
-
-  END;
-//
-
-
-#
 # Preparing data to use in external tools.
 #
 DROP PROCEDURE IF EXISTS outertools//
@@ -2435,6 +2295,22 @@ CREATE PROCEDURE outertools ()
   BEGIN
     IF @namespace=0
       THEN
+        #
+        # List of isolated articles by cluster they belong to.
+        #
+        DROP TABLE IF EXISTS ruwiki0;
+        CREATE TABLE ruwiki0 (
+          id int(8) unsigned NOT NULL default '0',
+          title varchar(255) binary NOT NULL default '',
+          PRIMARY KEY (id)
+        ) ENGINE=MEMORY AS
+        SELECT id,
+               a_title AS title
+               FROM isolated,
+                    articles
+               WHERE act>=0 and
+                     id=a_id;
+
         #
         # For use in "ISOLATED ARTICLES FOR A CATEGORY".
         #
@@ -2449,12 +2325,12 @@ CREATE PROCEDURE outertools ()
           cv_count int(8) unsigned NOT NULL default '0',
           PRIMARY KEY (cv_title)
         ) ENGINE=MEMORY AS
-        SELECT cl_to as cv_title,
+        SELECT nrc_to as cv_title,
                count(*) as cv_count
-               FROM ruwiki_p.categorylinks,
+               FROM nrcat,
                     articles
-               WHERE a_id=cl_from
-               GROUP BY cl_to;
+               WHERE a_id=nrc_id
+               GROUP BY nrc_to;
 
         ALTER TABLE catvolume ADD (
           cv_isocount int(8) unsigned NOT NULL default '0',
@@ -2480,34 +2356,18 @@ CREATE PROCEDURE outertools ()
         ) ENGINE=MEMORY AS
         SELECT cv_title as ic_title,
                count( * ) as ic_count
-               FROM ruwiki_p.categorylinks,
+               FROM nrcat,
                     ruwiki0,
                     catvolume
-                    WHERE id=cl_from and
-                          cv_title=cl_to
-                    GROUP BY cl_to;
+                    WHERE id=nrc_id and
+                          cv_title=nrc_to
+                    GROUP BY nrc_to;
 
         UPDATE catvolume,
                isocat
                SET cv_isocount=ic_count
                WHERE ic_title=cv_title;
         DELETE FROM isocat;
-
-        #
-        # List of isolated articles by cluster they belong to.
-        #
-        DROP TABLE IF EXISTS ruwiki0;
-        CREATE TABLE ruwiki0 (
-          id int(8) unsigned NOT NULL default '0',
-          title varchar(255) binary NOT NULL default '',
-          PRIMARY KEY (id)
-        ) ENGINE=MEMORY AS
-        SELECT id,
-               a_title AS title
-               FROM isolated,
-                    articles
-               WHERE act>=0 and
-                     id=a_id;
 
         DROP TABLE IF EXISTS wr0;
         RENAME TABLE wr TO wr0;
@@ -2533,7 +2393,6 @@ CREATE PROCEDURE outertools ()
 
         SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to isolated articles' )
                FROM d2i;
-
 
         #
         # Links from articles to articles through disambiguation pages linking isolates.
@@ -2561,13 +2420,13 @@ CREATE PROCEDURE outertools ()
         INSERT INTO isocat
         SELECT cv_title as ic_title,
                count(DISTINCT a2i_to) as ic_count
-               FROM ruwiki_p.categorylinks,
+               FROM nrcat,
                     ruwiki0,
                     a2i,
                     catvolume
-               WHERE cl_from=id and
+               WHERE nrc_id=id and
                      title=a2i_to and
-                     cl_to=cv_title
+                     nrc_to=cv_title
                GROUP BY cv_title;
 
         UPDATE catvolume,
@@ -2575,6 +2434,9 @@ CREATE PROCEDURE outertools ()
                SET cv_dsgcount=ic_count
                WHERE ic_title=cv_title;
         DELETE FROM isocat;
+
+        DROP TABLE IF EXISTS nrcat0;
+        RENAME TABLE nrcat TO nrcat0;
 
     END IF;
     IF @namespace=14
@@ -2606,7 +2468,7 @@ CREATE PROCEDURE outertools ()
           title varchar(255) binary NOT NULL default '',
           PRIMARY KEY (id),
           KEY (cat)
-        ) AS
+        ) ENGINE=MEMORY AS
         SELECT id,
                orcat14.coolcat as cat,
                a_title AS title
@@ -2648,6 +2510,10 @@ CREATE PROCEDURE outertools ()
                WHERE rev_page=id
                GROUP BY rev_page;
 
+        SELECT CONCAT( ':: echo ', count(*), ' initial revisions for isolates found' )
+               FROM firstrev;
+        
+
         DROP TABLE IF EXISTS creators;
         CREATE TABLE creators (
           title varchar(255) binary NOT NULL default '',
@@ -2663,6 +2529,18 @@ CREATE PROCEDURE outertools ()
 
         SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
                FROM creators;
+
+        DROP TABLE IF EXISTS isdis;
+        RENAME TABLE a2i TO isdis;
+
+        DROP TABLE IF EXISTS isres;
+        RENAME TABLE res TO isres;
+
+        DROP TABLE IF EXISTS istres;
+        RENAME TABLE tres TO istres;
+
+        DROP TABLE IF EXISTS catvolume0;
+        RENAME TABLE catvolume TO catvolume0;
     END IF;
   END;
 //
@@ -2678,7 +2556,7 @@ CREATE PROCEDURE dsuggest (iid VARCHAR(255))
     DECLARE done INT DEFAULT 0;
     DECLARE via_title VARCHAR(255);
     DECLARE via_id INT;
-    DECLARE cur CURSOR FOR SELECT DISTINCT page_title, a2i_via FROM a2i, ruwiki_p.page WHERE a2i_to=iid AND page_id=a2i_via ORDER BY page_title ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT page_title, a2i_via FROM isdis, ruwiki_p.page WHERE a2i_to=iid AND page_id=a2i_via ORDER BY page_title ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur;
@@ -2690,7 +2568,7 @@ CREATE PROCEDURE dsuggest (iid VARCHAR(255))
           SELECT CONCAT( '::', via_title );
           
           SELECT DISTINCT CONCAT( ':::' , page_title )
-                 FROM a2i,
+                 FROM isdis,
                       ruwiki_p.page
                  WHERE a2i_to=iid and
                        a2i_via=via_id and
@@ -2709,7 +2587,7 @@ CREATE PROCEDURE interwiki_suggest (iid VARCHAR(255))
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE language VARCHAR(10);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM res, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM isres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur;
@@ -2721,7 +2599,7 @@ CREATE PROCEDURE interwiki_suggest (iid VARCHAR(255))
           SELECT CONCAT( '::', language );
           
           SELECT DISTINCT CONCAT( ':::' , suggestn )
-                 FROM res,
+                 FROM isres,
                       ruwiki0
                  WHERE title=iid and
                        id=isolated and
@@ -2740,7 +2618,7 @@ CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE language VARCHAR(10);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM tres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM istres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur;
@@ -2752,7 +2630,7 @@ CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
           SELECT CONCAT( '::', language );
           
           SELECT DISTINCT CONCAT( ':::' , suggestn )
-                 FROM tres,
+                 FROM istres,
                       ruwiki0
                  WHERE title=iid and
                        id=isolated and
@@ -2812,7 +2690,9 @@ CREATE PROCEDURE connectivity ()
     #  DISAMBIG LINKS PROCESSING
     #
 
-    # Table dl is created here for links to disambiguations.
+    #
+    # Table dl is created here for links from articles to disambiguations.
+    #
     DROP TABLE IF EXISTS dl;
     CREATE TABLE dl (
       dl_to int(8) unsigned NOT NULL default '0',
@@ -2820,7 +2700,7 @@ CREATE PROCEDURE connectivity ()
       PRIMARY KEY (dl_to,dl_from)
     ) ENGINE=MEMORY;
 
-    # Table ld is created here for links to disambiguations.
+    # Table ld is created here for links from disambiguations to articles.
     DROP TABLE IF EXISTS ld;
     CREATE TABLE ld (
       ld_to int(8) unsigned NOT NULL default '0',
@@ -2833,6 +2713,14 @@ CREATE PROCEDURE connectivity ()
     #  - d2a named ld.
     CALL construct_dlinks();
 
+    DROP TABLE nr;
+
+    IF @namespace!=14
+      THEN
+        DROP TABLE IF EXISTS disambiguate0;
+        RENAME TABLE disambiguate TO disambiguate0;
+    END IF;
+
     SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
 
     #
@@ -2840,7 +2728,7 @@ CREATE PROCEDURE connectivity ()
     #
     SET @starttime=now();
 
-    CALL deadend();
+    CALL deadend(@namespace);
 
     SELECT CONCAT( ':: echo dead-end processing time: ', timediff(now(), @starttime));
 
@@ -2849,7 +2737,7 @@ CREATE PROCEDURE connectivity ()
     #
     SET @starttime=now();
 
-    # For isolated articles analysis some articles like
+    # For isolated and dead-end articles analysis some articles like
     # timelines and collaborational lists do not form relevant linking.
     # All irrelevant links are excluded from valid links here.
     # One more thing is the {{templated articles}} (if templated in articles)
