@@ -34,12 +34,13 @@ my $m_I=decode('utf8', 'И');
 my $m_i=decode('utf8', 'и');
 
 my $editor=Perlwikipedia->new($user);
-$editor->{debug} = 1;
+$editor->{debug} = 0;
 $editor->set_wiki('ru.wikipedia.org','w');
 $editor->login($user, $pass);
 
 my $success_count=0;
 my $failed_count=0;
+my $ntd_count=0;
 my $self_redir=0;
 my $redir_pair=0;
 
@@ -75,14 +76,14 @@ sub do_edit
   #       it just overwrites existing text.
   my $response=$editor->edit($name, $text, $edit_summary, $is_minor);
 
-  if ($response->is_success) {
+  if ($response) {
     $timings[ $success_count % $perminallowed ]=time;
     $success_count+=1;
   }
   else
   {
     $failed_count+=1;
-    print $response->status_line, "\n";
+    print "page is probably read-only / protected\n";
   }
 }
 
@@ -93,10 +94,13 @@ while( <> )
 
   my $mr_text=$editor->get_text($mr);
 
+#  print length( $mr_text )."bytes\n";
+
   if( $editor->{errstr} ne '' )
   {
     $failed_count+=1;
     $editor->{errstr}='';
+    print "error getting an article\n";
   }
   else
   {
@@ -123,64 +127,125 @@ while( <> )
       if( $r eq $mr )
       {
         do_edit( $r, '{{db|happy self-redirect}}', '{{db|happy self-redirect}}'."\n#REDIRECT [[$r]]" );
-        $self_redir+=1;
-      }
-
-      my $r_text=$editor->get_text($r);
-
-      if( $editor->{errstr} ne '' )
-      {
-        $failed_count+=1;
-        $editor->{errstr}='';
+        if( $editor->{errstr} ne '' )
+        {
+          $failed_count+=1;
+          $editor->{errstr}='';
+          print "error editing happy double self-redirext\n";
+        }
+        else
+        {
+          $self_redir+=1;
+        }
       }
       else
       {
-        if(
-            $r_text=~m{
-                        ^[\s\t\n\r]*
-                        \#
-                        (?:
-                          # I know about "i" modifier.
-                          # Just to show the principle for utf-8 matched below.
-                          (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
-                        |
-                          (?:$m_P|$m_p)(?:$m_E|$m_e)(?:$m_R|$m_r)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_A|$m_a)(?:$m_P|$m_p)(?:$m_R|$m_r)(?:$m_A|$m_a)(?:$m_V|$m_v)(?:$m_L|$m_l)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_I|$m_i)(?:$m_E|$m_e)
-                        )
-                        [\s]*
-                        \[\[
-                             ([^\]]+)
-                        \]\]
-                      }mx 
-          )
+        my $r_text=$editor->get_text($r);
+      
+        if( $editor->{errstr} ne '' )
         {
-          my $target=$1;
+          $failed_count+=1;
+          $editor->{errstr}='';
+          print "error getting an article\n";
+        }
+        else
+        {
+          if(
+              $r_text=~m{
+                          ^[\s\t\n\r]*
+                          \#
+                          (?:
+                            # I know about "i" modifier.
+                            # Just to show the principle for utf-8 matched below.
+                            (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
+                            |
+                            (?:$m_P|$m_p)(?:$m_E|$m_e)(?:$m_R|$m_r)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_A|$m_a)(?:$m_P|$m_p)(?:$m_R|$m_r)(?:$m_A|$m_a)(?:$m_V|$m_v)(?:$m_L|$m_l)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_I|$m_i)(?:$m_E|$m_e)
+                          )
+                          [\s]*
+                          \[\[
+                               ([^\]]+)
+                          \]\]
+                        }mx 
+            )
+          {
+            my $target=$1;
           
-          if( $target eq $r )
-          {
-            # Multiple redirects in the list we are working on may point
-            # this happy self-redirect.
-            # Here we rely on web-API smartnes and suppose edits with
-            # the same content will not occur.
-            do_edit( $r, '{{db|happy self-redirect}}', '{{db|happy self-redirect}}'."\n#REDIRECT [[$r]]" );
-            $self_redir+=1;
-          }
-          elsif( $target eq $mr )
-          {
-            do_edit( $r, '{{db|ring of two redirects}}', '{{db|ring of two redirects}}'."\n#REDIRECT [[$r]]" );
-            do_edit( $mr, '{{db|ring of two redirects}}', '{{db|ring of two redirects}}'."\n#REDIRECT [[$mr]]" );
-            $redir_pair+=1;
+            if( $target eq $r )
+            {
+              # Multiple redirects in the list we are working on can be pointing
+              # this happy self-redirect.
+              # Here we rely on web-API smartness and suppose edits with
+              # the same content will not occur.
+              do_edit( $r, '{{db|happy self-redirect}}', '{{db|happy self-redirect}}'."\n#REDIRECT [[$r]]" );
+              if( $editor->{errstr} ne '' )
+              {
+                $failed_count+=1;
+                $editor->{errstr}='';
+                print "error editing a happy self-redirect\n";
+              }
+              else
+              {
+                $self_redir+=1;
+                print "happy self-redirect\n";
+              }
+            }
+            elsif( $target eq $mr )
+            {
+              do_edit( $r, '{{db|ring of two redirects}}', '{{db|ring of two redirects}}'."\n#REDIRECT [[$r]]" );
+              if( $editor->{errstr} ne '' )
+              {
+                $failed_count+=1;
+                $editor->{errstr}='';
+                print "error editing a ring of two redirects\n";
+              }
+              else
+              {
+                do_edit( $mr, '{{db|ring of two redirects}}', '{{db|ring of two redirects}}'."\n#REDIRECT [[$mr]]" );
+                if( $editor->{errstr} ne '' )
+                {
+                  $failed_count+=1;
+                  $editor->{errstr}='';
+                  print "error editing a ring of two redirects\n";
+                }
+                else
+                {
+                  $redir_pair+=1;
+                  print "a ring of two redirects\n";
+                }
+              }
+            }
+            else
+            {
+              do_edit( $mr, 'double redirects resolving with perlwikipedia', "#REDIRECT [[$target]]");
+              if( $editor->{errstr} ne '' )
+              {
+                $failed_count+=1;
+                $editor->{errstr}='';
+                print "error editing to resolve double redirect";
+              }
+              else
+              {
+                print "a redirect resolved\n";
+              }
+            }
           }
           else
           {
-            do_edit( $mr, 'double redirects resolving with perlwikipedia', "#REDIRECT [[$target]]");
+            print "not a multiple redirect actually\n";
+            $ntd_count+=1;
           }
         }
       }
+    }
+    else
+    {
+      print "first redirect not found\n";
+      $ntd_count+=1;
     }
   }
 }
 
 print "$self_redir redirects point itself, $redir_pair rings of two redirects\n";
-print "$success_count successfull edits, $failed_count failed edits\n";
+print "$success_count successfull edits, $ntd_count items with nothing to do, $failed_count failed edits\n";
 
 # </pre>
