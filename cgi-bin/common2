@@ -1,0 +1,28 @@
+no_sql_error ()
+{
+  local line=$1
+  local res=1
+
+  case "${line:0:20}" in
+  'ERROR 2003 (HY000): ' )
+    echo $dbhost $nohost
+    ;;
+  'ERROR 2013 (HY000): ' )
+    echo $dbhost $nohost
+    ;;
+  'ERROR 1049 (42000): ' )
+    echo $noudb
+    ;;
+  'ERROR 1130 (00000): ' )
+    echo $hostisnotallowed
+    ;;
+  'ERROR 1146 (42S02) a' )
+    echo $dbjustcreated
+    ;;
+  *)
+    res=0
+    ;;
+  esac
+
+  return $res
+}

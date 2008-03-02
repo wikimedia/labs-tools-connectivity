@@ -1,0 +1,32 @@
+dbhost="sql-s3"
+usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
+sql="mysql --defaults-file=/home/mashiah/.my.cnf --host=$dbhost -A --database=u_${usr} -N --connect_timeout=10"
+
+# Mashiah Davidson: # Thanks a lot to Chris F.A. Johnson for my time saved.
+# This function copied as is from 
+# http://www.unixreview.com/documents/s=10116/ur0701i/parse-query.sh.txt
+parse_query() #@ USAGE: parse_query var ...                                                                 
+{
+  local var val
+  local IFS='&'
+  vars="&$*&"
+  [ "$REQUEST_METHOD" = "POST" ] && read QUERY_STRING
+  set -f
+  for item in $QUERY_STRING
+  do
+    var=${item%%=*}
+    val=${item#*=}
+    val=${val//+/ }
+    case $vars in
+      *"&$var&"* )
+        case $val in
+          *%[0-9a-fA-F][0-9a-fA-F]*)
+            val=$( printf "%b" "${val//\%/\\x}." )
+            val=${val%.}
+        esac
+        eval "$var=\$val"
+        ;;
+    esac
+  done
+  set +f
+}
