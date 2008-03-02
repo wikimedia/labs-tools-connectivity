@@ -1,114 +1,122 @@
 #!/bin/bash
 
-# Mashiah Davidson: # Thanks a lot to Chris F.A. Johnson for my time saved.
-# This function copied as is from 
-# http://www.unixreview.com/documents/s=10116/ur0701i/parse-query.sh.txt
-parse_query() #@ USAGE: parse_query var ...                                                                 
-{
-    local var val
-    local IFS='&'
-    vars="&$*&"
-    [ "$REQUEST_METHOD" = "POST" ] && read QUERY_STRING
-    set -f
-    for item in $QUERY_STRING
-    do
-      var=${item%%=*}
-      val=${item#*=}
-      val=${val//+/ }
-      case $vars in
-          *"&$var&"* )
-              case $val in
-                  *%[0-9a-fA-F][0-9a-fA-F]*)
-                       val=$( printf "%b" "${val//\%/\\x}." )
-                       val=${val%.}
-              esac
-              eval "$var=\$val"
-              ;;
-      esac
-    done
-    set +f
-}
+source ./common
+
+parse_query title
+parse_query interface
+parse_query listby
+parse_query shift
+parse_query category
+parse_query suggest
+if [ "$interface" != 'ru' ]
+then
+  interface='en'
+fi
+
+source ./common.$interface
+source ./suggest.$interface
+source ./common2
 
 handle_catlist ()
 {
   local line=$1
-  local suggest=$2
-  local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\1/g' )
-  local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\2/g' )
-  name=${name//_/ }
-  local cname=${name//\?/\%3F}
-  cname=${cname//\&/\%26}
-  cname=${cname//\"/\%22}
-  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?category=$name&suggest=$suggest\">$name</a>: $volume</li>"
+
+  if no_sql_error "$line"
+  then
+    local suggest=$2
+    local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\1/g' )
+    local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\2/g' )
+    name=${name//_/ }
+    local cname=${name//\?/\%3F}
+    cname=${cname//\&/\%26}
+    cname=${cname//\"/\%22}
+    echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$name&suggest=$suggest\">$name</a>: $volume</li>"
+  fi
 }
 
 handle_dsmbg ()
 {
   local line=$1
-  local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
-  local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
 
-  if [ "${test:0:2}" != '::' ]
+  if no_sql_error "$line"
   then
-    test=${test//_/ }
-    local ctest=${test//\?/\%3F}
-    ctest=${ctest//\&/\%26}
-    ctest=${ctest//\"/\%22}
-    echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b></link>"
-  else
-    article=${article//_/ }
-    local carticle=${article//\?/\%3F}
-    carticle=${carticle//\&/\%26}
-    carticle=${carticle//\"/\%22}
-    echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://ru.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></link>"
+    local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${test:0:2}" != '::' ]
+    then
+      test=${test//_/ }
+      local ctest=${test//\?/\%3F}
+      ctest=${ctest//\&/\%26}
+      ctest=${ctest//\"/\%22}
+      echo "</ol><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b></li><ol>"
+    else
+      article=${article//_/ }
+      local carticle=${article//\?/\%3F}
+      carticle=${carticle//\&/\%26}
+      carticle=${carticle//\"/\%22}
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://ru.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    fi
   fi
 }
 
 handle_lnk ()
 {
   local line=$1
-  local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
-  local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
 
-  if [ "${test:0:2}" != '::' ]
+  if no_sql_error "$line"
   then
-    echo "<li><b><a href=\"http://$test.wikipedia.org\" target=\"_blank\">$test</a></b></li>"
-  else
-    article=${article//_/ }
-    local carticle=${article//\?/\%3F}
-    carticle=${carticle//\&/\%26}
-    carticle=${carticle//\"/\%22}
-    echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://ru.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${test:0:2}" != '::' ]
+    then
+      echo "</ol><b><a href=\"http://$test.wikipedia.org\" target=\"_blank\">$test</a></b><ol>"
+    else
+      article=${article//_/ }
+      local carticle=${article//\?/\%3F}
+      carticle=${carticle//\&/\%26}
+      carticle=${carticle//\"/\%22}
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://ru.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    fi
   fi
 }
 
 handle_trns ()
 {
   local line=$1
-  local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
-  local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
 
-  if [ "${test:0:2}" != '::' ]
+  if no_sql_error "$line"
   then
-    lang=$test;
-    echo "<li><b><a href=\"http://${lang}.wikipedia.org\" target=\"_blank\">$lang</a></b></li>"
-  else
-    article=${article//_/ }
-    local carticle=${article//\?/\%3F}
-    carticle=${carticle//\&/\%26}
-    carticle=${carticle//\"/\%22}
-    echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://${lang}.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${test:0:2}" != '::' ]
+    then
+      lang=$test;
+      echo "</ol><b><a href=\"http://${lang}.wikipedia.org\" target=\"_blank\">$lang</a></b><ol>"
+    else
+      article=${article//_/ }
+      local carticle=${article//\?/\%3F}
+      carticle=${carticle//\&/\%26}
+      carticle=${carticle//\"/\%22}
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://${lang}.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    fi
   fi
 }
 
 handle_category ()
 {
   local line=$1
-  line=${line//_/ }
-  local lineurl=${line//\?/\%3F}
-  lineurl=${lineurl//\&/\%26}
-  lineurl=${lineurl//\"/\%22}
-  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?title=$lineurl\"\>$line</a></li>"
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    local lineurl=${line//\?/\%3F}
+    lineurl=${lineurl//\&/\%26}
+    lineurl=${lineurl//\"/\%22}
+    echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&title=$lineurl\"\>$line</a></li>"
+  fi
 }
 
 echo Content-type: text/html
@@ -120,36 +128,179 @@ cat << EOM
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
  <head>
-  <title>Suggest a link for isolated articles</title><link rel="stylesheet" type="text/css" href="/~mashiah/main.css" media="all" /><style type="text/css">
+EOM
+
+echo "<title>$pagetitle</title>"
+
+cat << EOM
+  <link rel="stylesheet" type="text/css" href="/~mashiah/main.css" media="all" /><style type="text/css">
   
   </style>
  </head>
  <body>
-  <a href="/"><img id="poweredbyicon" src="/~mashiah/wikimedia-toolserver-button.png" alt="Powered by
-    Wikimedia-Toolserver" /></a>
-  <h1><a href="/~mashiah">Mashiah's Projects</a></h1>
-
-<h2>contact</h2>
-<ul>
-<li>see <a href="http://ru.wikipedia.org/wiki/User:Mashiah_Davidson">my russian userpage</a>, <a href="http://ru.wikipedia.org/wiki/User:Голем">my bot's page</a> and <a href="http://ru.wikipedia.org/wiki/User Talk:Голем">our shared discussion</a></li>
-<li>look for me (nick: mashiah) in <a href="irc://irc.freenode.net/wikimedia-toolserver">#wikimedia-toolserver</a> on freenode</li>
-</ul>
-
-
-<h2>suggest a link for isolated articles (ruwiki)</h2>
-<FORM action=""/~mashiah/cgi-bin/suggest.sh"" method="post">
-<P><font color=red>Enter your isolated article name: <INPUT name=title type="text"> and hit Enter</font></P>
-</FORM>
+<a href="/"><img id="poweredbyicon" src="/~mashiah/wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
 
-usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
-sql="mysql --defaults-file=/home/mashiah/.my.cnf --host=sql-s3 -A --database=u_${usr} -N"
+echo "<h1>$mainh1</h1>"
+echo "<table><tr><td width=25% border=10>"
+echo -ne "<h1>"
+if [ "$interface" = 'ru' ]
+then
+  echo -ne "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=en&title=$title&listby=$listby&category=$category&suggest=$suggest\">[[en:]]</a> [[ru:]]"
+else
+  echo -ne "[[en:]] <a href=\"/~mashiah/cgi-bin/suggest.sh?interface=ru&title=$title&listby=$listby&category=$category&suggest=$suggest\">[[ru:]]</a>"
+fi
+echo "</h1>"
+echo -ne "<b><a href=\"/~mashiah/index"
+if [ "$interface" = 'ru' ]
+then
+  echo -ne "ru"
+fi
+echo ".html\">1) $motivation</a></b><br />"
+echo "<br />"
+echo "<b>2) <a href=\"http://ru.wikipedia.org/w/index.php?title=$isourl\">$isolatedarticles</a></b><br />"
+echo "<ul>"
+echo "<li><b><a href=\"/~mashiah/cgi-bin/category.sh?interface=$interface\">$bycategory</a></b></li>"
+echo "<ul>"
+if [ "$listby" = '' ] && [ "$category" != '' ]
+then
+  echo "<li><a id=seealso href=\"/~mashiah/cgi-bin/category.sh?interface=$interface&category=$category\">${catns}:$category</a></li>"
+fi
+if [ "$listby$category" = '' ]
+then
+  if [ "$title" != '' ]
+  then
+    echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface\">$allsuggestions</a></li>"
+    echo "<ul>"
+    echo "<li>$fortext <font color=red>$title</font></li>"
+  else
+    echo "<li><font color=red>$allsuggestions</font></li>"
+    echo "<ul>"
+  fi
+else
+  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface\">$allsuggestions</a></li>"
+  echo "<ul>"
+fi
+if [ "$listby" = 'disambigcat' ]
+then
+  echo "<li><font color=red>$resolvedisambigs</font></li>"
+else
+  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
+fi
+if [ "$listby" = '' ] && [ "$category" != '' ]
+then
+  if [ "$suggest" = 'disambig' ]
+  then
+    echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
+  else
+    echo "<ul><li><a id=seealso href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
+  fi
+fi
+echo "<li>$justlink</li>"
+echo "<ul>"
+if [ "$listby" = 'interlinkcat' ]
+then
+echo "<li><font color=red>$parttranslate</font></li>"
+else
+  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
+fi
+if [ "$listby" = '' ] && [ "$category" != '' ]
+then
+  if [ "$suggest" = 'interlink' ]
+  then
+    echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
+  else
+    echo "<ul><li><a id=seealso href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
+  fi
+fi
+if [ "$listby" = 'translatecat' ]
+then
+  echo "<li><font color=red>$translatenlink</font></li>"
+else
+  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
+fi
+if [ "$listby" = '' ] && [ "$category" != '' ]
+then
+  if [ "$suggest" = 'translate' ]
+  then
+    echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
+  else
+    echo "<ul><li><a id=seealso href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
+  fi
+fi
+echo "</ul>"
+echo "</ul>"
+echo "</ul>"
+echo -ne "<li><b><a href=\"/~mashiah/lists"
+if [ "$interface" = 'ru' ]
+then
+  echo -ne "ru"
+fi
+echo ".html\">$wholelist</a></b></li>"
+case "$listby" in
+ 'disambig')
+   echo "<ul><li><font color=red>$resolvedisambigs</font></li></ul>"
+   ;;
+ 'interlink')
+   echo "<ul><li><font color=red>$parttranslate</font></li></ul>"
+   ;;
+ 'translate')
+   echo "<ul><li><font color=red>$translatenlink</font></li></ul>"
+   ;;
+*) ;;
+esac
+#echo "<li><b>$wholelist</b></li>"
+#echo "<ul>"
+#if [ "$listby" = 'disambig' ]
+#then
+#  echo "<li><font color=red>$resolvedisambigs</font></li>"
+#else
+#  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambig\">$resolvedisambigs</a></li>"
+#fi
+#echo "<li>$justlink</li>"
+#echo "<ul>"
+#if [ "$listby" = 'interlink' ]
+#then
+#  echo "<li><font color=red>$parttranslate</font></li>"
+#else
+#  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=interlink\">$parttranslate</a></li>"
+#fi
+#if [ "$listby" = 'translate' ]
+#then
+#  echo "<li><font color=red>$translatenlink</font></li>"
+#else
+#  echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=translate\">$translatenlink</a></li>"
+#fi
+#echo "</ul>"
+#echo "</ul>"
+echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/bytypes\">$byclastertype</a></b></li>"
+echo "<ul><li><a href=\"http://ru.wikipedia.org/w/index.php?title=$orphurl\">$orphanes</a></li></ul>"
+echo "<li><b><a href=\"/~mashiah/cgi-bin/creators.sh?interface=$interface\">$bycreator</a></b></li>"
+echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/cltgdata\">$graphdata</a></b></li>"
+echo "</ul>"
+echo "<br />"
+echo "<b>3) <a href=\"http://ru.wikipedia.org/w/index.php?title=$deadendurl\">$deadend</a></b><br />"
+echo "<br />"
+echo "<b>4) <a href=\"/~mashiah/cgi-bin/disambig.sh?interface=$interface\">$disambig</a></b><br />"
+echo "<br />"
+echo "<b>5) <a href=\"/~mashiah/cgi-bin/category14.sh?interface=$interface\">$cattreecon</a></b><br />"
+echo "<br />"
+echo "<b>6) $contactme</b><br />"
+echo "<ul>"
+echo "<li><a href=\"http://ru.wikipedia.org/wiki/User:Mashiah_Davidson\">$mywikipage</a></li>"
+echo "<li><a href=\"http://ru.wikipedia.org/wiki/User:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$botwikipage</a></li>"
+echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
+echo "<li>mashiah $attext <a href="irc://irc.freenode.net/$ircchan">#$ircchan</a></li>"
+echo "</ul>"
+echo "<p align=justify>$srclocation <a href="http://fisheye.ts.wikimedia.org/browse/mashiah">toolserver fisheye</a>.</p>"
+echo "</td><td width=75%>"
 
-parse_query title
-parse_query listby
-parse_query shift
-parse_query category
-parse_query suggest
+echo "<h1>$thish1</h1>"
+
+echo "<FORM action=\"/~mashiah/cgi-bin/suggest.sh\" method=\"get\">"
+echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+echo "<P><font color=red>$ianamereq: <INPUT name=title type=\"text\"> $ianamedo</font></P>"
+echo "</FORM>"
 
 shiftnext=$((shift+100))
 shiftprev=$((shift-100))
@@ -160,29 +311,13 @@ case $listby in
   then
     if [ "$category" = '' ]
     then
-      echo "<h3>Suggestions by article categories for</h4>"
-      echo "<font color=red>What if it does not suggest?</font> Most likely the article has no or low on interwiki links, add few and wait for hope one or two days, then look again, the suggestions may have slightly changed."
-      echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
-      echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlinkcat\">linking based on interwiki</a></h4>"
-      echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
-      echo "<h4>all above operations</h4>"
-      echo "<font color=red>Not yet implemented.</font>"
-
-      echo "<h3>List all articles with suggestions for</h4>"
-      echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambig\">disambiguation links resolving</a></h4>"
-      echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlink\">linking based on interwiki</a></h4>"
-      echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translate\">translation and linking</a></h4>"
+      echo "<br />$clause1<br /><br />"
+      echo "<font color=red>$clause2</font><br />"
+      echo "<ul><li>$clause3</li><li>$clause4</li></ul>"
     else
       case $suggest in
       'disambig')
-        echo "<h4>$category</h4>"
-        echo "this is a list of isolated articles <b>linked from linked disambiguation pages</b>,<br />"
-        echo "see also:"
-        echo "<ul>"
-        echo "<li><a href='/~mashiah/cgi-bin/suggest.sh?category=$category&suggest=interlink'>list of isolated articles <b>with linking suggestions</b></a></li>"
-        echo "<li><a href='/~mashiah/cgi-bin/suggest.sh?category=$category&suggest=translate'>list of isolated articles <b>with translation suggestions</b></a></li>"
-        echo "<li><b><a href='/~mashiah/cgi-bin/category.sh?category=$category'>list of all isolated articles for this category</a></b></li>"
-        echo "</ul>"
+        echo "<br />$submenu1desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
         convertedcat=$( echo $category | sed -e 's/ /_/g' )
 
         echo "<ol>"
@@ -201,17 +336,10 @@ case $listby in
                           done
                         }
         echo "</ol>"
-        echo "end of the list"
+        echo $listend
         ;;
       'interlink')
-        echo "<h4>$category</h4>"
-        echo "this is a list of isolated articles with <b>linking suggestions</b>,<br />"
-        echo "see also:"
-        echo "<ul>"
-        echo "<li><a href='/~mashiah/cgi-bin/suggest.sh?category=$category&suggest=disambig'>list of isolated articles <b>linked from linked disambiguation pages</b></a></li>"
-        echo "<li><a href='/~mashiah/cgi-bin/suggest.sh?category=$category&suggest=translate'>list of isolated articles <b>with translation suggestions</b></a></li>"
-        echo "<li><b><a href='/~mashiah/cgi-bin/category.sh?category=$category'>list of all isolated articles for this category</a></b></li>"
-        echo "</ul>"
+        echo "<br />$submenu2desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
         convertedcat=$( echo $category | sed -e 's/ /_/g' )
 
         echo "<ol>"
@@ -230,17 +358,10 @@ case $listby in
                           done
                         }
         echo "</ol>"
-        echo "end of the list"
+        echo $listend
         ;;
       'translate')
-        echo "<h4>$category</h4>"
-        echo "this is a list of isolated articles with <b>translation suggestions</b>,<br />"
-        echo "see also:"
-        echo "<ul>"
-        echo "<li><a href='/~mashiah/cgi-bin/suggest.sh?category=$category&suggest=disambig'>list of isolated articles <b>linked from linked disambiguation pages</b></a></li>"
-        echo "<li><a href='/~mashiah/cgi-bin/suggest.sh?category=$category&suggest=interlink'>list of isolated articles <b>with linking suggestions</b></a></li>"
-        echo "<li><b><a href='/~mashiah/cgi-bin/category.sh?category=$category'>list of all isolated articles for this category</a></b></li>"
-        echo "</ul>"
+        echo "<br />$submenu3desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
         convertedcat=$( echo $category | sed -e 's/ /_/g' )
 
         echo "<ol>"
@@ -259,7 +380,7 @@ case $listby in
                           done
                         }
         echo "</ol>"
-        echo "end of the list"
+        echo $listend
         ;;
       *) ;;
       esac
@@ -270,17 +391,13 @@ case $listby in
 
     convertedtitle=$( echo $titleurl | sed -e 's/?/\%3F/g' )
     convertedtitle=$( echo $convertedtitle | sed -e 's/&/\%26/g' )
-    echo "<h4><a href=\"http://ru.wikipedia.org/wiki/$convertedtitle\">$title</a></h4>"
-    echo "<h5>may have linked through disambiguation page</h5>"
-    echo "Based on disambiguation links analysis, this isolated article may become linked from the following articles:<br />"
-
-    echo "<font color=red>"
-    echo "Note that chronological articles and collaborative list do not form valid links.<br />"
-    echo "They can be considered for links pointing disambiguation pages cleanup.<br />"
-    echo "</font>"
+    echo "<h2><a href=\"http://ru.wikipedia.org/wiki/$convertedtitle\">$title</a></h2>"
+    echo "<h3>$sggclause0</h3>"
+    echo "$sggclause1<br />"
+    echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
 
     convertedtitle=$( echo $titlesql | sed -e 's/ /_/g' )
-    echo "<ul>"
+    echo "<ol>"
     {
       echo CALL dsuggest\(\"$convertedtitle\"\)\;
     } | $sql 2>&1 | {
@@ -288,17 +405,15 @@ case $listby in
                         do handle_dsmbg "$line"
                       done
                     }
-    echo "</ul>"
-    echo "end of the list"
+    echo "</ol>"
+    echo $listend
 
-    echo "<h5>other languages based suggestion for linking</h5>"
-    echo "Interwiki analysis shows that interlinked articles are linked in their language sections, and the foreign linkers also have interwiki to ru:<br />"
+    echo "<h3>$sggclause4</h3>"
+    echo "$sggclause5<br />"
 
-    echo "<font color=red>"
-    echo "Note that chronological articles and collaborative list do not form valid links.<br />"
-    echo "</font>"
+    echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
 
-    echo "<ul>"
+    echo "<ol>"
     {
       echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
     } | $sql 2>&1 | {
@@ -306,17 +421,15 @@ case $listby in
                         do handle_lnk "$line"
                       done
                     }
-    echo "</ul>"
-    echo "end of the list"
+    echo "</ol>"
+    echo $listend
 
-    echo "<h5>suggestion for translation</h5>"
-    echo "Interwiki analysis shows that interlinked articles are linked in their language sections, so linking pages can be translated:<br />"
+    echo "<h3>$sggclause6</h3>"
+    echo "$sggclause7<br />"
 
-    echo "<font color=red>"
-    echo "Note that chronological articles and collaborative list do not form valid links.<br />"
-    echo "</font>"
+    echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
 
-    echo "<ul>"
+    echo "<ol>"
     {
       echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
     } | $sql 2>&1 | { 
@@ -325,16 +438,16 @@ case $listby in
                         do handle_trns "$line"
                       done
                     }
-    echo "</ul>"
-    echo "end of the list"
+    echo "</ol>"
+    echo $listend
+
+    echo "<h3>$googleonwikipedia</h3>"
+    echo "<IFRAME src=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
+    echo "<font color=red>Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\">seach with this link</A>."
+    echo "</IFRAME>"
   fi;;
 'disambig')
-  echo "<h3>List all articles with suggestions for</h4>"
-  echo "<h4>disambiguation links resolving</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlink\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translate\">translation and linking</a></h4>"
-  echo "Isolated articles below are linked from disambiguation pages, which are also linked from regular articles.<br />"
-  echo "This is a chance for both, making isolated articles linked, or making disambiguation pages not linked from articles directly.<br />"
+  echo "<br />$subclause1<br />"
 
   echo "<ol>"
   {
@@ -347,33 +460,22 @@ case $listby in
                     done
                   } 
   echo "</ol>"
-  echo "end of the list"
-
-  echo "<h3>Suggestions by article categories for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlinkcat\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
+  echo $listend
   ;;
 'disambigcat')
-  echo "<h3>Suggestions by article categories for</h4>"
-  echo "<h4>disambiguation links resolving</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlinkcat\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
-  echo "Categories below are ordered by amount of isolated articles having links from disambiguations, which are also linked from other articles.<br />"
+  echo "<br />$subclause2<br />"
 
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftprev\">previous 100</a> "
+    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftnext\">next 100</a>"
+  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT cv_title,                 \
                 cv_dsgcount               \
-                FROM catvolume            \
+                FROM catvolume0           \
                 ORDER BY cv_dsgcount DESC \
                 LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
@@ -384,21 +486,14 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftprev\">previous 100</a> "
+    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftnext\">next 100</a>"
+  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
 
-  echo "<h3>List all articles with suggestions for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambig\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlink\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translate\">translation and linking</a></h4>"
   ;;
 'interlink')
-  echo "<h3>List all articles with suggestions for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambig\">disambiguation links resolving</a></h4>"
-  echo "<h4>linking based on interwik</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translate\">translation and linking</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
+  echo "<br />$subclause3<br />"
+
   echo "<ol>"
   {
     echo SELECT DISTINCT title    \
@@ -412,33 +507,23 @@ case $listby in
                     done
                   }
   echo "</ol>"
-  echo "end of the list"
+  echo $listend
 
-  echo "<h3>Suggestions by article categories for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlinkcat\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
   ;;
 'interlinkcat')
-  echo "<h3>Suggestions by article categories for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
-  echo "<h4>linking based on interwiki</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
-  echo "Categories below are ordered by amount of isolated articles, which may have linked, because some of interwiki links for that articles point to linked pages and linking articles also have backward intewiki links.<br />"
+  echo "<br />$subclause4<br />"
 
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftprev\">previous 100</a> "
+    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftnext\">next 100</a>"
+  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT cv_title,                 \
                 cv_ilscount               \
-                FROM catvolume            \
+                FROM catvolume0           \
                 ORDER BY cv_ilscount DESC \
                 LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
@@ -449,21 +534,14 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftprev\">previous 100</a> "
+    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftnext\">next 100</a>"
+  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
 
-  echo "<h3>List all articles with suggestions for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambig\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlink\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translate\">translation and linking</a></h4>"
   ;;
 'translate')
-  echo "<h3>List all articles with suggestions for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambig\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlink\">linking based on interwiki</a></h4>"
-  echo "<h4>translation and linking</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
+  echo "<br />$subclause5<br />"
+
   echo "<ol>"
   {
     echo SELECT DISTINCT title    \
@@ -477,33 +555,23 @@ case $listby in
                     done
                   }
   echo "</ol>"
-  echo "end of the list"
+  echo $listend
 
-  echo "<h3>Suggestions by article categories for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlinkcat\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">translation and linking</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
   ;;
 'translatecat')
-  echo "<h3>Suggestions by article categories for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translatecat\">linking based on interwiki</a></h4>"
-  echo "<h4>translation and linking</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh\">all above operations</a></h4>"
-  echo "Categories below are ordered by amount of isolated articles, which may have linked after translation of some other articles.<br />"
+  echo "<br />$subclause6<br />"
 
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftprev\">previous 100</a> "
+    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftnext\">next 100</a>"
+  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT cv_title,                 \
                 cv_tlscount               \
-                FROM catvolume            \
+                FROM catvolume0           \
                 ORDER BY cv_tlscount DESC \
                 LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
@@ -514,23 +582,18 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftprev\">previous 100</a> "
+    echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambigcat&shift=$shiftnext\">next 100</a>"
+  echo "<a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
 
-  echo "<h3>List all articles with suggestions for</h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=disambig\">disambiguation links resolving</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=interlink\">linking based on interwiki</a></h4>"
-  echo "<h4><a href=\"/~mashiah/cgi-bin/suggest.sh?listby=translate\">translation and linking</a></h4>"
   ;;
 *) ;;
 esac
 
 cat << EOM
-
-<h2><a href="./category.sh">isolated articles for a particular category (ruwiki)</a></h2>
-<h2><a href="./category14.sh">categorytree connectivity (ruwiki)</a></h2>
-<h2><a href="./creators.sh">isolated articles creators (ruwiki)</a></h2>
+</td>
+</tr>
+</table>
 
  <body>
 </html>
