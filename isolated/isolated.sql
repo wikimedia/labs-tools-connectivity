@@ -177,7 +177,8 @@ CREATE PROCEDURE cache_namespace (num INT)
     DROP TABLE IF EXISTS nr;
     CREATE TABLE nr (
       nr_id int(8) unsigned NOT NULL default '0',
-      nr_title varchar(255) binary NOT NULL default ''
+      nr_title varchar(255) binary NOT NULL default '',
+      PRIMARY KEY (nr_id)
     ) ENGINE=MEMORY AS
     SELECT p_id as nr_id,
            p_title as nr_title
@@ -311,7 +312,7 @@ CREATE PROCEDURE cache_namespace (num INT)
     CREATE TABLE articles (
       a_id int(8) unsigned NOT NULL default '0',
       a_title varchar(255) binary NOT NULL default '',
-      PRIMARY KEY  (a_id),
+      PRIMARY KEY (a_id),
       UNIQUE KEY title (a_title)
     ) ENGINE=MEMORY AS
     SELECT nr_id as a_id,
@@ -337,93 +338,96 @@ CREATE PROCEDURE cache_namespace (num INT)
         SET @max_scc_size=acount;
     END IF;
 
-    #
-    # Chrono articles
-    #
-    DROP TABLE IF EXISTS chrono;
-    CREATE TABLE chrono (
-      chr_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY  (chr_id)
-    ) ENGINE=MEMORY AS
-    SELECT DISTINCT a_id as chr_id
-           FROM articles
-                 #             Common Era years 
-           WHERE a_title LIKE '_!_год' escape '!' OR
-                 a_title LIKE '__!_год' escape '!' OR             
-                 a_title LIKE '___!_год' escape '!' OR             
-                 a_title LIKE '____!_год' escape '!' OR
-                 #             years B.C.
-                 a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
-                 a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
-                 a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
-                 a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
-                 #             decades
-                 a_title LIKE '_-е' escape '!' OR             
-                 a_title LIKE '__-е' escape '!' OR             
-                 a_title LIKE '___-е' escape '!' OR
-                 a_title LIKE '____-е' escape '!' OR
-                 #             decades B.C.
-                 a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
-                 a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
-                 a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
-                 #             centuries
-                 a_title LIKE '_!_век' escape '!' OR
-                 a_title LIKE '__!_век' escape '!' OR
-                 a_title LIKE '___!_век' escape '!' OR
-                 a_title LIKE '____!_век' escape '!' OR
-                 a_title LIKE '_____!_век' escape '!' OR
-                 a_title LIKE '______!_век' escape '!' OR
-                 #             centuries B.C.
-                 a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
-                 #             milleniums
-                 a_title LIKE '_!_тысячелетие' escape '!' OR
-                 a_title LIKE '__!_тысячелетие' escape '!' OR
-                 #             milleniums B.C.
-                 a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                 a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
-                 #             years in different application domains
-                 a_title LIKE '_!_год!_в!_%' escape '!' OR
-                 a_title LIKE '__!_год!_в!_%' escape '!' OR
-                 a_title LIKE '___!_год!_в!_%' escape '!' OR
-                 a_title LIKE '____!_год!_в!_%' escape '!' OR
-                 #             calendar dates in the year
-                 a_title LIKE '_!_января' escape '!' OR
-                 a_title LIKE '__!_января' escape '!' OR
-                 a_title LIKE '_!_февраля' escape '!' OR
-                 a_title LIKE '__!_февраля' escape '!' OR
-                 a_title LIKE '_!_марта' escape '!' OR
-                 a_title LIKE '__!_марта' escape '!' OR
-                 a_title LIKE '_!_апреля' escape '!' OR
-                 a_title LIKE '__!_апреля' escape '!' OR
-                 a_title LIKE '_!_мая' escape '!' OR
-                 a_title LIKE '__!_мая' escape '!' OR
-                 a_title LIKE '_!_июня' escape '!' OR
-                 a_title LIKE '__!_июня' escape '!' OR
-                 a_title LIKE '_!_июля' escape '!' OR
-                 a_title LIKE '__!_июля' escape '!' OR
-                 a_title LIKE '_!_августа' escape '!' OR
-                 a_title LIKE '__!_августа' escape '!' OR
-                 a_title LIKE '_!_сентября' escape '!' OR
-                 a_title LIKE '__!_сентября' escape '!' OR
-                 a_title LIKE '_!_октября' escape '!' OR
-                 a_title LIKE '__!_октября' escape '!' OR
-                 a_title LIKE '_!_ноября' escape '!' OR
-                 a_title LIKE '__!_ноября' escape '!' OR
-                 a_title LIKE '_!_декабря' escape '!' OR
-                 a_title LIKE '__!_декабря' escape '!' OR
-                 #             year lists by the first week day 
-                 a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
-                 a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
+    IF num=0
+      THEN
+        #
+        # Chrono articles
+        #
+        DROP TABLE IF EXISTS chrono;
+        CREATE TABLE chrono (
+          chr_id int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY  (chr_id)
+        ) ENGINE=MEMORY AS
+        SELECT DISTINCT a_id as chr_id
+               FROM articles
+                     #             Common Era years 
+               WHERE a_title LIKE '_!_год' escape '!' OR
+                     a_title LIKE '__!_год' escape '!' OR             
+                     a_title LIKE '___!_год' escape '!' OR             
+                     a_title LIKE '____!_год' escape '!' OR
+                     #             years B.C.
+                     a_title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
+                     #             decades
+                     a_title LIKE '_-е' escape '!' OR             
+                     a_title LIKE '__-е' escape '!' OR             
+                     a_title LIKE '___-е' escape '!' OR
+                     a_title LIKE '____-е' escape '!' OR
+                     #             decades B.C.
+                     a_title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
+                     a_title LIKE '___-е!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '____-е!_до!_н.!_э.' escape '!' OR
+                     #             centuries
+                     a_title LIKE '_!_век' escape '!' OR
+                     a_title LIKE '__!_век' escape '!' OR
+                     a_title LIKE '___!_век' escape '!' OR
+                     a_title LIKE '____!_век' escape '!' OR
+                     a_title LIKE '_____!_век' escape '!' OR
+                     a_title LIKE '______!_век' escape '!' OR
+                     #             centuries B.C.
+                     a_title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
+                     #             milleniums
+                     a_title LIKE '_!_тысячелетие' escape '!' OR
+                     a_title LIKE '__!_тысячелетие' escape '!' OR
+                     #             milleniums B.C.
+                     a_title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                     a_title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
+                     #             years in different application domains
+                     a_title LIKE '_!_год!_в!_%' escape '!' OR
+                     a_title LIKE '__!_год!_в!_%' escape '!' OR
+                     a_title LIKE '___!_год!_в!_%' escape '!' OR
+                     a_title LIKE '____!_год!_в!_%' escape '!' OR
+                     #             calendar dates in the year
+                     a_title LIKE '_!_января' escape '!' OR
+                     a_title LIKE '__!_января' escape '!' OR
+                     a_title LIKE '_!_февраля' escape '!' OR
+                     a_title LIKE '__!_февраля' escape '!' OR
+                     a_title LIKE '_!_марта' escape '!' OR
+                     a_title LIKE '__!_марта' escape '!' OR
+                     a_title LIKE '_!_апреля' escape '!' OR
+                     a_title LIKE '__!_апреля' escape '!' OR
+                     a_title LIKE '_!_мая' escape '!' OR
+                     a_title LIKE '__!_мая' escape '!' OR
+                     a_title LIKE '_!_июня' escape '!' OR
+                     a_title LIKE '__!_июня' escape '!' OR
+                     a_title LIKE '_!_июля' escape '!' OR
+                     a_title LIKE '__!_июля' escape '!' OR
+                     a_title LIKE '_!_августа' escape '!' OR
+                     a_title LIKE '__!_августа' escape '!' OR
+                     a_title LIKE '_!_сентября' escape '!' OR
+                     a_title LIKE '__!_сентября' escape '!' OR
+                     a_title LIKE '_!_октября' escape '!' OR
+                     a_title LIKE '__!_октября' escape '!' OR
+                     a_title LIKE '_!_ноября' escape '!' OR
+                     a_title LIKE '__!_ноября' escape '!' OR
+                     a_title LIKE '_!_декабря' escape '!' OR
+                     a_title LIKE '__!_декабря' escape '!' OR
+                     #             year lists by the first week day 
+                     a_title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
+                     a_title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
 
-    SELECT CONCAT( ':: echo ', count(*), ' chronological articles found' )
-           FROM chrono;
+        SELECT CONCAT( ':: echo ', count(*), ' chronological articles found' )
+               FROM chrono;
+    END IF;
 
     DROP TABLE IF EXISTS pl;
     IF num!=14
@@ -493,6 +497,9 @@ CREATE PROCEDURE cache_namespace (num INT)
 DROP PROCEDURE IF EXISTS cleanup_redirects//
 CREATE PROCEDURE cleanup_redirects (namespace INT)
   BEGIN
+    DECLARE cnt INT;
+    DECLARE chainlen INT DEFAULT '1';
+
     # the amount of links from redirect pages in a given namespace
     DROP TABLE IF EXISTS rlc;
     CREATE TABLE rlc (
@@ -535,22 +542,16 @@ CREATE PROCEDURE cleanup_redirects (namespace INT)
         # they do not supply articles with proper categories
         CALL outifexists( 'r', CONCAT( 'redirects for namespace ', namespace), 'r.txt', 'r_title', 'out' );
     END IF;
-  END;
-//
 
-#
-# Long redirects like double and triple do not work in web API,
-# thus they need to be straightened.
-# Reaching the target via a long redirect requires more than one click,
-# but all hyperlink jumps are uniquely defined and can be easily fixed.
-# Here links via long redirects are threated as valid links for
-# connectivity analysis.
-#
-DROP PROCEDURE IF EXISTS long_redirects//
-CREATE PROCEDURE long_redirects ()
-  BEGIN
-    DECLARE cnt INT;
-    DECLARE chainlen INT DEFAULT '2';
+    #
+    # Long redirects like double and triple do not work in web API,
+    # thus they need to be straightened.
+    #
+    # Reaching the target via a long redirect requires more than one click,
+    # but all hyperlink jumps are uniquely defined and can be easily fixed.
+    # Here links via long redirects are threated as valid links for
+    # connectivity analysis.
+    #
 
     #
     # All links from and to redirects in our namespace.
@@ -558,7 +559,8 @@ CREATE PROCEDURE long_redirects ()
     DROP TABLE IF EXISTS r2r;
     CREATE TABLE r2r (
       r2r_to int(8) unsigned NOT NULL default '0',
-      r2r_from int(8) unsigned NOT NULL default '0'
+      r2r_from int(8) unsigned NOT NULL default '0',
+      KEY (r2r_to)
     ) ENGINE=MEMORY AS 
     SELECT r_id as r2r_to,
            pl_from as r2r_from
@@ -586,334 +588,104 @@ CREATE PROCEDURE long_redirects ()
 
     CALL outifexists( 'mr', 'redirects linking redirects', 'mr.info', 'mr_title', 'upload' );
 
-    #
-    # Let now X be one of:
-    #             - r
-    #             - r2r
-    #             - r2r2r
-    #             - etc.
-    #
+    DROP TABLE mr;
 
-    #
-    # All links from linked redirects in our namespace to redirects chain X.
-    # Note: Here X=r.
-    #
-    DROP TABLE IF EXISTS lr2X;
-    CREATE TABLE lr2X (
-      lr2X_to int(8) unsigned NOT NULL default '0',
-      lr2X_from int(8) unsigned NOT NULL default '0'
+    # All links from non-redirects to redirects for a given namespace.
+    DROP TABLE IF EXISTS nr2r;
+    CREATE TABLE nr2r (
+      nr2r_to int(8) unsigned NOT NULL default '0',
+      nr2r_from int(8) unsigned NOT NULL default '0',
+      KEY (nr2r_to)
     ) ENGINE=MEMORY AS 
-    SELECT r2r_to as lr2X_to,
-           r2r_from as lr2X_from
-           FROM r2r
-           WHERE r2r_from in
-                 (
-                  SELECT a2r_to
-                         FROM a2r
-                 );
-
-    SELECT count(*) INTO cnt
-           FROM lr2X;
-
-    WHILE cnt>0 DO
-      SELECT CONCAT( ':: echo . ', cnt, ' linked chains of ', chainlen, ' redirects found' );
-
-      #
-      # All links from linked redirects to articles via a redirects chain X.
-      #
-      DROP TABLE IF EXISTS lr2X2a;
-      CREATE TABLE lr2X2a (
-        lr2X2a_to int(8) unsigned NOT NULL default '0',
-        lr2X2a_from int(8) unsigned NOT NULL default '0'
-      ) ENGINE=MEMORY AS 
-      SELECT lr2X_from as lr2X2a_from,
-             r2a_to as lr2X2a_to
-             FROM r2a,
-                  lr2X
-             WHERE r2a_from=lr2X_to;
-
-      SELECT CONCAT( ':: echo . ', count(*), ' linked chains of ', chainlen, ' redirects linking articles found' )
-             FROM lr2X2a;
-
-      #
-      # Add article to article links via a redirects chain r2X.
-      # 
-      INSERT IGNORE INTO l
-      SELECT lr2X2a_to as l_to,
-             a2r_from as l_from
-             FROM a2r,
-                  lr2X2a
-             WHERE a2r_to=lr2X2a_from and
-                   a2r_from!=lr2X2a_to;
-      DROP TABLE lr2X2a;
-
-      SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles (direct or via a chain of up to ', chainlen, ' redirects) found' )
-             FROM l;
-
-      #
-      # Connect redirects to ends of linked redirect chains.
-      # Note: Columns are prepared for renaming of the table.
-      #
-      DROP TABLE IF EXISTS lr2X2r;
-      CREATE TABLE lr2X2r (
-        lr2X_to int(8) unsigned NOT NULL default '0',
-        lr2X_from int(8) unsigned NOT NULL default '0'
-      ) ENGINE=MEMORY AS 
-      SELECT lr2X_from,
-             r2r_to as lr2X_to
-             FROM lr2X,
-                  r2r
-             WHERE lr2X_to=r2r_from;
-      DROP TABLE lr2X;
-
-      #
-      # Now X=X2r everywhere
-      # 
-      RENAME TABLE lr2X2r TO lr2X;
-
-      SET chainlen=chainlen+1;
-
-      SELECT count(*) INTO cnt
-             FROM lr2X;
-
-    END WHILE;
-
-    DROP TABLE lr2X;
-  END;
-//
-
-#
-# Before any analysis running we need to identify all the valid links between
-# articles. Here the links table l is constructed as containing
-#  - direct links from article to article
-#  - links from article to article via a redirect from the namespace given
-#  - links from article to article via a long (double, triple, etc) redirect
-#
-# Notes: Now the links table requires @@max_heap_table_size 
-#        to be equal to 268435456 bytes for main namespace analysis in ruwiki.
-#        Namespace 14 probably must be free of redirect links - todo.
-#
-DROP PROCEDURE IF EXISTS construct_links//
-CREATE PROCEDURE construct_links ()
-  BEGIN
-    #
-    # Here we adding direct links to articles from other articles.
-    #
-    INSERT INTO l
-    SELECT a_id as l_to,
-           pl_from as l_from
-           FROM pl,
-                articles
-           WHERE pl_from in
-                 (
-                  SELECT a_id 
-                         FROM articles
-                 ) and
-                 pl_to=a_id and
-                 pl_from!=a_id;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles' )
-           FROM l;
-
-    #
-    # Links from article to article via a redirect
-    #
-
-    # All links from articles to redirects for a given namespace.
-    DROP TABLE IF EXISTS a2r;
-    CREATE TABLE a2r (
-      a2r_to int(8) unsigned NOT NULL default '0',
-      a2r_from int(8) unsigned NOT NULL default '0',
-      KEY (a2r_to)
-    ) ENGINE=MEMORY AS 
-    SELECT r_id as a2r_to,
-           pl_from as a2r_from
+    SELECT r_id as nr2r_to,
+           pl_from as nr2r_from
            FROM pl,
                 r
            WHERE pl_from in
                  (
-                  SELECT a_id 
-                         FROM articles
+                  SELECT nr_id 
+                         FROM nr
                  ) and
                  pl_to=r_id;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links from articles to redirects' )
-           FROM a2r;
-
+    SELECT CONCAT( ':: echo ', count(*), ' links from non-redirects to redirects' )
+           FROM nr2r;
+           
     # All links from our namespace redirects to articles.
-    DROP TABLE IF EXISTS r2a;
-    CREATE TABLE r2a (
-      r2a_to int(8) unsigned NOT NULL default '0',
-      r2a_from int(8) unsigned NOT NULL default '0',
-      KEY (r2a_from)
+    DROP TABLE IF EXISTS r2nr;
+    CREATE TABLE r2nr (
+      r2nr_to int(8) unsigned NOT NULL default '0',
+      r2nr_from int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY AS 
-    SELECT a_id as r2a_to,
-           pl_from as r2a_from
+    SELECT nr_id as r2nr_to,
+           pl_from as r2nr_from
            FROM pl,
-                articles
+                nr
            WHERE pl_from in
                  (
                   SELECT r_id
                          FROM r
                  ) and
-                 pl_to=a_id;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from redirects to articles' )
-           FROM r2a;
-
-    # All links from linked redirects in a given namespace to articles.
-    DROP TABLE IF EXISTS lr2a;
-    CREATE TABLE lr2a (
-      lr2a_to int(8) unsigned NOT NULL default '0',
-      lr2a_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT r2a_to as lr2a_to,
-           r2a_from as lr2a_from
-           FROM r2a
-           WHERE r2a_from in
-                 (
-                  SELECT a2r_to
-                         FROM a2r
-                 );
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from linked redirects to articles' )
-           FROM lr2a;
-
-    # Links from articles to articles via a redirect are put here to l.
-    INSERT IGNORE INTO l
-    SELECT lr2a_to as l_to,
-           a2r_from as l_from
-           FROM lr2a,
-                a2r
-           WHERE lr2a_from=a2r_to and
-                 lr2a_to!=a2r_from;
-    DROP TABLE lr2a;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles (direct or via a redirect)' )
-           FROM l;
-
-    #
-    # Long redirects do not work for web API.
-    # As well as long redirects are collected and even resolved automatically
-    # all the links via long redirects can be also added to table l.
-    #
-    # All the long redirects found are also output for resolving.
-    #
-    CALL long_redirects();
-
-  END;
-//
-
-#
-# Long redirects like double and triple do not work in web API,
-# thus they need to be straightened.
-# Reaching the target via a long redirect requires more than one click,
-# but all hyperlink jumps are uniquely defined and can be easily fixed.
-# Here links via long redirects are threated as valid links for
-# connectivity analysis.
-#
-DROP PROCEDURE IF EXISTS long_redirects_d//
-CREATE PROCEDURE long_redirects_d ()
-  BEGIN
-    DECLARE cnt INT;
-    DECLARE chainlen INT DEFAULT '2';
-
-    #
-    # Let now X be one of:
-    #             - r
-    #             - r2r
-    #             - r2r2r
-    #             - etc.
-    #
-
-    #
-    # All links from linked redirects in our namespace to redirects chain X.
-    # Note: Here X=r.
-    #
-    DROP TABLE IF EXISTS lr2X;
-    CREATE TABLE lr2X (
-      lr2X_to int(8) unsigned NOT NULL default '0',
-      lr2X_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT r2r_to as lr2X_to,
-           r2r_from as lr2X_from
-           FROM r2r
-           WHERE r2r_from in
-                 (
-                  SELECT a2r_to
-                         FROM a2r
-                 );
+                 pl_to=nr_id;
 
     SELECT count(*) INTO cnt
-           FROM lr2X;
+           FROM r2nr;
 
     WHILE cnt>0 DO
-      SELECT CONCAT( ':: echo . ', cnt, ' linked chains of ', chainlen, ' redirects found' );
+
+      SELECT CONCAT( ':: echo ', cnt, ' links from non-redirects to non-redirects via a chain of ', chainlen, ' redirects' );
 
       #
-      # All links from linked redirects to articles via a redirects chain X.
+      # Rectify redirects adding appropriate direct links.
       #
-      DROP TABLE IF EXISTS lr2X2d;
-      CREATE TABLE lr2X2d (
-        lr2X2d_to int(8) unsigned NOT NULL default '0',
-        lr2X2d_from int(8) unsigned NOT NULL default '0'
-      ) ENGINE=MEMORY AS 
-      SELECT lr2X_from as lr2X2d_from,
-             r2d_to as lr2X2d_to
-             FROM r2d,
-                  lr2X
-             WHERE r2d_from=lr2X_to;
+      INSERT INTO pl
+      SELECT nr2r_from as pl_from,
+             r2nr_to as pl_to
+             FROM nr2r,
+                  r2nr
+             WHERE nr2r_to=r2nr_from;
 
-      SELECT CONCAT( ':: echo . ', count(*), ' linked chains of ', chainlen, ' redirects linking disambigs found' )
-             FROM lr2X2d;
+      SELECT CONCAT( ':: echo ', count(*), ' links after ', chainlen, '-redirect chains rectification' )
+             FROM pl;
 
       #
-      # Add article to disambig links via a redirects chain r2X.
+      # One step of new long-redirect driven "links to be added" collection.
+      #
+      # Note: We've lost all the redirect rings here because of pure redirects
+      #       in a ring unable to link non-redirects.
+      #
+      DROP TABLE IF EXISTS r2X2nr;
+      CREATE TABLE r2X2nr (
+        r2nr_to int(8) unsigned NOT NULL default '0',
+        r2nr_from int(8) unsigned NOT NULL default '0'
+      ) ENGINE=MEMORY;
+
+      INSERT INTO r2X2nr
+      SELECT r2nr_to,
+             r2r_from as r2nr_from
+             FROM r2r,
+                  r2nr
+             WHERE r2r_to=r2nr_from;
+
+      DROP TABLE r2nr;
+
+      SELECT count(*) INTO cnt
+             FROM r2X2nr;
+
+      #
+      # Now X=r2X everywhere
       # 
-      INSERT IGNORE INTO dl
-      SELECT lr2X2d_to as dl_to,
-             a2r_from as dl_from
-             FROM a2r,
-                  lr2X2d
-             WHERE a2r_to=lr2X2d_from;
-      DROP TABLE lr2X2d;
-
-      SELECT CONCAT( ':: echo ', count(*), ' links from articles to disambigs (direct or via a chain of up to ', chainlen, ' redirects) found' )
-             FROM dl;
-
-      #
-      # Connect redirects to ends of linked redirect chains.
-      # Note: Columns are prepared for renaming of the table.
-      #
-      DROP TABLE IF EXISTS lr2X2r;
-      CREATE TABLE lr2X2r (
-        lr2X_to int(8) unsigned NOT NULL default '0',
-        lr2X_from int(8) unsigned NOT NULL default '0'
-      ) ENGINE=MEMORY AS 
-      SELECT lr2X_from,
-             r2r_to as lr2X_to
-             FROM lr2X,
-                  r2r
-             WHERE lr2X_to=r2r_from;
-      DROP TABLE lr2X;
-
-      #
-      # Now X=X2r everywhere
-      # 
-      RENAME TABLE lr2X2r TO lr2X;
+      RENAME TABLE r2X2nr TO r2nr;
 
       SET chainlen=chainlen+1;
 
-      SELECT count(*) INTO cnt
-             FROM lr2X;
-
     END WHILE;
 
-    DROP TABLE lr2X;
     DROP TABLE r2r;
+    DROP TABLE nr2r;
+
   END;
 //
-
 
 #
 # Links from articles to disambiguations are constructed here.
@@ -924,7 +696,7 @@ CREATE PROCEDURE construct_dlinks ()
     #
     # Here we adding direct links from articles to disambiguations.
     #
-    INSERT INTO dl
+    INSERT IGNORE INTO dl
     SELECT d_id as dl_to,
            pl_from as dl_from
            FROM pl,
@@ -942,7 +714,7 @@ CREATE PROCEDURE construct_dlinks ()
     #
     # Here we adding direct links from disambiguations to articles.
     #
-    INSERT INTO ld
+    INSERT IGNORE INTO ld
     SELECT a_id as ld_to,
            pl_from as ld_from
            FROM pl,
@@ -956,123 +728,6 @@ CREATE PROCEDURE construct_dlinks ()
 
     SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to articles' )
            FROM ld;
-
-    #
-    # Links from redirects to disambigs
-    #
-    DROP TABLE IF EXISTS r2d;
-    CREATE TABLE r2d (
-      r2d_to int(8) unsigned NOT NULL default '0',
-      r2d_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT d_id as r2d_to,
-           pl_from as r2d_from
-           FROM pl,
-                d
-           WHERE pl_from in
-                 (
-                  SELECT r_id
-                         FROM r
-                 ) and
-                 pl_to=d_id;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from redirects to disambigs' )
-           FROM r2d;
-
-    #
-    # Links from disambigs to redirects
-    #
-    DROP TABLE IF EXISTS d2r;
-    CREATE TABLE d2r (
-      d2r_to int(8) unsigned NOT NULL default '0',
-      d2r_from int(8) unsigned NOT NULL default '0',
-      KEY (d2r_to)
-    ) ENGINE=MEMORY AS 
-    SELECT r_id as d2r_to,
-           pl_from as d2r_from
-           FROM pl,
-                r
-           WHERE pl_from in
-                 (
-                  SELECT d_id
-                         FROM d
-                 ) and
-                 pl_to=r_id;
-    DROP TABLE pl;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to redirects' )
-           FROM d2r;
-
-    # All links from linked redirects in a given namespace to disambigs.
-    DROP TABLE IF EXISTS lr2d;
-    CREATE TABLE lr2d (
-      lr2d_to int(8) unsigned NOT NULL default '0',
-      lr2d_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT r2d_to as lr2d_to,
-           r2d_from as lr2d_from
-           FROM r2d
-           WHERE r2d_from in
-                 (
-                  SELECT a2r_to
-                         FROM a2r
-                 );
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from linked redirects to disambigs' )
-           FROM lr2d;
-
-    # All links from redirects linked by disambiguations in a given namespace to articles.
-    DROP TABLE IF EXISTS lr2a;
-    CREATE TABLE lr2a (
-      lr2a_to int(8) unsigned NOT NULL default '0',
-      lr2a_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT r2a_to as lr2a_to,
-           r2a_from as lr2a_from
-           FROM r2a,
-                d2r
-           WHERE r2a_from=d2r_to;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from redirects linked by disambiguations to articles' )
-           FROM lr2a;
-
-    # Links fro articles to disambiguations via a redirect are put here to dl.
-    INSERT IGNORE INTO dl
-    SELECT lr2d_to as dl_to,
-           a2r_from as dl_from
-           FROM lr2d,
-                a2r
-           WHERE lr2d_from=a2r_to;
-    DROP TABLE lr2d;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from articles to disambigs (direct or via a redirect)' )
-           FROM dl;
-
-    # Links from disambiguations to articles via a redirect are put here to ld.
-    INSERT IGNORE INTO ld
-    SELECT lr2a_to as ld_to,
-           d2r_from as ld_from
-           FROM lr2a,
-                d2r
-           WHERE lr2a_from=d2r_to;
-    DROP TABLE lr2a;
-    DROP TABLE d2r;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to articles (direct or via a redirect)' )
-           FROM ld;
-
-    #
-    # Long redirects do not work for web API.
-    # As well as long redirects are collected and even resolved automatically
-    # all the links via long redirects can be also added to table dl.
-    #
-    # All the long redirects found are also output for resolving.
-    #
-    # Note: Does not apply long redirects to ld yet.
-    #
-    CALL long_redirects_d();
-
-    DROP TABLE a2r;
 
     #
     # Linking rings between articles and disambiguation pages are constructed
@@ -1112,6 +767,7 @@ CREATE PROCEDURE construct_dlinks ()
            WHERE nr_id=dss_id
            ORDER BY dss_cnt DESC;
     DROP TABLE dsstat;
+
   END;
 //
 
@@ -1133,6 +789,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
                       SELECT chr_id
                              FROM chrono
                      );
+        DROP TABLE chrono;
 
         SELECT CONCAT( ':: echo ', count(*), ' links after chrono-cleanup' )
                FROM l;
@@ -1177,7 +834,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
            tl_from as l_from
            FROM ruwiki_p.templatelinks, 
                 r,
-                r2a,
+                r2nr,
                 articles
            WHERE tl_namespace=namespace and
                  tl_from IN
@@ -1186,8 +843,8 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
                          FROM articles
                  ) and
                  r_title=tl_title and
-                 r2a_from=r_id and
-                 r2a_to=a_id;
+                 r2nr_from=r_id and
+                 r2nr_to=a_id;
 
     SELECT CONCAT( ':: echo ', count(*), ' links after redirected templating interpretion' )
            FROM l;
@@ -1196,7 +853,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
       THEN
         DROP TABLE r;
     END IF;
-    DROP TABLE r2a;
+    DROP TABLE r2nr;
   END;
 //
 
@@ -2284,6 +1941,8 @@ CREATE PROCEDURE combineandout ()
                WHERE id=page_id
                ORDER BY deact+deact+isoact DESC, page_title ASC;
     END IF;
+
+    DROP TABLE task;
   END;
 //
 
@@ -2411,6 +2070,8 @@ CREATE PROCEDURE outertools ()
                     d2i
                WHERE dl_to=d2i_from;
 
+        DROP TABLE d2i;
+
         SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles through disambiguation pages linking isolates' )
                FROM a2i;
 
@@ -2439,6 +2100,11 @@ CREATE PROCEDURE outertools ()
         RENAME TABLE nrcat TO nrcat0;
 
     END IF;
+
+    DROP TABLE IF EXISTS nrcat;
+    DROP TABLE IF EXISTS dl;
+    DROP TABLE IF EXISTS ld;
+
     IF @namespace=14
       THEN
         #
@@ -2491,6 +2157,8 @@ CREATE PROCEDURE outertools ()
         # Note: postponed because takes too much time.
         CALL inter_langs();
 
+        DROP TABLE isocat;
+
         #
         # For use in "ISOLATES ARTICLES CREATORS".
         #
@@ -2526,6 +2194,8 @@ CREATE PROCEDURE outertools ()
                FROM ruwiki_p.revision,
                     firstrev
                WHERE revision=rev_id;
+
+        DROP TABLE firstrev;
 
         SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
                FROM creators;
@@ -2683,8 +2353,37 @@ CREATE PROCEDURE connectivity ()
       PRIMARY KEY (l_to,l_from)
     ) ENGINE=MEMORY;
 
-    # construct table of valid links named l
-    CALL construct_links();
+    #
+    # Before any analysis running we need to identify all the valid links
+    # between articles. Here the links table l is constructed as containing
+    #  - direct links from article to article
+    #  - links from article to article via a redirect from the namespace given
+    #  - links from article to article via a long (double, triple, etc) redirect
+    #
+    # Notes: Now the links table requires @@max_heap_table_size 
+    #        to be equal to 268435456 bytes for main namespace analysis 
+    #        in ruwiki.
+    #        Namespace 14 probably must be free of redirect links - todo.
+    #
+
+    #
+    # Here we can construct links from articles to articles.
+    #
+    INSERT IGNORE INTO l
+    SELECT a_id as l_to,
+           pl_from as l_from
+           FROM pl,
+                articles
+           WHERE pl_from in
+                 (
+                  SELECT a_id 
+                         FROM articles
+                 ) and
+                 pl_to=a_id and
+                 pl_from!=a_id;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles' )
+           FROM l;
 
     #
     #  DISAMBIG LINKS PROCESSING
@@ -2700,20 +2399,25 @@ CREATE PROCEDURE connectivity ()
       PRIMARY KEY (dl_to,dl_from)
     ) ENGINE=MEMORY;
 
-    # Table ld is created here for links from disambiguations to articles.
-    DROP TABLE IF EXISTS ld;
-    CREATE TABLE ld (
-      ld_to int(8) unsigned NOT NULL default '0',
-      ld_from int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (ld_to,ld_from)
-    ) ENGINE=MEMORY;
+    IF @namespace!=14
+      THEN
+        # Table ld is created here for links from disambiguations to articles.
+        DROP TABLE IF EXISTS ld;
+        CREATE TABLE ld (
+          ld_to int(8) unsigned NOT NULL default '0',
+          ld_from int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (ld_to,ld_from)
+        ) ENGINE=MEMORY;
 
-    # Construct two tables of links:
-    #  - a2d named dl;
-    #  - d2a named ld.
-    CALL construct_dlinks();
+        # Constructs two tables of links:
+        #  - a2d named dl;
+        #  - d2a named ld.
+        CALL construct_dlinks();
+    END IF;
 
+    DROP TABLE d;
     DROP TABLE nr;
+    DROP TABLE pl;
 
     IF @namespace!=14
       THEN
@@ -2771,6 +2475,8 @@ CREATE PROCEDURE connectivity ()
         # minimizes amount of edits combining results for deadend and isolated analysis
         CALL combineandout();
     END IF;
+
+    DROP TABLE del;
 
     #
     # Prepare some usefull data for web tools.
