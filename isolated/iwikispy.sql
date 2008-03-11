@@ -293,6 +293,12 @@ CREATE PROCEDURE inter_langs()
 
     CLOSE cur;
 
+    DROP TABLE d_i18n;
+    DROP TABLE dinfo;
+    DROP TABLE rinfo;
+    DROP TABLE iwl;
+    DROP TABLE liwl;
+
     DELETE FROM res
            WHERE suggestn='';
 
@@ -310,6 +316,7 @@ CREATE PROCEDURE inter_langs()
       SELECT count(*) INTO ready
              FROM communication_exchange;
     UNTIL ready=2 END REPEAT;
+    DROP TABLE communication_exchange;
 
     # merging s2 and s3 results
     INSERT into res
@@ -358,6 +365,8 @@ CREATE PROCEDURE inter_langs()
            WHERE nrc_id=isolated and
                  nrc_to=cv_title
            GROUP BY cv_title;
+
+    DROP TABLE nrcat0;
         
     # Note: need to use IGNORE for unknown reason.
     UPDATE IGNORE catvolume,
@@ -389,6 +398,7 @@ CREATE PROCEDURE inter_langs_s2()
       SELECT count(*) INTO ready
              FROM communication_exchange;
     UNTIL ready=2 END REPEAT;
+    DROP TABLE communication_exchange;
 
     # s2 languages loop
     OPEN cur;
@@ -402,6 +412,12 @@ CREATE PROCEDURE inter_langs_s2()
     UNTIL done END REPEAT;
 
     CLOSE cur;
+
+    DROP TABLE d_i18n;
+    DROP TABLE dinfo;
+    DROP TABLE rinfo;
+    DROP TABLE iwl;
+    DROP TABLE liwl;
 
     DELETE FROM res
            WHERE suggestn='';
