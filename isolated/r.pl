@@ -12,15 +12,29 @@
 use strict; # 'strict' insists that all variables be declared
 
 my $outpage=shift;
-my $user=shift;
-my $pass=shift;
 my $mode=shift;
+
+my $user="";
+my $pass="";
+open FILE, '</home/mashiah/.ru.cnf' or die $!;
+while( my $line = <FILE> )
+{
+  if( $line =~ /^user\s*=\s*\"([^\"]*)\"$/ )
+  {
+    $user = $1;
+  }
+  elsif( $line =~ /^password\s*=\s*\"([^\"]*)\"$/ )
+  {
+    $pass = $1
+  }
+}
+close FILE;
 
 use Perlwikipedia;
 use Encode;
 
 my $editor=Perlwikipedia->new($user);
-$editor->{debug} = 1;
+$editor->{debug} = 0;
 $editor->set_wiki('ru.wikipedia.org','w');
 $editor->login($user, $pass);
 
@@ -70,7 +84,7 @@ if( $mode eq 'pre' )
 
 if( $text eq $current )
 {
-  print "no need to upload\n";
+  print ":: echo no need to upload\n";
 }
 else
 {
@@ -81,7 +95,8 @@ else
   #       it just overwrites existing text.
   $editor->edit($article, $text, $edit_summary, $is_minor);
 
-  print "data successfully upload\n";
+  print ":: echo data successfully upload\n";
+  print ":: s3 call stat_uploaded\n";
 }
 
 # </pre>
