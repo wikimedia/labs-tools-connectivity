@@ -26,7 +26,7 @@
  -- Relevant linking concept: Links from chronological articles are not too
  --                           relevant, and they are threated as links from 
  --                           a time-oriented portal.
- --                           Some articles lists are not too relevant too,
+ --                           Some articles lists are not too relevant either,
  --                           all the links from collaborational lists are
  --                           also ignored.
  --
@@ -491,8 +491,11 @@ CREATE PROCEDURE cache_namespace (num INT)
 //
 
 #
-# Forms wrong redirects table wr and filter redirects table appropriately.
+# Forms wrong redirects table wr and filters redirects table appropriately.
 # For namespace 14 outputs a list of all redirects because they are prohibited.
+#
+# Also throws redirects and redirect chains and add all redirected chains
+# into pl table as regular links.
 #
 DROP PROCEDURE IF EXISTS cleanup_redirects//
 CREATE PROCEDURE cleanup_redirects (namespace INT)
@@ -1930,9 +1933,9 @@ CREATE PROCEDURE combineandout ()
         #
         # Output common task for processing in an outer handler.
         # 
-        SELECT CONCAT(':: echo ', cnt, ' articles to be edited' ) as title;
+        SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
         SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
-        SELECT CONCAT(getnsprefix(page_namespace), page_title) as title,
+        SELECT CONCAT( getnsprefix(page_namespace), page_title ) as title,
                deact,
                isoact,
                isocat
@@ -2160,7 +2163,7 @@ CREATE PROCEDURE outertools ()
         DROP TABLE isocat;
 
         #
-        # For use in "ISOLATES ARTICLES CREATORS".
+        # For use in "ISOLATED ARTICLES CREATORS".
         #
 
         DROP TABLE IF EXISTS firstrev;
@@ -2323,17 +2326,40 @@ CREATE PROCEDURE connectivity ()
 
     SELECT CONCAT( ':: echo NAMESPACE ', @namespace );
 
+    # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
+    # when the last edit there happen?
+    SELECT max( rc_timestamp ) INTO @rep_time
+    FROM frwiki_p.recentchanges;
+
+    SELECT CONCAT( ':: echo last replicated timestamp: ', @rep_time );
+
     #
     #  CONNECTIVITY ANALYSIS INITIALIZIATION
     #
-    SET @starttime=now();
-
     SELECT ':: echo init:' as title;
 
-    # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
+    SET @starttime=now();
+
     # how old the latest edit there is?
-    SELECT CONCAT( ':: replag ', timediff(now(), max(rc_timestamp))) as title
-           FROM frwiki_p.recentchanges;
+    SELECT CONCAT( ':: replag ', timediff(now(), @rep_time)) as title;
+
+    IF @namespace=0
+      THEN
+        # permanent storage for inter-run data on statistics upload
+        CREATE TABLE IF NOT EXISTS wikistat (
+          ts TIMESTAMP(14) NOT NULL,
+          valid int(8) unsigned NOT NULL default '0'
+        ) ENGINE=MyISAM;
+
+        # no need to keep old data, especially when stats hasn't been uploaded
+        DELETE FROM wikistat
+               WHERE valid=0;
+
+        # just in case stats will be uploaded during this run
+        INSERT INTO wikistat
+        SELECT @rep_time as ts,
+               0 as valid;
+    END IF;
 
     # the name-prefix for all output files, distinct for each run
     SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
@@ -2342,7 +2368,8 @@ CREATE PROCEDURE connectivity ()
     # requires @@max_heap_table_size not less than 134217728 for zero namespace;
     CALL cache_namespace( @namespace );
 
-    # collect wrong redirects and cleanup redirects
+    # throws redirect chains and adds paths to links collected earlier
+    # also collects wrong redirects
     CALL cleanup_redirects( @namespace );
 
     # Table l is created here for all links, which are to be taken into account.
@@ -2474,9 +2501,41 @@ CREATE PROCEDURE connectivity ()
         # socket for the template maintainer
         # minimizes amount of edits combining results for deadend and isolated analysis
         CALL combineandout();
+
+        # initiate statistics upload 
+        SELECT count(*) INTO @validexists
+               FROM wikistat
+               WHERE valid=1;
+        IF @validexists=0
+          THEN
+            # first statistics upload
+            SELECT ':: echo uploading statistics for first time';
+            SELECT ':: stat 00:00:00';
+          ELSE
+            SELECT max(ts) INTO @valid
+                   FROM wikistat
+                   WHERE valid=1;
+            SELECT timediff(max(ts), @valid) INTO @valid
+                   FROM wikistat
+                   WHERE valid=0;
+
+            SELECT CONCAT( ':: stat ', @valid );
+        END IF;
+
+        # pack files for delivery
+        SELECT ':: 7z';
     END IF;
 
     DROP TABLE del;
+  END;
+//
+
+#
+# Do outer tools as appropriate.
+#
+DROP PROCEDURE IF EXISTS doouter//
+CREATE PROCEDURE doouter ()
+  BEGIN
 
     #
     # Prepare some usefull data for web tools.
@@ -2494,6 +2553,24 @@ CREATE PROCEDURE connectivity ()
   END;
 //
 
+DROP PROCEDURE IF EXISTS stat_uploaded//
+CREATE PROCEDURE stat_uploaded ()
+  BEGIN
+    # Note: Crazy mysql updates timestamp value with current timestamp,
+    #       that's why need to add stupid things like ts=ts.
+    UPDATE wikistat
+           SET valid=1-valid,
+               ts=ts;
+
+    # no need to keep old data
+    DELETE FROM wikistat
+           WHERE valid=0;
+
+    SELECT CONCAT( ':: echo isolated stat uploaded, replication timestamp is ', ts )
+           FROM wikistat
+           WHERE valid=1;
+  END;
+//
 
 delimiter ;
 ############################################################
