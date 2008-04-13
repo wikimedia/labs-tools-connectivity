@@ -10,8 +10,21 @@
 
 use strict; # 'strict' insists that all variables be declared
 
-my $user=shift;
-my $pass=shift;
+my $user="";
+my $pass="";
+open FILE, '</home/mashiah/.ru.cnf' or die $!;
+while( my $line = <FILE> )
+{
+  if( $line =~ /^user\s*=\s*\"([^\"]*)\"$/ )
+  {
+    $user = $1;
+  }
+  elsif( $line =~ /^password\s*=\s*\"([^\"]*)\"$/ )
+  {
+    $pass = $1
+  }
+}
+close FILE;
 
 use Perlwikipedia;
 use Encode;
@@ -100,7 +113,7 @@ while( <> )
   {
     $failed_count+=1;
     $editor->{errstr}='';
-    print "error getting an article\n";
+    print "error getting ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
   }
   else
   {
@@ -124,6 +137,14 @@ while( <> )
     {
       my $r=$1;
 
+      # just in case there is an anchor in the link
+      my $anchor="";
+      if( $r =~ /^([^\#]+)\#([^\#]+)$/ )
+      {
+        $r=$1;
+        $anchor=$2;
+      }
+
       if( $r eq $mr )
       {
         do_edit( $r, '{{db|happy self-redirect}}', '{{db|happy self-redirect}}'."\n#REDIRECT [[$r]]" );
@@ -146,7 +167,7 @@ while( <> )
         {
           $failed_count+=1;
           $editor->{errstr}='';
-          print "error getting an article\n";
+          print "error getting in chain started from ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
         }
         else
         {
@@ -216,6 +237,13 @@ while( <> )
             }
             else
             {
+              # applying an anchor if required
+              if( $anchor ne '' )
+              {
+                $target=$target.'#'.$anchor;
+              }
+
+              # resolving the double redirect
               do_edit( $mr, 'double redirects resolving with perlwikipedia', "#REDIRECT [[$target]]");
               if( $editor->{errstr} ne '' )
               {
