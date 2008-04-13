@@ -13,6 +13,9 @@ no_sql_error ()
   'ERROR 1049 (42000): ' )
     echo $noudb
     ;;
+  'ERROR 1045 (28000): ' )
+    echo $hostisnotallowed
+    ;;
   'ERROR 1130 (00000): ' )
     echo $hostisnotallowed
     ;;
