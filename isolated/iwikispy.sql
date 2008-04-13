@@ -374,7 +374,6 @@ CREATE PROCEDURE inter_langs()
            SET cv_tlscount=ic_count
            WHERE ic_title=cv_title;
     DELETE FROM isocat;
-
   END;
 //
 
