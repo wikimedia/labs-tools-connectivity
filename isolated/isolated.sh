@@ -31,12 +31,10 @@ myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
 sql="mysql --host=$dbhost -A --database=u_${myusr} -n -b -N --connect_timeout=10"
 sql2="mysql --host=$dbhost2 -A --database=u_${myusr} -n -b -N --connect_timeout=10"
 
-ruusr=$( cat ~/.ru.cnf | grep 'user ' | sed 's/^user = \"\([^\"]*\)\"$/\1/' )
-rupwd=$( cat ~/.ru.cnf | grep 'password ' | sed 's/^password = \"\([^\"]*\)\"$/\1/' )
-
-rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log
+rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log stats_done.log
 
 time { 
+  # run to obtain all templates management data asap
   {
     cat iwikispy.sql
 
@@ -63,33 +61,15 @@ time {
 
     cat isolated.sql
 
-  } | $sql 2>&1 | { 
-                    ./handle.sh $1 $2 $3
-                    if [ "$do_stat" = "1" ]
-                    then
-                      if [ -f no_stat.log ]
-                      then
-                        do_stat=0
-                      else
-                        # cut three very first utf-8 bytes
-                        tail --bytes=+4 ./*.stat | perl r.pl 'stat' "$ruusr" "$rupwd" 'stat'
-                      fi
-                    fi
-                  }
+  } | $sql 2>&1 | ./handle.sh $1 $2 $3
 
-  rm -f today.7z
-  7z a today.7z ./*.txt >7z.log 2>&1
-  rm -f ./*.txt
 
-  rm -f info.7z
-  7z a info.7z ./*.info >>7z.log 2>&1
-  rm -f ./*.info
-
-  7z a stat.7z ./*.stat >>7z.log 2>&1
-
-  todos 7z.log
-
+  # run to complete for all tools
   {
+    echo "set @namespace=0;"
+
+    echo 'CALL doouter();'
+
     echo "set @namespace=14;"
 
     #
@@ -107,9 +87,14 @@ time {
 
     echo "set max_sp_recursion_depth=255;"
 
-    echo "set @@max_heap_table_size=134217728;"
+#    echo "set @@max_heap_table_size=134217728;"
+#    echo "set @@max_heap_table_size=268435456;"
+#    echo "set @@max_heap_table_size=536870912;"
+     echo "set @@max_heap_table_size=1073741824;"
 
     echo 'CALL connectivity();'
+
+    echo 'CALL doouter();'
 
   } | $sql 2>&1 | ./handle.sh $1 $2 $3
 }
