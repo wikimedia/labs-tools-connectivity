@@ -9,6 +9,7 @@
 #!/usr/bin/perl
 
 use strict; # 'strict' insists that all variables be declared
+#use File::HomeDir;
 
 my $user="";
 my $pass="";
