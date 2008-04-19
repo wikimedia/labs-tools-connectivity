@@ -2506,20 +2506,21 @@ CREATE PROCEDURE connectivity ()
         SELECT count(*) INTO @validexists
                FROM wikistat
                WHERE valid=1;
+        SELECT max(ts) INTO @curts
+               FROM wikistat
+               WHERE valid=0;
         IF @validexists=0
           THEN
             # first statistics upload
             SELECT ':: echo uploading statistics for first time';
-            SELECT ':: stat 00:00:00';
+            SELECT CONCAT( ':: stat ', @curts, ' 00:00:00' );
           ELSE
             SELECT max(ts) INTO @valid
                    FROM wikistat
                    WHERE valid=1;
-            SELECT timediff(max(ts), @valid) INTO @valid
-                   FROM wikistat
-                   WHERE valid=0;
+            SELECT timediff(@curts, @valid) INTO @valid;
 
-            SELECT CONCAT( ':: stat ', @valid );
+            SELECT CONCAT( ':: stat ', @curts, ' ', @valid );
         END IF;
 
         # pack files for delivery
