@@ -61,13 +61,6 @@ time {
 
     cat isolated.sql
 
-  } | $sql 2>&1 | ./handle.sh $1 $2 $3
-
-
-  # run to complete for all tools
-  {
-    echo "set @namespace=0;"
-
     echo 'CALL doouter();'
 
     echo "set @namespace=14;"
