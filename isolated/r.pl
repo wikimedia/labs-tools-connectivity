@@ -13,6 +13,7 @@ use strict; # 'strict' insists that all variables be declared
 
 my $outpage=shift;
 my $mode=shift;
+my $tstime=shift;
 
 my $user="";
 my $pass="";
@@ -88,7 +89,7 @@ if( $text eq $current )
 }
 else
 {
-  my $edit_summary='updated';
+  my $edit_summary='updated, tolserver time is '.$tstime;
 
   my $is_minor = 0;
   # Note: This does not warn of edit conflicts, 
