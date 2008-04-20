@@ -9,11 +9,11 @@
 #!/usr/bin/perl
 
 use strict; # 'strict' insists that all variables be declared
-#use File::HomeDir;
 
-my $user="";
+my $user=shift;
+print $user." grants permissions to bot ";
 my $pass="";
-open FILE, '</home/mashiah/.ru.cnf' or die $!;
+open FILE, '</home/'.$user.'/.ru.cnf' or die '/home/'.$user.'/.ru.cnf: '.$!;
 while( my $line = <FILE> )
 {
   if( $line =~ /^user\s*=\s*\"([^\"]*)\"$/ )
@@ -26,6 +26,7 @@ while( my $line = <FILE> )
   }
 }
 close FILE;
+print $user."\n";
 
 use Perlwikipedia;
 use Encode;
