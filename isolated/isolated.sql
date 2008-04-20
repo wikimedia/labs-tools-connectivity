@@ -2512,7 +2512,6 @@ CREATE PROCEDURE connectivity ()
         IF @validexists=0
           THEN
             # first statistics upload
-            SELECT ':: echo uploading statistics for first time';
             SELECT CONCAT( ':: stat ', @curts, ' 00:00:00' );
           ELSE
             SELECT max(ts) INTO @valid
