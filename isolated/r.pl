@@ -13,11 +13,12 @@ use strict; # 'strict' insists that all variables be declared
 
 my $outpage=shift;
 my $mode=shift;
+my $user=shift;
 my $tstime=shift;
 
-my $user="";
+print $user." grants permissions to bot ";
 my $pass="";
-open FILE, '</home/mashiah/.ru.cnf' or die $!;
+open FILE, '</home/'.$user.'/.ru.cnf' or die $!;
 while( my $line = <FILE> )
 {
   if( $line =~ /^user\s*=\s*\"([^\"]*)\"$/ )
@@ -30,6 +31,7 @@ while( my $line = <FILE> )
   }
 }
 close FILE;
+print $user."\n";
 
 use Perlwikipedia;
 use Encode;
