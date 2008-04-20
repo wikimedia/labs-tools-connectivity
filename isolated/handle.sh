@@ -135,12 +135,16 @@ handle ()
                   extminutes ${line:28}
                   if [ ${line:28} = '00:00:00' ] || [ $minutes -ge $statintv ]
                   then
+                    if [ ${line:28} = '00:00:00' ]
+                    then
+                      echo uploading statistics for first time;
+                    fi
                     # cut 3 very first utf-8 bytes and upload the stats
-                    tail --bytes=+4 ./*.stat | perl r.pl 'stat' 'stat' $myusr $stat_up_ts | ./handle.sh $cmdl
+                    tail --bytes=+4 ./*.stat | perl r.pl 'stat' 'stat' $myusr "$stat_up_ts" | ./handle.sh $cmdl
                   fi
                 fi
-                echo -ne \\0357\\0273\\0277 > stats_done.log
               fi
+              echo -ne \\0357\\0273\\0277 > stats_done.log
             else
               if [ "${line:3:1}" = 's' ]
               then
@@ -189,8 +193,8 @@ handle ()
                   do
                     sleep 2
                   done
-                  # pack templates management info for delivery to AWB host
 
+                  # pack templates management info for delivery to AWB host
                   rm -f today.7z
                   7z a today.7z ./*.txt >7z.log 2>&1
                   rm -f ./*.txt
