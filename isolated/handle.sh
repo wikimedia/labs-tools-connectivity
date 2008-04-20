@@ -72,7 +72,7 @@ handle ()
               iter=$(($iter+1))
             done
             sync
-          } | perl mr.pl &
+          } | perl mr.pl $myusr &
           unset collection
         fi
       fi
@@ -136,7 +136,7 @@ handle ()
                   if [ ${line:28} = '00:00:00' ] || [ $minutes -ge $statintv ]
                   then
                     # cut 3 very first utf-8 bytes and upload the stats
-                    tail --bytes=+4 ./*.stat | perl r.pl 'stat' 'stat' $stat_up_ts | ./handle.sh $cmdl
+                    tail --bytes=+4 ./*.stat | perl r.pl 'stat' 'stat' $myusr $stat_up_ts | ./handle.sh $cmdl
                   fi
                 fi
                 echo -ne \\0357\\0273\\0277 > stats_done.log
