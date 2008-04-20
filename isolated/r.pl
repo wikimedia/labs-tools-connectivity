@@ -91,7 +91,7 @@ if( $text eq $current )
 }
 else
 {
-  my $edit_summary='updated, tolserver time is '.$tstime;
+  my $edit_summary='updated, toolserver time is '.$tstime;
 
   my $is_minor = 0;
   # Note: This does not warn of edit conflicts, 
