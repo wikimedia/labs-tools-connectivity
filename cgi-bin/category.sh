@@ -20,7 +20,7 @@ handle_category ()
   if no_sql_error "$line"
   then
     line=${line//_/ }
-    echo "<li><a href=\"http://ru.wikipedia.org/w/index.php?title=$line\" target=\"_blank\">$line</a> <small><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&title=$line\"><font color=green>[[$suggest]]</font></a></small></li>"
+    echo "<li><a href=\"http://ru.wikipedia.org/w/index.php?title=$line\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?interface=$interface&title=$line\"><font color=green>[[$suggest]]</font></a></small></li>"
   fi
 }
 
@@ -34,7 +34,7 @@ handle_catlist ()
     local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
     local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
     name=${name//_/ }
-    echo "<li><a href=\"/~mashiah/cgi-bin/category.sh?interface=$interface&category=$name\">$name</a>: $volume ($percent%)</li>"
+    echo "<li><a href=\"./category.sh?interface=$interface&category=$name\">$name</a>: $volume ($percent%)</li>"
   fi
 }
 
@@ -54,12 +54,12 @@ echo "<title>$pagetitle</title>"
 
 cat << EOM
   
-  <link rel="stylesheet" type="text/css" href="/~mashiah/main.css" media="all" /><style type="text/css">
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" /><style type="text/css">
   
   </style>
  </head>
  <body>
-<a href="/"><img id="poweredbyicon" src="/~mashiah/wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
+<a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
 
 echo "<h1>$mainh1</h1>"
@@ -67,12 +67,12 @@ echo "<table><tr><td width=25% border=10>"
 echo -ne "<h1>"
 if [ "$interface" = 'ru' ]
 then
-  echo -ne "<a href=\"/~mashiah/cgi-bin/category.sh?interface=en&category=$category\">[[en:]]</a> [[ru:]]"
+  echo -ne "<a href=\"./category.sh?interface=en&category=$category\">[[en:]]</a> [[ru:]]"
 else
-  echo -ne "[[en:]] <a href=\"/~mashiah/cgi-bin/category.sh?interface=ru&category=$category\">[[ru:]]</a>"
+  echo -ne "[[en:]] <a href=\"./category.sh?interface=ru&category=$category\">[[ru:]]</a>"
 fi
 echo "</h1>"
-echo -ne "<b><a href=\"/~mashiah/index"
+echo -ne "<b><a href=\"../index"
 if [ "$interface" = 'ru' ]
 then
   echo -ne "ru"
@@ -85,36 +85,36 @@ if [ "$category" = '' ]
 then
   echo "<li><b><font color=red>$bycategory</font></b></li>"
 else
-  echo "<li><b><a href=\"/~mashiah/cgi-bin/category.sh?interface=$interface\">$bycategory</a></b></li>"
+  echo "<li><b><a href=\"./category.sh?interface=$interface\">$bycategory</a></b></li>"
 fi
 echo "<ul>"
 if [ "$category" != '' ]
 then
   echo "<li><font color=red>${catns}:$category</font></li>"
 fi
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface\">$allsuggestions</a></li>"
+echo "<li><a href=\"./suggest.sh?interface=$interface\">$allsuggestions</a></li>"
 echo "<ul>"
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
+echo "<li><a href=\"./suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
 if [ "$category" != '' ]
 then
-  echo "<ul><li><a id=seealso href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
+  echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
 fi
 echo "<li>$justlink</li>"
 echo "<ul>"
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
+echo "<li><a href=\"./suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
 if [ "$category" != '' ]
 then
-  echo "<ul><li><a id=seealso href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
+  echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
 fi
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
+echo "<li><a href=\"./suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
 if [ "$category" != '' ]
 then
-  echo "<ul><li><a id=seealso href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
+  echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
 fi
 echo "</ul>"
 echo "</ul>"
 echo "</ul>"
-echo -ne "<li><b><a href=\"/~mashiah/lists"
+echo -ne "<li><b><a href=\"../lists"
 if [ "$interface" = 'ru' ]
 then
   echo -ne "ru"
@@ -122,15 +122,15 @@ fi
 echo ".html\">$wholelist</a></b></li>"
 echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/bytypes\">$byclastertype</a></b></li>"
 echo "<ul><li><a href=\"http://ru.wikipedia.org/w/index.php?title=$orphurl\">$orphanes</a></li></ul>"
-echo "<li><b><a href=\"/~mashiah/cgi-bin/creators.sh?interface=$interface\">$bycreator</a></b></li>"
+echo "<li><b><a href=\"./creators.sh?interface=$interface\">$bycreator</a></b></li>"
 echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/cltgdata\">$graphdata</a></b></li>"
 echo "</ul>"
 echo "<br />"
 echo "<b>3) <a href=\"http://ru.wikipedia.org/w/index.php?title=$deadendurl\">$deadend</a></b><br />"
 echo "<br />"
-echo "<b>4) <a href=\"/~mashiah/cgi-bin/disambig.sh?interface=$interface\">$disambig</a></b><br />"
+echo "<b>4) <a href=\"./disambig.sh?interface=$interface\">$disambig</a></b><br />"
 echo "<br />"
-echo "<b>5) <a href=\"/~mashiah/cgi-bin/category14.sh?interface=$interface\">$cattreecon</a></b><br />"
+echo "<b>5) <a href=\"./category14.sh?interface=$interface\">$cattreecon</a></b><br />"
 echo "<br />"
 echo "<b>6) $contactme</b><br />"
 echo "<ul>"
@@ -145,7 +145,7 @@ echo "</td><td width=75%>"
 echo "<h1>$thish1</h1>"
 echo "$howoften<br><br>"
 echo $example
-echo "<FORM action=\"/~mashiah/cgi-bin/category.sh\" method=\"get\">"
+echo "<FORM action=\"./category.sh\" method=\"get\">"
 echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
 echo "<P><font color=red>$catnamereq: <INPUT name=category type=\"text\"> $catnamedo</font></P>"
 echo "</FORM>"
