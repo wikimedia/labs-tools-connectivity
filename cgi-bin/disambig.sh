@@ -46,12 +46,12 @@ echo "<title>$pagetitle</title>"
 
 cat << EOM
    
-  <link rel="stylesheet" type="text/css" href="/~mashiah/main.css" media="all" /><style type="text/css">
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" /><style type="text/css">
   
   </style>
  </head>
  <body>
-<a href="/"><img id="poweredbyicon" src="/~mashiah/wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
+<a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
 
 echo "<h1>$mainh1</h1>"
@@ -59,12 +59,12 @@ echo "<table><tr><td width=25% border=10>"
 echo -ne "<h1>"
 if [ "$interface" = 'ru' ]
 then
-  echo -ne "<a href=\"/~mashiah/cgi-bin/disambig.sh?interface=en&shift=$shift\">[[en:]]</a> [[ru:]]"
+  echo -ne "<a href=\"./disambig.sh?interface=en&shift=$shift\">[[en:]]</a> [[ru:]]"
 else
-  echo -ne "[[en:]] <a href=\"/~mashiah/cgi-bin/disambig.sh?interface=ru&shift=$shift\">[[ru:]]</a>"
+  echo -ne "[[en:]] <a href=\"./disambig.sh?interface=ru&shift=$shift\">[[ru:]]</a>"
 fi
 echo "</h1>"
-echo -ne "<b><a href=\"/~mashiah/index"
+echo -ne "<b><a href=\"../index"
 if [ "$interface" = 'ru' ]
 then
   echo -ne "ru"
@@ -73,19 +73,19 @@ echo ".html\">1) $motivation</a></b><br />"
 echo "<br />"
 echo "<b>2) <a href=\"http://ru.wikipedia.org/w/index.php?title=$isourl\">$isolatedarticles</a></b><br />"
 echo "<ul>"
-echo "<li><b><a href=\"/~mashiah/cgi-bin/category.sh?interface=$interface\">$bycategory</a></b></li>"
+echo "<li><b><a href=\"../category.sh?interface=$interface\">$bycategory</a></b></li>"
 echo "<ul>"
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface\">$allsuggestions</a></li>"
+echo "<li><a href=\"../suggest.sh?interface=$interface\">$allsuggestions</a></li>"
 echo "<ul>"
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
+echo "<li><a href=\"../suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
 echo "<li>$justlink</li>"
 echo "<ul>"
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
-echo "<li><a href=\"/~mashiah/cgi-bin/suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
+echo "<li><a href=\"../suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
+echo "<li><a href=\"../suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
 echo "</ul>"
 echo "</ul>"
 echo "</ul>"
-echo -ne "<li><b><a href=\"/~mashiah/lists"
+echo -ne "<li><b><a href=\"../lists"
 if [ "$interface" = 'ru' ]
 then
   echo -ne "ru"
@@ -93,7 +93,7 @@ fi
 echo ".html\">$wholelist</a></b></li>"
 echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/bytypes\">$byclastertype</a></b></li>"
 echo "<ul><li><a href=\"http://ru.wikipedia.org/w/index.php?title=$orphurl\">$orphanes</a></li></ul>"
-echo "<li><b><a href=\"/~mashiah/cgi-bin/creators.sh?interface=$interface\">$bycreator</a></b></li>"
+echo "<li><b><a href=\"./creators.sh?interface=$interface\">$bycreator</a></b></li>"
 echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/cltgdata\">$graphdata</a></b></li>"
 echo "</ul>"
 echo "<br />"
@@ -101,7 +101,7 @@ echo "<b>3) <a href=\"http://ru.wikipedia.org/w/index.php?title=$deadendurl\">$d
 echo "<br />"
 echo "<b>4) <font color=red>$disambig</font></b><br />"
 echo "<br />"
-echo "<b>5) <a href=\"/~mashiah/cgi-bin/category14.sh?interface=$interface\">$cattreecon</a></b><br />"
+echo "<b>5) <a href=\"./category14.sh?interface=$interface\">$cattreecon</a></b><br />"
 echo "<br />"
 echo "<b>6) $contactme</b><br />"
 echo "<ul>"
@@ -124,9 +124,9 @@ shiftprev=$((shift-100))
 echo -ne "<br />$list1expl "
 if [ $((shift)) -gt 0 ]
 then
-  echo "<a href=\"/~mashiah/cgi-bin/disambig.sh?shift=$shiftprev&interface=$interface\">$previous 100</a> "
+  echo "<a href=\"./disambig.sh?shift=$shiftprev&interface=$interface\">$previous 100</a> "
 fi
-echo "<a href=\"/~mashiah/cgi-bin/disambig.sh?shift=$shiftnext&interface=$interface\">$next 100</a>"
+echo "<a href=\"./disambig.sh?shift=$shiftnext&interface=$interface\">$next 100</a>"
 echo "<ol start=$((shift+1))>"
 {
   echo SELECT d_title,            \
@@ -142,9 +142,9 @@ echo "<ol start=$((shift+1))>"
 echo "</ol>"
 if [ $((shift)) -gt 0 ]
 then
-  echo "<a href=\"/~mashiah/cgi-bin/disambig.sh?shift=$shiftprev&interface=$interface\">$previous 100</a> "
+  echo "<a href=\"./disambig.sh?shift=$shiftprev&interface=$interface\">$previous 100</a> "
 fi
-echo "<a href=\"/~mashiah/cgi-bin/disambig.sh?shift=$shiftnext&interface=$interface\">$next 100</a>"
+echo "<a href=\"./disambig.sh?shift=$shiftnext&interface=$interface\">$next 100</a>"
 
 cat << EOM
 </td>
