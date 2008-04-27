@@ -249,30 +249,6 @@ case "$listby" in
    ;;
 *) ;;
 esac
-#echo "<li><b>$wholelist</b></li>"
-#echo "<ul>"
-#if [ "$listby" = 'disambig' ]
-#then
-#  echo "<li><font color=red>$resolvedisambigs</font></li>"
-#else
-#  echo "<li><a href=\"./suggest.sh?interface=$interface&listby=disambig\">$resolvedisambigs</a></li>"
-#fi
-#echo "<li>$justlink</li>"
-#echo "<ul>"
-#if [ "$listby" = 'interlink' ]
-#then
-#  echo "<li><font color=red>$parttranslate</font></li>"
-#else
-#  echo "<li><a href=\"./suggest.sh?interface=$interface&listby=interlink\">$parttranslate</a></li>"
-#fi
-#if [ "$listby" = 'translate' ]
-#then
-#  echo "<li><font color=red>$translatenlink</font></li>"
-#else
-#  echo "<li><a href=\"./suggest.sh?interface=$interface&listby=translate\">$translatenlink</a></li>"
-#fi
-#echo "</ul>"
-#echo "</ul>"
 echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/bytypes\">$byclastertype</a></b></li>"
 echo "<ul><li><a href=\"http://ru.wikipedia.org/w/index.php?title=$orphurl\">$orphanes</a></li></ul>"
 echo "<li><b><a href=\"./creators.sh?interface=$interface\">$bycreator</a></b></li>"
@@ -392,6 +368,9 @@ case $listby in
     convertedtitle=$( echo $titleurl | sed -e 's/?/\%3F/g' )
     convertedtitle=$( echo $convertedtitle | sed -e 's/&/\%26/g' )
     echo "<h2><a href=\"http://ru.wikipedia.org/wiki/$convertedtitle\">$title</a></h2>"
+
+    # for orphaned and other isolated articles we use different definitions.
+
     echo "<h3>$sggclause0</h3>"
     echo "$sggclause1<br />"
     echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
