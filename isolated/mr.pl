@@ -51,7 +51,11 @@ my $m_i=decode('utf8', 'и');
 my $editor=Perlwikipedia->new($user);
 $editor->{debug} = 0;
 $editor->set_wiki('ru.wikipedia.org','w');
-$editor->login($user, $pass);
+my $loginstatus=$editor->login($user, $pass);
+
+if ( $loginstatus eq 'Fail' ) {
+  die '~/.ru.cnf contains wrong data on user/bot login name or password';
+}
 
 my $success_count=0;
 my $failed_count=0;
