@@ -222,24 +222,10 @@ CREATE PROCEDURE cache_namespace (num INT)
            FROM nrcat;
 
     #
-    # Disambiguation pages collected here to make suggestions isolates lining.
-    # The list is superflous, i.e. contains pages outside namespace num.
+    # In order to exclude disambiguations from articles set,
+    # disambiguation pages are collected here into d table.
     #
-    # With namespace=14 it does show if disambiguations category is split into
-    # subcategories.
-    #
-    DROP TABLE IF EXISTS d;
-    CREATE TABLE d (
-      d_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY  (d_id)
-    ) ENGINE=MEMORY AS
-    SELECT DISTINCT nrc_id as d_id
-           FROM nrcat
-                 #      disambiguation pages
-           WHERE nrc_to='Многозначные_термины';
-
-    SELECT CONCAT( ':: echo ', count(*), ' disambiguation names found' )
-           FROM d;
+    CALL collect_disambig();
 
     #
     # Collaborative lists collected here to for links table filtering.
@@ -686,90 +672,6 @@ CREATE PROCEDURE cleanup_redirects (namespace INT)
 
     DROP TABLE r2r;
     DROP TABLE nr2r;
-
-  END;
-//
-
-#
-# Links from articles to disambiguations are constructed here.
-#
-DROP PROCEDURE IF EXISTS construct_dlinks//
-CREATE PROCEDURE construct_dlinks ()
-  BEGIN
-    #
-    # Here we adding direct links from articles to disambiguations.
-    #
-    INSERT IGNORE INTO dl
-    SELECT d_id as dl_to,
-           pl_from as dl_from
-           FROM pl,
-                d
-           WHERE pl_from in
-                 (
-                  SELECT a_id 
-                         FROM articles
-                 ) and
-                 pl_to=d_id;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from articles to disambigs' )
-           FROM dl;
-
-    #
-    # Here we adding direct links from disambiguations to articles.
-    #
-    INSERT IGNORE INTO ld
-    SELECT a_id as ld_to,
-           pl_from as ld_from
-           FROM pl,
-                articles
-           WHERE pl_from in
-                 (
-                  SELECT d_id 
-                         FROM d
-                 ) and
-                 pl_to=a_id;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to articles' )
-           FROM ld;
-
-    #
-    # Linking rings between articles and disambiguation pages are constructed
-    # with technical links like {{tl|otheruses}} we do not to take this
-    # special type of linking into account.
-    #
-    DELETE dl
-           FROM dl,
-                ld
-           WHERE dl_to=ld_from and
-                 dl_from=ld_to;
-
-    SELECT CONCAT( ':: echo ', count(*), ' one way links from articles to disambigs' )
-           FROM dl;
-
-    # statistics for amount of links from articles to each linked disambig
-    DROP TABLE IF EXISTS dsstat;
-    CREATE TABLE dsstat (
-      dss_id int(8) unsigned NOT NULL default '0',
-      dss_cnt int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (dss_id)
-    ) ENGINE=MEMORY AS
-    SELECT dl_to as dss_id,
-           count(*) as dss_cnt
-           FROM dl
-           GROUP BY dl_to;
-
-    DROP TABLE IF EXISTS disambiguate;
-    CREATE TABLE disambiguate (
-      d_title varchar(255) binary NOT NULL default '',
-      d_cnt int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS
-    SELECT nr_title as d_title,
-           dss_cnt as d_cnt
-           FROM dsstat,
-                nr
-           WHERE nr_id=dss_id
-           ORDER BY dss_cnt DESC;
-    DROP TABLE dsstat;
 
   END;
 //
@@ -1949,14 +1851,74 @@ CREATE PROCEDURE combineandout ()
   END;
 //
 
+
+#
+# For use in "ISOLATED ARTICLES CREATORS".
+#
+DROP PROCEDURE IF EXISTS by_creators//
+CREATE PROCEDURE by_creators ()
+  BEGIN
+    # for a set given by ruwiki0.id's look for initial revisions
+    DROP TABLE IF EXISTS firstrev;
+    CREATE TABLE firstrev (
+      title varchar(255) binary NOT NULL default '',
+      garbage int(8) unsigned NOT NULL default '0',
+      revision int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (revision)
+    ) ENGINE=MEMORY AS
+    SELECT title,
+           rev_page as garbage,
+           min(rev_id) as revision
+           FROM ruwiki_p.revision,
+                ruwiki0
+           WHERE rev_page=id
+           GROUP BY rev_page;
+
+    SELECT CONCAT( ':: echo ', count(*), ' initial revisions for isolates found' )
+           FROM firstrev;
+
+    # now extract username (and usertext)
+    # Note: it can be done within the previous query, unfortunately
+    #       containing some extra data (not yet used anywhere)
+    DROP TABLE IF EXISTS creators;
+    CREATE TABLE creators (
+      title varchar(255) binary NOT NULL default '',
+      user int(8) unsigned NOT NULL default '0',
+      user_text varchar(255) binary NOT NULL default ''
+    ) ENGINE=MEMORY AS
+    SELECT title,
+           rev_user as user,
+           rev_user_text as user_text
+           FROM ruwiki_p.revision,
+                firstrev
+           WHERE revision=rev_id;
+
+    DROP TABLE firstrev;
+
+    SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
+           FROM creators;
+  END;
+//
+
 #
 # Preparing data to use in external tools.
 #
 DROP PROCEDURE IF EXISTS outertools//
 CREATE PROCEDURE outertools ()
   BEGIN
-    IF @namespace=0
+    IF @namespace!=14
       THEN
+        # for sure, namespace=0
+
+        # outer tools moved after a namespace change need to continue working
+        # with categories
+        DROP TABLE IF EXISTS nrcat0;
+        RENAME TABLE nrcat TO nrcat0;
+
+        # redirector refresh
+        DROP TABLE IF EXISTS wr0;
+        RENAME TABLE wr TO wr0;
+
         #
         # List of isolated articles by cluster they belong to.
         #
@@ -1964,10 +1926,12 @@ CREATE PROCEDURE outertools ()
         CREATE TABLE ruwiki0 (
           id int(8) unsigned NOT NULL default '0',
           title varchar(255) binary NOT NULL default '',
+          def int(8) unsigned NOT NULL default '0',
           PRIMARY KEY (id)
         ) ENGINE=MEMORY AS
         SELECT id,
-               a_title AS title
+               a_title AS title,
+               if( cat=catuid('_1'), 0, 1 ) AS def
                FROM isolated,
                     articles
                WHERE act>=0 and
@@ -1989,7 +1953,7 @@ CREATE PROCEDURE outertools ()
         ) ENGINE=MEMORY AS
         SELECT nrc_to as cv_title,
                count(*) as cv_count
-               FROM nrcat,
+               FROM nrcat0,
                     articles
                WHERE a_id=nrc_id
                GROUP BY nrc_to;
@@ -2018,7 +1982,7 @@ CREATE PROCEDURE outertools ()
         ) ENGINE=MEMORY AS
         SELECT cv_title as ic_title,
                count( * ) as ic_count
-               FROM nrcat,
+               FROM nrcat0,
                     ruwiki0,
                     catvolume
                     WHERE id=nrc_id and
@@ -2030,9 +1994,6 @@ CREATE PROCEDURE outertools ()
                SET cv_isocount=ic_count
                WHERE ic_title=cv_title;
         DELETE FROM isocat;
-
-        DROP TABLE IF EXISTS wr0;
-        RENAME TABLE wr TO wr0;
 
         #
         # For use in "ISOLATES LINKED BY DISAMBIGUATIONS LINKED BY ARTICLES".
@@ -2084,7 +2045,7 @@ CREATE PROCEDURE outertools ()
         INSERT INTO isocat
         SELECT cv_title as ic_title,
                count(DISTINCT a2i_to) as ic_count
-               FROM nrcat,
+               FROM nrcat0,
                     ruwiki0,
                     a2i,
                     catvolume
@@ -2099,20 +2060,23 @@ CREATE PROCEDURE outertools ()
                WHERE ic_title=cv_title;
         DELETE FROM isocat;
 
-        DROP TABLE IF EXISTS nrcat0;
-        RENAME TABLE nrcat TO nrcat0;
+        DROP TABLE IF EXISTS dl;
+        DROP TABLE IF EXISTS ld;
+      ELSE
+        # for sure, namespace=14
 
-    END IF;
-
-    DROP TABLE IF EXISTS nrcat;
-    DROP TABLE IF EXISTS dl;
-    DROP TABLE IF EXISTS ld;
-
-    IF @namespace=14
-      THEN
         #
         # For "CATEGORYTREE CONNECTIVITY".
         #
+
+        # unnecessary table, not used unlike to ns=0
+        DROP TABLE IF EXISTS nrcat;
+
+        # redirector refresh
+        DROP TABLE IF EXISTS r14;
+        RENAME TABLE r TO r14;
+        DROP TABLE IF EXISTS wr14;
+        RENAME TABLE wr TO wr14;
 
         #
         # List of categorytree paths.
@@ -2148,172 +2112,31 @@ CREATE PROCEDURE outertools ()
                      id=a_id and
                      uid=isolated.cat;
 
-        DROP TABLE IF EXISTS r14;
-        RENAME TABLE r TO r14;
-
-        DROP TABLE IF EXISTS wr14;
-        RENAME TABLE wr TO wr14;
-
         #
         # For use in "ISOLATES WITH LINKED INTERWIKI".
         #
         # Note: postponed because takes too much time.
         CALL inter_langs();
 
+        # suggestor refresh
+        DROP TABLE IF EXISTS isdis;
+        RENAME TABLE a2i TO isdis;
+        DROP TABLE IF EXISTS isres;
+        RENAME TABLE res TO isres;
+        DROP TABLE IF EXISTS istres;
+        RENAME TABLE tres TO istres;
+
+        # categorizer refresh
         DROP TABLE isocat;
+        DROP TABLE IF EXISTS catvolume0;
+        RENAME TABLE catvolume TO catvolume0;
 
         #
         # For use in "ISOLATED ARTICLES CREATORS".
         #
-
-        DROP TABLE IF EXISTS firstrev;
-        CREATE TABLE firstrev (
-          title varchar(255) binary NOT NULL default '',
-          garbage int(8) unsigned NOT NULL default '0',
-          revision int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY (revision)
-        ) ENGINE=MEMORY AS
-        SELECT title,
-               rev_page as garbage,
-               min(rev_id) as revision
-               FROM ruwiki_p.revision,
-                    ruwiki0
-               WHERE rev_page=id
-               GROUP BY rev_page;
-
-        SELECT CONCAT( ':: echo ', count(*), ' initial revisions for isolates found' )
-               FROM firstrev;
-        
-
-        DROP TABLE IF EXISTS creators;
-        CREATE TABLE creators (
-          title varchar(255) binary NOT NULL default '',
-          user int(8) unsigned NOT NULL default '0',
-          user_text varchar(255) binary NOT NULL default ''
-        ) ENGINE=MEMORY AS
-        SELECT title,
-               rev_user as user,
-               rev_user_text as user_text
-               FROM ruwiki_p.revision,
-                    firstrev
-               WHERE revision=rev_id;
-
-        DROP TABLE firstrev;
-
-        SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
-               FROM creators;
-
-        DROP TABLE IF EXISTS isdis;
-        RENAME TABLE a2i TO isdis;
-
-        DROP TABLE IF EXISTS isres;
-        RENAME TABLE res TO isres;
-
-        DROP TABLE IF EXISTS istres;
-        RENAME TABLE tres TO istres;
-
-        DROP TABLE IF EXISTS catvolume0;
-        RENAME TABLE catvolume TO catvolume0;
+        # Note: postponed as low priority task.
+        CALL by_creators();
     END IF;
-  END;
-//
-
-#
-# This procedure is called directly from link suggestion tool to show
-# disambiguation pages lining isolates and articles linking that disambiguation
-# pages.
-#
-DROP PROCEDURE IF EXISTS dsuggest//
-CREATE PROCEDURE dsuggest (iid VARCHAR(255))
-  BEGIN
-    DECLARE done INT DEFAULT 0;
-    DECLARE via_title VARCHAR(255);
-    DECLARE via_id INT;
-    DECLARE cur CURSOR FOR SELECT DISTINCT page_title, a2i_via FROM isdis, ruwiki_p.page WHERE a2i_to=iid AND page_id=a2i_via ORDER BY page_title ASC;
-    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
-
-    OPEN cur;
-
-    REPEAT
-      FETCH cur INTO via_title, via_id;
-      IF NOT done
-        THEN
-          SELECT CONCAT( '::', via_title );
-          
-          SELECT DISTINCT CONCAT( ':::' , page_title )
-                 FROM isdis,
-                      ruwiki_p.page
-                 WHERE a2i_to=iid and
-                       a2i_via=via_id and
-                       a2i_from=page_id
-                 ORDER BY page_title ASC;
-
-      END IF;
-    UNTIL done END REPEAT;
-
-    CLOSE cur;
-  END;
-//
-
-DROP PROCEDURE IF EXISTS interwiki_suggest//
-CREATE PROCEDURE interwiki_suggest (iid VARCHAR(255))
-  BEGIN
-    DECLARE done INT DEFAULT 0;
-    DECLARE language VARCHAR(10);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM isres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
-    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
-
-    OPEN cur;
-
-    REPEAT
-      FETCH cur INTO language;
-      IF NOT done
-        THEN
-          SELECT CONCAT( '::', language );
-          
-          SELECT DISTINCT CONCAT( ':::' , suggestn )
-                 FROM isres,
-                      ruwiki0
-                 WHERE title=iid and
-                       id=isolated and
-                       lang=language
-                 ORDER BY suggestn ASC;
-
-      END IF;
-    UNTIL done END REPEAT;
-
-    CLOSE cur;
-  END;
-//
-
-DROP PROCEDURE IF EXISTS interwiki_suggest_translate//
-CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
-  BEGIN
-    DECLARE done INT DEFAULT 0;
-    DECLARE language VARCHAR(10);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM istres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
-    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
-
-    OPEN cur;
-
-    REPEAT
-      FETCH cur INTO language;
-      IF NOT done
-        THEN
-          SELECT CONCAT( '::', language );
-          
-          SELECT DISTINCT CONCAT( ':::' , suggestn )
-                 FROM istres,
-                      ruwiki0
-                 WHERE title=iid and
-                       id=isolated and
-                       lang=language
-                 ORDER BY suggestn ASC;
-
-      END IF;
-    UNTIL done END REPEAT;
-
-    CLOSE cur;
   END;
 //
 
@@ -2412,47 +2235,32 @@ CREATE PROCEDURE connectivity ()
     SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles' )
            FROM l;
 
+    SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
+
     #
     #  DISAMBIG LINKS PROCESSING
     #
 
-    #
-    # Table dl is created here for links from articles to disambiguations.
-    #
-    DROP TABLE IF EXISTS dl;
-    CREATE TABLE dl (
-      dl_to int(8) unsigned NOT NULL default '0',
-      dl_from int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (dl_to,dl_from)
-    ) ENGINE=MEMORY;
+    SET @starttime=now();
 
     IF @namespace!=14
       THEN
-        # Table ld is created here for links from disambiguations to articles.
-        DROP TABLE IF EXISTS ld;
-        CREATE TABLE ld (
-          ld_to int(8) unsigned NOT NULL default '0',
-          ld_from int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY (ld_to,ld_from)
-        ) ENGINE=MEMORY;
-
         # Constructs two tables of links:
         #  - a2d named dl;
         #  - d2a named ld.
         CALL construct_dlinks();
+
+        #
+        #  LINKS DISAMBIGUATOR
+        #
+        CALL disambiguator();
     END IF;
 
     DROP TABLE d;
     DROP TABLE nr;
     DROP TABLE pl;
 
-    IF @namespace!=14
-      THEN
-        DROP TABLE IF EXISTS disambiguate0;
-        RENAME TABLE disambiguate TO disambiguate0;
-    END IF;
-
-    SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
 
     #
     #  DEAD-END ARTICLES PROCESSING
