@@ -17,6 +17,16 @@ source ./common.$interface
 source ./suggest.$interface
 source ./common2
 
+handle_isotype ()
+{
+  local line=$1
+
+  if [ "$line" != '' ]
+  then
+    isotype="$line"
+  fi
+}
+
 handle_catlist ()
 {
   local line=$1
@@ -117,6 +127,58 @@ handle_category ()
     lineurl=${lineurl//\"/\%22}
     echo "<li><a href=\"./suggest.sh?interface=$interface&title=$lineurl\"\>$line</a></li>"
   fi
+}
+
+suggestions ()
+{
+  echo "<h3>$sggclause0</h3>"
+  echo "$sggclause1<br />"
+  echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
+
+  convertedtitle=$( echo $titlesql | sed -e 's/ /_/g' )
+  echo "<ol>"
+  {
+    echo CALL dsuggest\(\"$convertedtitle\"\)\;
+  } | $sql 2>&1 | {
+                    while read -r line
+                      do handle_dsmbg "$line"
+                    done
+                  }
+  echo "</ol>"
+  echo $listend
+
+  echo "<h3>$sggclause4</h3>"
+  echo "$sggclause5<br />"
+
+  echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
+
+  echo "<ol>"
+  {
+    echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
+  } | $sql 2>&1 | {
+                    while read -r line
+                      do handle_lnk "$line"
+                    done
+                  }
+  echo "</ol>"
+  echo $listend
+
+  echo "<h3>$sggclause6</h3>"
+  echo "$sggclause7<br />"
+
+  echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
+
+  echo "<ol>"
+  {
+    echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
+  } | $sql 2>&1 | { 
+                    lang=''
+                    while read -r line
+                      do handle_trns "$line"
+                    done
+                  }
+  echo "</ol>"
+  echo $listend
 }
 
 echo Content-type: text/html
@@ -370,59 +432,37 @@ case $listby in
     echo "<h2><a href=\"http://ru.wikipedia.org/wiki/$convertedtitle\">$title</a></h2>"
 
     # for orphaned and other isolated articles we use different definitions.
-
-    echo "<h3>$sggclause0</h3>"
-    echo "$sggclause1<br />"
-    echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
-
-    convertedtitle=$( echo $titlesql | sed -e 's/ /_/g' )
-    echo "<ol>"
     {
-      echo CALL dsuggest\(\"$convertedtitle\"\)\;
+      echo "SELECT def FROM ruwiki0 WHERE title=\"${convertedtitle// /_}\";"
     } | $sql 2>&1 | {
+                      isotype=''
+
                       while read -r line
-                        do handle_dsmbg "$line"
+                        do handle_isotype $line
                       done
+
+                      case "$isotype" in
+                      '')
+                        echo $r_notrecognized
+                        ;;
+                      '0')
+                        echo $r_orphaned
+                        ;;
+                      '1')
+                        echo $r_isolated
+                        ;;
+                      *) ;;
+                      esac
+
+                      if [ "$isotype" != '' ]
+                      then
+                        suggestions
+                      fi
                     }
-    echo "</ol>"
-    echo $listend
-
-    echo "<h3>$sggclause4</h3>"
-    echo "$sggclause5<br />"
-
-    echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
-
-    echo "<ol>"
-    {
-      echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
-    } | $sql 2>&1 | {
-                      while read -r line
-                        do handle_lnk "$line"
-                      done
-                    }
-    echo "</ol>"
-    echo $listend
-
-    echo "<h3>$sggclause6</h3>"
-    echo "$sggclause7<br />"
-
-    echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
-
-    echo "<ol>"
-    {
-      echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
-    } | $sql 2>&1 | { 
-                      lang=''
-                      while read -r line
-                        do handle_trns "$line"
-                      done
-                    }
-    echo "</ol>"
-    echo $listend
-
+               
     echo "<h3>$googleonwikipedia</h3>"
     echo "<IFRAME src=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
-    echo "<font color=red>Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\">seach with this link</A>."
+    echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\">seach with this link</A>."
     echo "</IFRAME>"
   fi;;
 'disambig')
