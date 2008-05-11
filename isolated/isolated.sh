@@ -36,8 +36,13 @@ rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log
 time { 
   # run to obtain all templates management data asap
   {
+    cat handle.sql
+    cat replag.sql
+    cat redirector.sql
     cat disambig.sql
+    cat deadlocktor.sql
     cat iwikispy.sql
+    cat creatorizer.sql
     cat cgi.sql
 
     echo "set @namespace=0;"
