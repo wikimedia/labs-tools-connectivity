@@ -16,9 +16,9 @@ my $mode=shift;
 my $user=shift;
 my $tstime=shift;
 
+open FILE, '</home/'.$user.'/.ru.cnf' or die ":: echo $!";
 print $user." grants permissions to bot ";
 my $pass="";
-open FILE, '</home/'.$user.'/.ru.cnf' or die $!;
 while( my $line = <FILE> )
 {
   if( $line =~ /^user\s*=\s*\"([^\"]*)\"$/ )
@@ -27,7 +27,7 @@ while( my $line = <FILE> )
   }
   elsif( $line =~ /^password\s*=\s*\"([^\"]*)\"$/ )
   {
-    $pass = $1
+    $pass = $1;
   }
 }
 close FILE;
@@ -41,8 +41,8 @@ $editor->{debug} = 0;
 $editor->set_wiki('ru.wikipedia.org','w');
 my $loginstatus=$editor->login($user, $pass);
 
-if ( $loginstatus eq 'Fail' ) {
-  die '~/.ru.cnf contains wrong data on user/bot login name or password';
+if ( $loginstatus eq '1' ) {
+  die ':: echo invalid login; possibly ~/.ru.cnf contains wrong data';
 }
 
 #            may need to be driven from outside
@@ -102,8 +102,8 @@ else
   #       it just overwrites existing text.
   $editor->edit($article, $text, $edit_summary, $is_minor);
 
-  print ":: echo data successfully upload\n";
-  print ":: s3 call stat_uploaded\n";
+  print ":: echo data successfully uploaded\n";
+  print ":: s3 done wikistat\n";
 }
 
 # </pre>
