@@ -1,3 +1,4 @@
+#!/usr/bin/perl
  # 
  # Double redirects resolver for 
  # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.
@@ -6,14 +7,12 @@
  #
  # <pre>
 
-#!/usr/bin/perl
-
 use strict; # 'strict' insists that all variables be declared
 
 my $user=shift;
-print $user." grants permissions to bot ";
+open FILE, '</home/'.$user.'/.ru.cnf' or die ':: echo /home/'.$user.'/.ru.cnf: '.$!;
+print ":: echo ".$user." grants permissions to bot ";
 my $pass="";
-open FILE, '</home/'.$user.'/.ru.cnf' or die '/home/'.$user.'/.ru.cnf: '.$!;
 while( my $line = <FILE> )
 {
   if( $line =~ /^user\s*=\s*\"([^\"]*)\"$/ )
@@ -22,7 +21,7 @@ while( my $line = <FILE> )
   }
   elsif( $line =~ /^password\s*=\s*\"([^\"]*)\"$/ )
   {
-    $pass = $1
+    $pass = $1;
   }
 }
 close FILE;
@@ -53,8 +52,8 @@ $editor->{debug} = 0;
 $editor->set_wiki('ru.wikipedia.org','w');
 my $loginstatus=$editor->login($user, $pass);
 
-if ( $loginstatus eq 'Fail' ) {
-  die '~/.ru.cnf contains wrong data on user/bot login name or password';
+if ( $loginstatus eq '1' ) {
+  die ':: echo invalid login; possibly ~/.ru.cnf contains wrong data';
 }
 
 my $success_count=0;
@@ -102,7 +101,7 @@ sub do_edit
   else
   {
     $failed_count+=1;
-    print "page is probably read-only / protected\n";
+    print ":: echo page is probably read-only / protected\n";
   }
 }
 
@@ -113,13 +112,13 @@ while( <> )
 
   my $mr_text=$editor->get_text($mr);
 
-#  print length( $mr_text )."bytes\n";
+#  print ":: echo ".length( $mr_text )."bytes\n";
 
   if( $editor->{errstr} ne '' )
   {
     $failed_count+=1;
     $editor->{errstr}='';
-    print "error getting ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
+    print ":: echo error getting ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
   }
   else
   {
@@ -158,7 +157,7 @@ while( <> )
         {
           $failed_count+=1;
           $editor->{errstr}='';
-          print "error editing happy double self-redirext\n";
+          print ":: echo error editing happy double self-redirext\n";
         }
         else
         {
@@ -173,7 +172,7 @@ while( <> )
         {
           $failed_count+=1;
           $editor->{errstr}='';
-          print "error getting in chain started from ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
+          print ":: echo error getting in chain started from ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
         }
         else
         {
@@ -208,12 +207,12 @@ while( <> )
               {
                 $failed_count+=1;
                 $editor->{errstr}='';
-                print "error editing a happy self-redirect\n";
+                print ":: echo error editing a happy self-redirect\n";
               }
               else
               {
                 $self_redir+=1;
-                print "happy self-redirect\n";
+                print ":: echo happy self-redirect\n";
               }
             }
             elsif( $target eq $mr )
@@ -223,7 +222,7 @@ while( <> )
               {
                 $failed_count+=1;
                 $editor->{errstr}='';
-                print "error editing a ring of two redirects\n";
+                print ":: echo error editing a ring of two redirects\n";
               }
               else
               {
@@ -232,12 +231,12 @@ while( <> )
                 {
                   $failed_count+=1;
                   $editor->{errstr}='';
-                  print "error editing a ring of two redirects\n";
+                  print ":: echo error editing a ring of two redirects\n";
                 }
                 else
                 {
                   $redir_pair+=1;
-                  print "a ring of two redirects\n";
+                  print ":: echo a ring of two redirects\n";
                 }
               }
             }
@@ -255,17 +254,17 @@ while( <> )
               {
                 $failed_count+=1;
                 $editor->{errstr}='';
-                print "error editing to resolve double redirect";
+                print ":: echo error editing to resolve double redirect";
               }
               else
               {
-                print "a redirect resolved\n";
+                print ":: echo a redirect resolved\n";
               }
             }
           }
           else
           {
-            print "not a multiple redirect actually\n";
+            print ":: echo not a multiple redirect actually\n";
             $ntd_count+=1;
           }
         }
@@ -273,13 +272,13 @@ while( <> )
     }
     else
     {
-      print "first redirect not found\n";
+      print ":: echo first redirect not found\n";
       $ntd_count+=1;
     }
   }
 }
 
-print "$self_redir redirects point itself, $redir_pair rings of two redirects\n";
-print "$success_count successfull edits, $ntd_count items with nothing to do, $failed_count failed edits\n";
+print ":: echo $self_redir redirects point itself, $redir_pair rings of two redirects\n";
+print ":: echo $success_count successfull edits, $ntd_count items with nothing to do, $failed_count failed edits\n";
 
 # </pre>
