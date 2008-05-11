@@ -150,5 +150,87 @@ CREATE PROCEDURE disambiguator ()
   END;
 //
 
+#
+# Takes ruwiki0, dl and ld as inputs.
+#
+# Produces a2i table, containing links from articles to isolates
+# through disambiguations (as if they are just redirects).
+#
+# Also updates catvolume table for categorizer.
+#
+DROP PROCEDURE IF EXISTS disambigs_as_fusy_redirects//
+CREATE PROCEDURE disambigs_as_fusy_redirects ()
+  BEGIN
+    #
+    # Isolated articles linked from disambiguations.
+    # 
+    DROP TABLE IF EXISTS d2i;
+    CREATE TABLE d2i (
+      d2i_from int(8) unsigned NOT NULL default '0',
+      d2i_to varchar(255) binary NOT NULL default '',
+      KEY (d2i_to)
+    ) ENGINE=MEMORY AS
+    SELECT ld_from as d2i_from,
+           title as d2i_to
+           FROM ruwiki0,
+                ld
+           WHERE id=ld_to;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to isolated articles' )
+           FROM d2i;
+
+    #
+    # Links from articles to articles through disambiguation pages linking isolates.
+    # 
+    DROP TABLE IF EXISTS a2i;
+    CREATE TABLE a2i (
+      a2i_from int(8) unsigned NOT NULL default '0',
+      a2i_via int(8) unsigned NOT NULL default '0',
+      a2i_to varchar(255) binary NOT NULL default '',
+      KEY (a2i_to)
+    ) ENGINE=MEMORY AS
+    SELECT dl_from as a2i_from,
+           d2i_from as a2i_via,
+           d2i_to as a2i_to
+           FROM dl,
+                d2i
+           WHERE dl_to=d2i_from;
+
+    DROP TABLE d2i;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles through disambiguation pages linking isolates' )
+           FROM a2i;
+
+    SELECT CONCAT( ':: echo ', count(DISTINCT a2i_to), ' isolated articles may become linked' )
+           FROM a2i;
+
+    INSERT INTO isocat
+    SELECT cv_title as ic_title,
+           count(DISTINCT a2i_to) as ic_count
+           FROM nrcat0,
+                ruwiki0,
+                a2i,
+                catvolume
+           WHERE nrc_id=id and
+                 title=a2i_to and
+                 nrc_to=cv_title
+           GROUP BY cv_title;
+
+    UPDATE catvolume,
+           isocat
+           SET cv_dsgcount=ic_count
+           WHERE ic_title=cv_title;
+    DELETE FROM isocat;
+  END;
+//
+
+DROP PROCEDURE IF EXISTS disambiguator_unload//
+CREATE PROCEDURE disambiguator_unload ()
+  BEGIN
+    DROP TABLE IF EXISTS dl;
+    DROP TABLE IF EXISTS ld;
+  END;
+//
+
 delimiter ;
 ############################################################
