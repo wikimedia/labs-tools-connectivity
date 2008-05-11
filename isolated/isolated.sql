@@ -3,12 +3,18 @@
  --
  -- Purpose: [[:en:Connectivity (graph theory)|Connectivity]] analysis script
  --          for [[:ru:|Russian Wikipedia]] and probably others if ready
- --          to approve some guidances on
+ --          to approve some of the guidances like
  --            - what is an article and 
- --            - what is a relevant link.
+ --            - what is a relevant link,
+ --            - what is an isolated/orphaned article,
+ --            - what is a dead-end article,
+ --            - what is a chronological article,
+ --            - what is a colloborative list of article names and so on.
  -- 
  -- Use: Nice to be called from 
- --      '''[[:ru:User:Mashiah_Davidson\toolserver\isolated.sh|isolated.sh]]'''.
+ --      [http://fisheye.ts.wikimedia.org/browse/mashiah/isolated/isolated.sh isolated.sh]
+ --      with output handled by
+ --      [http://fisheye.ts.wikimedia.org/browse/mashiah/isolated/handle.sh handle.sh]
  --
  -- Output: There is some API, which can be threated as an output API,
  --         however, for now it is much easier to deal with output of 
@@ -18,16 +24,15 @@
  -- What is an article: Originally, the {{comment|Main|
  --                                               zero}} namespace has been
  --                                               itroduced for articles. 
- --                     Actually it does also contain the redirect pages for
- --                     articles, disambiguation pages, soft redirects and
- --                     sometimes some templates (which is wrong on my own
- --                     opinion, but sometimes used).
+ --                     Actually it does also contain redirect pages,
+ --                     disambiguation pages, soft redirects and sometimes
+ --                     templates (which is wrong on my own opinion, but used).
  --
  -- Relevant linking concept: Links from chronological articles are not too
  --                           relevant, and they are threated as links from 
  --                           a time-oriented portal.
- --                           Some articles lists are not too relevant either,
- --                           all the links from collaborational lists are
+ --                           Some article lists are not too relevant either,
+ --                           all links from such "collaborational lists" are
  --                           also ignored.
  --
  -- Side effects: Some multiple (double, triple, etc) redirects are also
@@ -42,11 +47,12 @@
  --               categories present.
  --
  --
- -- Expected outputs: Isolated articles of various types, what's to tag
- --                   and what is to be untagged in relation to disconnexion.
- --                   The same for dead-end pages, the list is more correct
- --                   than autocollected one in terms of article definition,
- --                   id est it is smarter dealing with zero namespace.
+ -- Expected outputs: Isolated articles of various types, what's to be
+ --                   (un)taged in relation to disconnexion.
+ --                   Same for dead-end pages, in terms of article definition
+ --                   the list is much more correct than MediaWiki's
+ --                   autocollected one, id est this one is smarter dealing
+ --                   with zero namespace.
  --             
  -- Types of isolated articles: The connectivity analysis here relies on
  --                             some concepts from [[graphs theory]].
@@ -111,36 +117,6 @@ set @fprefix='';
 delimiter //
 
 #
-# Outputs non-empty ordered table to stdout.
-# Prepends the output with heading info on a rule to invoke in an outer handler.
-# Now '''isolated.sh''' is considered as the outer handler for this script.
-#
-DROP PROCEDURE IF EXISTS outifexists//
-CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf VARCHAR(255), ordercol VARCHAR(255), rule VARCHAR(255) )
-  BEGIN
-    DECLARE cnt INT;
-    DECLARE st1 VARCHAR(255);
-    DECLARE st2 VARCHAR(255);
-
-    SET @st1=CONCAT( 'SELECT count(*) INTO @cnt FROM ', tablename );
-    PREPARE stmt FROM @st1;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    IF @cnt>0
-    THEN
-      SELECT CONCAT(':: echo ', outt, ': ', @cnt ) as title;
-      SELECT CONCAT(':: ', rule, ' ', @fprefix, outf ) as title;
-
-      SET @st2=CONCAT( 'SELECT * FROM ', tablename, ' ORDER BY ', ordercol, ' ASC' );
-      PREPARE stmt FROM @st2;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
-    END IF;
-  END;
-//
-      
-#
 # Caches the namespace given to local tables 
 #   r (for redirects),
 #   articles (for articles)
@@ -201,7 +177,7 @@ CREATE PROCEDURE cache_namespace (num INT)
            FROM p
            WHERE p_is_redirect=1;
 
-    SELECT CONCAT( ':: echo . redirects: ', count(*) )
+    SELECT CONCAT( ':: echo . redirect pages: ', count(*) )
            FROM r;
 
     # Categories cache for non-redirects
@@ -218,7 +194,7 @@ CREATE PROCEDURE cache_namespace (num INT)
                 nr
            WHERE nr_id=cl_from;
 
-    SELECT CONCAT( ':: echo ', count(*), ' categorizing links for non-redirects' )
+    SELECT CONCAT( ':: echo ', count(*), ' categorizing links for non-redirect pages' )
            FROM nrcat;
 
     #
@@ -437,6 +413,9 @@ CREATE PROCEDURE cache_namespace (num INT)
                WHERE pl_namespace=num and
                      pl_title=p_title;
 
+        SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', num )
+               FROM pl;
+
         #
         # Delete everything going from other namespaces.
         #
@@ -477,207 +456,7 @@ CREATE PROCEDURE cache_namespace (num INT)
 //
 
 #
-# Forms wrong redirects table wr and filters redirects table appropriately.
-# For namespace 14 outputs a list of all redirects because they are prohibited.
-#
-# Also throws redirects and redirect chains and add all redirected chains
-# into pl table as regular links.
-#
-DROP PROCEDURE IF EXISTS cleanup_redirects//
-CREATE PROCEDURE cleanup_redirects (namespace INT)
-  BEGIN
-    DECLARE cnt INT;
-    DECLARE chainlen INT DEFAULT '1';
-
-    # the amount of links from redirect pages in a given namespace
-    DROP TABLE IF EXISTS rlc;
-    CREATE TABLE rlc (
-      rlc_cnt int(8) unsigned NOT NULL default '0',
-      rlc_id int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS
-    SELECT count(*) as rlc_cnt,
-           r_id as rlc_id
-           FROM pl,
-                r
-           WHERE pl_from=r_id
-           GROUP BY r_id;
-
-    # REDIRECT PAGES WITH MORE THAN ONE LINK
-    DROP TABLE IF EXISTS wr;
-    CREATE TABLE wr (
-      wr_title varchar(255) binary NOT NULL default '',
-      PRIMARY KEY (wr_title)
-    ) ENGINE=MEMORY AS
-    SELECT r_title as wr_title
-           FROM r,
-                rlc
-           WHERE rlc_cnt>1 and
-                 rlc_id=r_id;
-    DROP TABLE rlc;
-
-    CALL outifexists( 'wr', 'wrong redirects', 'wr.txt', 'wr_title', 'out' );
-
-    # prevent taking wrong redirects into account
-    DELETE FROM r
-           WHERE r_title IN
-                 (
-                  SELECT wr_title
-                         FROM wr
-                 );
-
-    IF namespace=14
-      THEN
-        # redirects in this namespace are prohibited
-        # they do not supply articles with proper categories
-        CALL outifexists( 'r', CONCAT( 'redirects for namespace ', namespace), 'r.txt', 'r_title', 'out' );
-    END IF;
-
-    #
-    # Long redirects like double and triple do not work in web API,
-    # thus they need to be straightened.
-    #
-    # Reaching the target via a long redirect requires more than one click,
-    # but all hyperlink jumps are uniquely defined and can be easily fixed.
-    # Here links via long redirects are threated as valid links for
-    # connectivity analysis.
-    #
-
-    #
-    # All links from and to redirects in our namespace.
-    #
-    DROP TABLE IF EXISTS r2r;
-    CREATE TABLE r2r (
-      r2r_to int(8) unsigned NOT NULL default '0',
-      r2r_from int(8) unsigned NOT NULL default '0',
-      KEY (r2r_to)
-    ) ENGINE=MEMORY AS 
-    SELECT r_id as r2r_to,
-           pl_from as r2r_from
-           FROM pl,
-                r
-           WHERE pl_from in
-                 (
-                  SELECT r_id
-                         FROM r
-                 ) and
-                 pl_to=r_id;
-
-    #
-    # Names of redirect pages linking other redirects.
-    # This table contains everything required for multiple redirects resolving.
-    #
-    DROP TABLE IF EXISTS mr;
-    CREATE TABLE mr (
-      mr_title varchar(255) binary NOT NULL default ''
-    ) ENGINE=MEMORY AS
-    SELECT r_title as mr_title
-           FROM r2r,
-                r
-           WHERE r2r_from=r_id;
-
-    CALL outifexists( 'mr', 'redirects linking redirects', 'mr.info', 'mr_title', 'upload' );
-
-    DROP TABLE mr;
-
-    # All links from non-redirects to redirects for a given namespace.
-    DROP TABLE IF EXISTS nr2r;
-    CREATE TABLE nr2r (
-      nr2r_to int(8) unsigned NOT NULL default '0',
-      nr2r_from int(8) unsigned NOT NULL default '0',
-      KEY (nr2r_to)
-    ) ENGINE=MEMORY AS 
-    SELECT r_id as nr2r_to,
-           pl_from as nr2r_from
-           FROM pl,
-                r
-           WHERE pl_from in
-                 (
-                  SELECT nr_id 
-                         FROM nr
-                 ) and
-                 pl_to=r_id;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from non-redirects to redirects' )
-           FROM nr2r;
-           
-    # All links from our namespace redirects to articles.
-    DROP TABLE IF EXISTS r2nr;
-    CREATE TABLE r2nr (
-      r2nr_to int(8) unsigned NOT NULL default '0',
-      r2nr_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS 
-    SELECT nr_id as r2nr_to,
-           pl_from as r2nr_from
-           FROM pl,
-                nr
-           WHERE pl_from in
-                 (
-                  SELECT r_id
-                         FROM r
-                 ) and
-                 pl_to=nr_id;
-
-    SELECT count(*) INTO cnt
-           FROM r2nr;
-
-    WHILE cnt>0 DO
-
-      SELECT CONCAT( ':: echo ', cnt, ' links from non-redirects to non-redirects via a chain of ', chainlen, ' redirects' );
-
-      #
-      # Rectify redirects adding appropriate direct links.
-      #
-      INSERT INTO pl
-      SELECT nr2r_from as pl_from,
-             r2nr_to as pl_to
-             FROM nr2r,
-                  r2nr
-             WHERE nr2r_to=r2nr_from;
-
-      SELECT CONCAT( ':: echo ', count(*), ' links after ', chainlen, '-redirect chains rectification' )
-             FROM pl;
-
-      #
-      # One step of new long-redirect driven "links to be added" collection.
-      #
-      # Note: We've lost all the redirect rings here because of pure redirects
-      #       in a ring unable to link non-redirects.
-      #
-      DROP TABLE IF EXISTS r2X2nr;
-      CREATE TABLE r2X2nr (
-        r2nr_to int(8) unsigned NOT NULL default '0',
-        r2nr_from int(8) unsigned NOT NULL default '0'
-      ) ENGINE=MEMORY;
-
-      INSERT INTO r2X2nr
-      SELECT r2nr_to,
-             r2r_from as r2nr_from
-             FROM r2r,
-                  r2nr
-             WHERE r2r_to=r2nr_from;
-
-      DROP TABLE r2nr;
-
-      SELECT count(*) INTO cnt
-             FROM r2X2nr;
-
-      #
-      # Now X=r2X everywhere
-      # 
-      RENAME TABLE r2X2nr TO r2nr;
-
-      SET chainlen=chainlen+1;
-
-    END WHILE;
-
-    DROP TABLE r2r;
-    DROP TABLE nr2r;
-
-  END;
-//
-
-#
-# Filters links from timelines and collaboration lists.
+# Filters out links from timelines and collaboration lists.
 # Also adds links to {{templated}} articles, because they cannot be
 # considered as non-reachable.
 #
@@ -753,194 +532,6 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
 
     SELECT CONCAT( ':: echo ', count(*), ' links after redirected templating interpretion' )
            FROM l;
-
-    IF @namespace=0
-      THEN
-        DROP TABLE r;
-    END IF;
-    DROP TABLE r2nr;
-  END;
-//
-
-#
-# This function is useful for former articles moved out from zero namespace.
-# Returns namespace prefix by its numerical identifier.
-#
-DROP FUNCTION IF EXISTS getnsprefix//
-CREATE FUNCTION getnsprefix ( ns INT )
-  RETURNS VARCHAR(255)
-  DETERMINISTIC
-  BEGIN
-    DECLARE wrconstruct VARCHAR(255);
-
-    SELECT ns_name INTO wrconstruct
-           FROM toolserver.namespace
-           WHERE dbname='ruwiki_p' AND
-                 ns_id=ns;
-
-    IF wrconstruct != ''
-      THEN
-        SET wrconstruct=CONCAT( wrconstruct, ':' );
-    END IF;
-
-    RETURN wrconstruct;
-
-  END;
-//
-
-#
-# Collects dead-end articles, i.e. articles having no links to other
-# existent articles. Also forms the list of new dead-end articles for
-# registration and the list of pages wikified enough to be excluded
-# from registered dead-end articles list.
-#
-DROP PROCEDURE IF EXISTS deadend//
-CREATE PROCEDURE deadend (namespace INT)
-  BEGIN
-    DECLARE cnt INT;
-
-    # temporarily delete links to chrono articles
-    IF namespace=0
-      THEN
-        # List of links from articles to chrono articles
-        DROP TABLE IF EXISTS a2cr;
-        CREATE TABLE a2cr (
-          a2cr_to INT(8) unsigned NOT NULL default '0',
-          a2cr_from INT(8) unsigned NOT NULL default '0',
-          KEY ( a2cr_to )
-        ) ENGINE=MEMORY AS
-        SELECT l_to as a2cr_to,
-               l_from as a2cr_from
-               FROM l
-               WHERE l_to IN
-                     (
-                      SELECT chr_id
-                             FROM chrono
-                     );
-
-        SELECT CONCAT( ':: echo ', count(*), ' to be excluded as links to chrono articles' )
-               FROM a2cr;
-
-        # deletion of links to timelines and colloborational lists,
-        # recoverable, since we have a2cr
-        DELETE FROM l
-               WHERE l_to IN
-                     (
-                      SELECT DISTINCT a2cr_to
-                             FROM a2cr
-                     );
-
-        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
-               FROM l;
-
-    END IF;
-
-    # Begin the procedure for dead end pages
-    SELECT ':: echo dead end pages processing:' as title;
-
-    # DEAD-END PAGES REGISTERED AT THE MOMENT
-    DROP TABLE IF EXISTS del;
-    CREATE TABLE del (
-      id int(8) unsigned NOT NULL default '0',
-      act int(8) signed NOT NULL default '0',
-      PRIMARY KEY (id)
-    ) ENGINE=MEMORY AS
-    SELECT nrc_id as id,
-           -1 as act
-           FROM nrcat
-           #            a category registering deadend articles
-           WHERE nrc_to='Википедия:Тупиковые_статьи';
-
-    # articles with links to articles
-    DROP TABLE IF EXISTS lwl;
-    CREATE TABLE lwl (
-      lwl_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (lwl_id)
-    ) ENGINE=MEMORY AS 
-    SELECT DISTINCT l_from as lwl_id
-           FROM l;
-
-    # CURRENT DEAD-END ARTICLES
-    INSERT INTO del
-    SELECT a_id as id,
-           1 as act
-           FROM articles
-           WHERE a_id NOT IN
-           (
-            SELECT lwl_id
-                   FROM lwl
-           )
-    ON DUPLICATE KEY UPDATE act=0;
-
-    DROP TABLE lwl;
-
-    SELECT count(*) INTO cnt
-           FROM del
-           WHERE act>=0;
-    SELECT CONCAT(':: echo total: ', cnt ) as title;
-
-    IF cnt>0
-      THEN
-        IF @enable_informative_output>0
-          THEN
-            SELECT CONCAT(':: out ', @fprefix, 'de.info' ) as title;
-            SELECT id,
-                   a_title
-                   FROM del,
-                        articles
-                   WHERE a_id=id and
-                         act>=0
-                   ORDER BY a_title ASC;
-        END IF;
-
-        IF namespace=0
-          THEN
-            SELECT count( * ) INTO cnt
-                   FROM del
-                   WHERE act=1;
-            IF cnt>0
-              THEN
-                SELECT CONCAT(':: echo +: ', cnt ) as title;
-                SELECT CONCAT( ':: out ', @fprefix, 'deset.txt' );
-                SELECT a_title
-                       FROM del,
-                            articles
-                       WHERE act=1 AND
-                             id=a_id
-                       ORDER BY a_title ASC;
-            END IF;
-        END IF;
-    END IF;
-
-    IF namespace=0
-      THEN
-        SELECT count( * ) INTO cnt
-               FROM del
-               WHERE act=-1;
-
-        IF cnt>0
-          THEN
-            SELECT CONCAT(':: echo -: ', cnt ) as title;
-            SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
-            SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
-                   FROM del,
-                        ruwiki_p.page
-                   WHERE act=-1 AND
-                         id=page_id
-                   ORDER BY page_title ASC;
-        END IF;
-
-        # Restore previously deleted links to cronological articles
-        INSERT INTO l
-        SELECT a2cr_to as l_to,
-               a2cr_from as l_from
-               FROM a2cr;
-
-        DROP TABLE a2cr;
-
-        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links restore' )
-               FROM l;
-     END IF;
   END;
 //
 
@@ -1645,6 +1236,10 @@ CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
 #
 # Obtain all the scc's and chans for scc's of size less or equal to maxsize.
 #
+# Returns table named as isolated. 
+#
+# Uses for that tables l, nrcat, orcat, articles (... ?)
+#
 DROP PROCEDURE IF EXISTS isolated//
 CREATE PROCEDURE isolated (maxsize INT)
   BEGIN
@@ -1656,6 +1251,19 @@ CREATE PROCEDURE isolated (maxsize INT)
     SELECT ':: echo isolated processing:' as title;
 
     # CREATING SOME TABLES FOR OUT AND TEMP
+
+    #
+    # Main out table for isolated articles processing.
+    #
+    DROP TABLE IF EXISTS isolated;
+    CREATE TABLE isolated (
+      id int(8) unsigned NOT NULL default '0',
+      cat int(8) unsigned NOT NULL default '0',
+      act int(8) signed NOT NULL default '1',
+      KEY (id),
+      PRIMARY KEY ( id, cat ),
+      KEY (cat)
+    ) ENGINE=MEMORY;
 
     #
     # List of claster types (category based) for isolated articles.
@@ -1784,119 +1392,69 @@ CREATE PROCEDURE isolated (maxsize INT)
 //
 
 #
-# Create a task with respect to edits count minimization. Not for AWB,
-# but for automated uploader, which is supposed to be implemented.
+# Forms output tables for use in other tools with names concatenated with
+# namespace value.
 #
-DROP PROCEDURE IF EXISTS combineandout//
-CREATE PROCEDURE combineandout ()
+DROP PROCEDURE IF EXISTS isolated_refresh//
+CREATE PROCEDURE isolated_refresh (namespace INT)
   BEGIN
-    DECLARE cnt INT;
+    DECLARE st VARCHAR(255);
 
     #
-    # Create common for isolated and deadend analysis list of articles
-    # to be edited.
+    # List of categorytree paths.
     #
-    DROP TABLE IF EXISTS task;
-    CREATE TABLE task(
+    DROP TABLE IF EXISTS orcat_ns;
+    CREATE TABLE orcat_ns (
+      uid int(8) unsigned NOT NULL AUTO_INCREMENT,
+      coolcat varchar(255) binary NOT NULL default '',
+      PRIMARY KEY (uid)
+    ) ENGINE=MEMORY AS
+    SELECT uid,
+           coolcat
+           FROM orcat;
+
+    #
+    # Categories as they belong to categorytree paths.
+    #
+    # isolated refresh
+    DROP TABLE IF EXISTS ruwiki_ns;
+    CREATE TABLE ruwiki_ns (
       id int(8) unsigned NOT NULL default '0',
-      deact int(8) signed NOT NULL default '0',
-      isoact int(8) signed NOT NULL default '0',
-      isocat varchar(255) binary NOT NULL default '',
-      PRIMARY KEY (id)
+      cat varchar(255) binary NOT NULL default '',
+      title varchar(255) binary NOT NULL default '',
+      PRIMARY KEY (id),
+      KEY (cat)
     ) ENGINE=MEMORY AS
-    #
-    # Initialize with isolated articles to be edited.
-    #
     SELECT id,
-           0 as deact,
-           act as isoact,
-           coolcat as isocat
+           orcat_ns.coolcat as cat,
+           a_title AS title
            FROM isolated,
-                orcat
-           WHERE act!=0 and
+                articles,
+                orcat_ns
+           WHERE act>=0 and
+                 id=a_id and
                  uid=isolated.cat;
+
     #
-    # Add dead-end articles to be edited updating existent rows.
+    # Bless orcat tables for a namespace given.
     #
-    INSERT INTO task
-    SELECT id,
-           act as deact,
-           0 as isoact,
-           '' as isocat
-           FROM del
-           WHERE act!=0
-    ON DUPLICATE KEY UPDATE deact=del.act;
+    SET @st=CONCAT( 'DROP TABLE IF EXISTS orcat', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET @st=CONCAT( 'RENAME TABLE orcat_ns TO orcat', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-    SELECT count( * ) INTO cnt
-           FROM task; 
-
-    IF cnt>0
-      THEN
-        #
-        # Output common task for processing in an outer handler.
-        # 
-        SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
-        SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
-        SELECT CONCAT( getnsprefix(page_namespace), page_title ) as title,
-               deact,
-               isoact,
-               isocat
-               FROM task,
-                    ruwiki_p.page
-               WHERE id=page_id
-               ORDER BY deact+deact+isoact DESC, page_title ASC;
-    END IF;
-
-    DROP TABLE task;
-  END;
-//
-
-
-#
-# For use in "ISOLATED ARTICLES CREATORS".
-#
-DROP PROCEDURE IF EXISTS by_creators//
-CREATE PROCEDURE by_creators ()
-  BEGIN
-    # for a set given by ruwiki0.id's look for initial revisions
-    DROP TABLE IF EXISTS firstrev;
-    CREATE TABLE firstrev (
-      title varchar(255) binary NOT NULL default '',
-      garbage int(8) unsigned NOT NULL default '0',
-      revision int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (revision)
-    ) ENGINE=MEMORY AS
-    SELECT title,
-           rev_page as garbage,
-           min(rev_id) as revision
-           FROM ruwiki_p.revision,
-                ruwiki0
-           WHERE rev_page=id
-           GROUP BY rev_page;
-
-    SELECT CONCAT( ':: echo ', count(*), ' initial revisions for isolates found' )
-           FROM firstrev;
-
-    # now extract username (and usertext)
-    # Note: it can be done within the previous query, unfortunately
-    #       containing some extra data (not yet used anywhere)
-    DROP TABLE IF EXISTS creators;
-    CREATE TABLE creators (
-      title varchar(255) binary NOT NULL default '',
-      user int(8) unsigned NOT NULL default '0',
-      user_text varchar(255) binary NOT NULL default ''
-    ) ENGINE=MEMORY AS
-    SELECT title,
-           rev_user as user,
-           rev_user_text as user_text
-           FROM ruwiki_p.revision,
-                firstrev
-           WHERE revision=rev_id;
-
-    DROP TABLE firstrev;
-
-    SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
-           FROM creators;
+    SET @st=CONCAT( 'DROP TABLE IF EXISTS ruwiki', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET @st=CONCAT( 'RENAME TABLE ruwiki_ns TO ruwiki', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
   END;
 //
 
@@ -1912,30 +1470,16 @@ CREATE PROCEDURE outertools ()
 
         # outer tools moved after a namespace change need to continue working
         # with categories
+        # categorizer refresh
         DROP TABLE IF EXISTS nrcat0;
         RENAME TABLE nrcat TO nrcat0;
 
-        # redirector refresh
-        DROP TABLE IF EXISTS wr0;
-        RENAME TABLE wr TO wr0;
+        CALL redirector_refresh( @namespace );
 
         #
-        # List of isolated articles by cluster they belong to.
+        # store orcat and isolated tables data in an appropriate format
         #
-        DROP TABLE IF EXISTS ruwiki0;
-        CREATE TABLE ruwiki0 (
-          id int(8) unsigned NOT NULL default '0',
-          title varchar(255) binary NOT NULL default '',
-          def int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY (id)
-        ) ENGINE=MEMORY AS
-        SELECT id,
-               a_title AS title,
-               if( cat=catuid('_1'), 0, 1 ) AS def
-               FROM isolated,
-                    articles
-               WHERE act>=0 and
-                     id=a_id;
+        CALL isolated_refresh( @namespace );
 
         #
         # For use in "ISOLATED ARTICLES FOR A CATEGORY".
@@ -2000,68 +1544,16 @@ CREATE PROCEDURE outertools ()
         #
 
         #
-        # Isolated articles linked from disambiguations.
-        # 
-        DROP TABLE IF EXISTS d2i;
-        CREATE TABLE d2i (
-          d2i_from int(8) unsigned NOT NULL default '0',
-          d2i_to varchar(255) binary NOT NULL default '',
-          KEY (d2i_to)
-        ) ENGINE=MEMORY AS
-        SELECT ld_from as d2i_from,
-               title as d2i_to
-               FROM ruwiki0,
-                    ld
-               WHERE id=ld_to;
-
-        SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to isolated articles' )
-               FROM d2i;
-
+        # Takes ruwiki0, dl and ld as inputs.
         #
-        # Links from articles to articles through disambiguation pages linking isolates.
-        # 
-        DROP TABLE IF EXISTS a2i;
-        CREATE TABLE a2i (
-          a2i_from int(8) unsigned NOT NULL default '0',
-          a2i_via int(8) unsigned NOT NULL default '0',
-          a2i_to varchar(255) binary NOT NULL default '',
-          KEY (a2i_to)
-        ) ENGINE=MEMORY AS
-        SELECT dl_from as a2i_from,
-               d2i_from as a2i_via,
-               d2i_to as a2i_to
-               FROM dl,
-                    d2i
-               WHERE dl_to=d2i_from;
+        # Produces a2i table, containing links from articles to isolates
+        # through disambiguations (as if they are just redirects).
+        #
+        # Also updates catvolume table for categorizer.
+        #
+        CALL disambigs_as_fusy_redirects();
 
-        DROP TABLE d2i;
-
-        SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles through disambiguation pages linking isolates' )
-               FROM a2i;
-
-        SELECT CONCAT( ':: echo ', count(DISTINCT a2i_to), ' isolated articles may become linked' )
-               FROM a2i;
-
-        INSERT INTO isocat
-        SELECT cv_title as ic_title,
-               count(DISTINCT a2i_to) as ic_count
-               FROM nrcat0,
-                    ruwiki0,
-                    a2i,
-                    catvolume
-               WHERE nrc_id=id and
-                     title=a2i_to and
-                     nrc_to=cv_title
-               GROUP BY cv_title;
-
-        UPDATE catvolume,
-               isocat
-               SET cv_dsgcount=ic_count
-               WHERE ic_title=cv_title;
-        DELETE FROM isocat;
-
-        DROP TABLE IF EXISTS dl;
-        DROP TABLE IF EXISTS ld;
+        CALL disambiguator_unload();
       ELSE
         # for sure, namespace=14
 
@@ -2070,47 +1562,15 @@ CREATE PROCEDURE outertools ()
         #
 
         # unnecessary table, not used unlike to ns=0
+        # unload categorizer
         DROP TABLE IF EXISTS nrcat;
 
-        # redirector refresh
-        DROP TABLE IF EXISTS r14;
-        RENAME TABLE r TO r14;
-        DROP TABLE IF EXISTS wr14;
-        RENAME TABLE wr TO wr14;
+        CALL redirector_refresh( @namespace );
 
         #
-        # List of categorytree paths.
+        # store orcat and isolated tables data in an appropriate format
         #
-        DROP TABLE IF EXISTS orcat14;
-        CREATE TABLE orcat14 (
-          uid int(8) unsigned NOT NULL AUTO_INCREMENT,
-          coolcat varchar(255) binary NOT NULL default '',
-          PRIMARY KEY (uid)
-        ) ENGINE=MEMORY AS
-        SELECT uid,
-               coolcat
-               FROM orcat;
-
-        #
-        # Categories as they belong to categorytree paths.
-        #
-        DROP TABLE IF EXISTS ruwiki14;
-        CREATE TABLE ruwiki14 (
-          id int(8) unsigned NOT NULL default '0',
-          cat varchar(255) binary NOT NULL default '',
-          title varchar(255) binary NOT NULL default '',
-          PRIMARY KEY (id),
-          KEY (cat)
-        ) ENGINE=MEMORY AS
-        SELECT id,
-               orcat14.coolcat as cat,
-               a_title AS title
-               FROM isolated,
-                    articles,
-                    orcat14
-               WHERE act>=0 and
-                     id=a_id and
-                     uid=isolated.cat;
+        CALL isolated_refresh( @namespace );
 
         #
         # For use in "ISOLATES WITH LINKED INTERWIKI".
@@ -2149,13 +1609,6 @@ CREATE PROCEDURE connectivity ()
 
     SELECT CONCAT( ':: echo NAMESPACE ', @namespace );
 
-    # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
-    # when the last edit there happen?
-    SELECT max( rc_timestamp ) INTO @rep_time
-    FROM frwiki_p.recentchanges;
-
-    SELECT CONCAT( ':: echo last replicated timestamp: ', @rep_time );
-
     #
     #  CONNECTIVITY ANALYSIS INITIALIZIATION
     #
@@ -2163,28 +1616,21 @@ CREATE PROCEDURE connectivity ()
 
     SET @starttime=now();
 
-    # how old the latest edit there is?
-    SELECT CONCAT( ':: replag ', timediff(now(), @rep_time)) as title;
+    # sets @rep_time variable for us
+    CALL replag();
 
     IF @namespace=0
       THEN
-        # permanent storage for inter-run data on statistics upload
-        CREATE TABLE IF NOT EXISTS wikistat (
-          ts TIMESTAMP(14) NOT NULL,
-          valid int(8) unsigned NOT NULL default '0'
-        ) ENGINE=MyISAM;
-
-        # no need to keep old data, especially when stats hasn't been uploaded
-        DELETE FROM wikistat
-               WHERE valid=0;
-
-        # just in case stats will be uploaded during this run
-        INSERT INTO wikistat
-        SELECT @rep_time as ts,
-               0 as valid;
+        #
+        # Let wikistat be the permanent storage 
+        #     for inter-run data on statistics upload
+        #
+        # aka WikiMirrorTime al CurrentRunTime
+        #
+        CALL pretend( 'wikistat' );
     END IF;
 
-    # the name-prefix for all output files, distinct for each run
+    # the name-prefix for all output files, distinct for each function call
     SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
 
     # preloads tables and recognizes redirects and articles
@@ -2257,10 +1703,11 @@ CREATE PROCEDURE connectivity ()
     END IF;
 
     DROP TABLE d;
-    DROP TABLE nr;
-    DROP TABLE pl;
 
     SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
+
+    DROP TABLE nr;
+    DROP TABLE pl;
 
     #
     #  DEAD-END ARTICLES PROCESSING
@@ -2284,22 +1731,15 @@ CREATE PROCEDURE connectivity ()
     # any hyperlink jumps.
     CALL apply_linking_rules( @namespace );
 
-    #
-    # Main out table for isolated articles processing.
-    #
-    DROP TABLE IF EXISTS isolated;
-    CREATE TABLE isolated (
-      id int(8) unsigned NOT NULL default '0',
-      cat int(8) unsigned NOT NULL default '0',
-      act int(8) signed NOT NULL default '1',
-      KEY (id),
-      PRIMARY KEY ( id, cat ),
-      KEY (cat)
-    ) ENGINE=MEMORY;
+    # redirector has carried out its purpose
+    CALL redirector_unload( @namespace );
 
+    # Creates table named as isolated.
     CALL isolated( @max_scc_size );
 
     # this table is pretty well worn here after isolated processing
+    #
+    # linker unload
     DROP TABLE l;
 
     SELECT CONCAT( ':: echo isolated processing time: ', timediff(now(), @starttime));
@@ -2309,6 +1749,10 @@ CREATE PROCEDURE connectivity ()
         # socket for the template maintainer
         # minimizes amount of edits combining results for deadend and isolated analysis
         CALL combineandout();
+
+        #
+        # STATIST INITIATION
+        #
 
         # initiate statistics upload 
         SELECT count(*) INTO @validexists
@@ -2353,30 +1797,14 @@ CREATE PROCEDURE doouter ()
     # Prepare data for use in external tools.
     CALL outertools();
 
+    # unload articlizer
     DROP TABLE articles;
+
+    # unload isolated
     DROP TABLE isolated;
     DROP TABLE orcat;
 
     SELECT CONCAT( ':: echo outer tools related stuff time: ', timediff(now(), @starttime));
-  END;
-//
-
-DROP PROCEDURE IF EXISTS stat_uploaded//
-CREATE PROCEDURE stat_uploaded ()
-  BEGIN
-    # Note: Crazy mysql updates timestamp value with current timestamp,
-    #       that's why need to add stupid things like ts=ts.
-    UPDATE wikistat
-           SET valid=1-valid,
-               ts=ts;
-
-    # no need to keep old data
-    DELETE FROM wikistat
-           WHERE valid=0;
-
-    SELECT CONCAT( ':: echo isolated stat uploaded, replication timestamp is ', ts )
-           FROM wikistat
-           WHERE valid=1;
   END;
 //
 
