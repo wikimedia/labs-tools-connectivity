@@ -433,7 +433,7 @@ case $listby in
 
     # for orphaned and other isolated articles we use different definitions.
     {
-      echo "SELECT def FROM ruwiki0 WHERE title=\"${convertedtitle// /_}\";"
+      echo "SELECT cat FROM ruwiki0 WHERE title=\"${convertedtitle// /_}\";"
     } | $sql 2>&1 | {
                       isotype=''
 
@@ -445,13 +445,13 @@ case $listby in
                       '')
                         echo $r_notrecognized
                         ;;
-                      '0')
+                      '_1')
                         echo $r_orphaned
                         ;;
-                      '1')
+                      *)
+                        echo "<h4>$isotype</h4>"
                         echo $r_isolated
                         ;;
-                      *) ;;
                       esac
 
                       if [ "$isotype" != '' ]
