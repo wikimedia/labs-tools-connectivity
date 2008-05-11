@@ -77,7 +77,7 @@ echo "<li><b><a href=\"./category.sh?interface=$interface\">$bycategory</a></b><
 echo "<ul>"
 echo "<li><a href=\"./suggest.sh?interface=$interface\">$allsuggestions</a></li>"
 echo "<ul>"
-echo "<li><a href=\"../suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
+echo "<li><a href=\"./suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
 echo "<li>$justlink</li>"
 echo "<ul>"
 echo "<li><a href=\"./suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
