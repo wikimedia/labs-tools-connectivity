@@ -72,7 +72,7 @@ handle ()
               iter=$(($iter+1))
             done
             sync
-          } | perl mr.pl $myusr &
+          } | perl mr.pl $myusr | ./handle.sh $cmdl &
           unset collection
         fi
       fi
@@ -175,6 +175,12 @@ handle ()
                    {
                      echo "CALL ${line:11}();"
                    } | $sqlserver 2>&1 | ./handle.sh $cmdl &
+                   ;;
+                'done')
+                   # update inter-run timing data for a name given
+                   {
+                     echo "CALL performed_confirmation( '${line:11}' );"
+                   } | $sqlserver 2>&1 | ./handle.sh $cmdl
                    ;;
                 'init')
                    # handle dynamical request from sql for subscripts to
