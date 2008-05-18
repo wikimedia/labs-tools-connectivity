@@ -181,6 +181,7 @@ else
   echo $cattreedesc4
 fi
 
+how_actual categoryspruce
 echo "<center><table border=0><tr><th>$struchead</th></tr><tr><td align=center><small>"
 {
   echo SELECT coolcat,            \
