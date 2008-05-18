@@ -51,6 +51,8 @@ cat << EOM
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 EOM
 
+how_actual creatorizer
+
 echo "<title>$pagetitle</title>"
 
 cat << EOM
@@ -147,8 +149,6 @@ UPPERFIRST=`echo "$user" | cut -c 1  |tr '[a-z]' '[A-Z]'`
 user=$( echo "$user" | sed 's/./'$UPPERFIRST'/'1)
 userurl=${user//\"/\%22}
 usersql=${user//\"/\"\'\"\'\"}
-
-how_actual creatorizer
 
 if [ "$user" != '' ]
 then
