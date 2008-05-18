@@ -148,6 +148,8 @@ user=$( echo "$user" | sed 's/./'$UPPERFIRST'/'1)
 userurl=${user//\"/\%22}
 usersql=${user//\"/\"\'\"\'\"}
 
+how_actual creatorizer
+
 if [ "$user" != '' ]
 then
   echo -ne "<br />$list1expl "
@@ -159,8 +161,8 @@ then
   fi
   echo "<ol>"
   {
-    echo SELECT title                       \
-                FROM creators               \
+    echo SELECT title                          \
+                FROM creators0                 \
                 WHERE user_text=\"${usersql}\" \
                 ORDER BY title ASC\;
   } | $sql 2>&1 | { 
@@ -183,7 +185,7 @@ else
     echo SELECT user_text,         \
                 user,              \
                 count\(*\) as cnt  \
-                FROM creators      \
+                FROM creators0     \
                 GROUP BY user_text \
                 ORDER BY cnt DESC  \
                 LIMIT $((shift)),100\;
