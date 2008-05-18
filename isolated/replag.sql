@@ -22,8 +22,11 @@ CREATE PROCEDURE replag ()
 
     SELECT CONCAT( ':: echo last replicated timestamp: ', @rep_time );
 
+    # store run time value for referencing
+    SELECT now() INTO @run_time;
+
     # how old the latest edit there is?
-    SELECT CONCAT( ':: replag ', timediff(now(), @rep_time)) as title;
+    SELECT CONCAT( ':: replag ', timediff(@run_time, @rep_time)) as title;
   END;
 //
 
@@ -35,7 +38,7 @@ CREATE PROCEDURE replag ()
 # current time to pretnd to renew.
 #
 DROP PROCEDURE IF EXISTS pretend//
-CREATE PROCEDURE pretend ( action VARCHAR(255) )
+CREATE PROCEDURE pretend ( action VARCHAR(255), marker TIMESTAMP(14) )
   BEGIN
     DECLARE st VARCHAR(255);
 
@@ -52,7 +55,7 @@ CREATE PROCEDURE pretend ( action VARCHAR(255) )
     DEALLOCATE PREPARE stmt;
 
     # just in case of stats uploaded during this run
-    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT ', @rep_time, ' as ts, 0 as valid;' );
+    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', marker, '" as ts, 0 as valid;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -76,12 +79,40 @@ CREATE PROCEDURE performed_confirmation ( action VARCHAR(255) )
     DEALLOCATE PREPARE stmt;
 
     # no need to keep old data cause the action has performed
-    SET @st=CONCAT( 'DELETE FROM ',action ,' WHERE valid=0;' );
+    SET @st=CONCAT( 'DELETE FROM ', action, ' WHERE valid=0;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     SET @st=CONCAT( 'SELECT CONCAT( ', "':: echo action ", action, " is performed, replication timestamp is '", ', ts ) FROM ', action, ' WHERE valid=1;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END;
+//
+
+#
+# Permanent storage for information on actuality.
+#
+DROP PROCEDURE IF EXISTS actuality//
+CREATE PROCEDURE actuality ( action VARCHAR(255), reptime TIMESTAMP(14), runtime TIMESTAMP(14), actualtime TIMESTAMP(14) )
+  BEGIN
+    DECLARE st VARCHAR(255);
+
+    # permanent storage for inter-run data created here if not exists
+    SET @st=CONCAT( 'CREATE TABLE IF NOT EXISTS ', action, ' ( rep TIMESTAMP(14) NOT NULL, run TIMESTAMP(14) NOT NULL, actual TIMESTAMP(14) NOT NULL ) ENGINE=MyISAM;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    # no need to keep old data cause the action has performed
+    SET @st=CONCAT( 'DELETE FROM ', action, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    # just in case of stats uploaded during this run
+    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', reptime, '" as rep, "', runtime, '" as run, "', actualtime, '" as actual;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
