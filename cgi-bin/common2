@@ -30,6 +30,44 @@ no_sql_error ()
   return $res
 }
 
+dateDiff ()
+{
+  local dte1
+  local dte2
+  local sec
+  local minutes
+  local hours
+  local days
+
+  dte1=$(date --utc --date "$1" +%s)
+  dte2=$(date --utc +%s)
+  sec=$((dte2-dte1))
+  
+  if [ "$sec" -gt "60" ]
+  then
+    minutes=$(($sec/60))
+    sec=$(($sec-60*$minutes))
+    if [ "$minutes" -gt "60" ]
+    then
+      hours=$(($minutes/60))
+      minutes=$(($minutes-60*$hours))
+      if [ "$hours" -gt "24" ]
+      then
+        days=$(($hours/24))
+        hours=$(($hours-24*$days))
+        out="$days $daystext $hours $hourstext $minutes $mintext $sec $sectext"
+      else
+        out="$hours $hourstext $minutes $mintext $sec $sectext"
+      fi
+    else
+      out="$minutes $mintext $sec $sectext"
+    fi
+  else
+    out="$sec $sectext"
+  fi
+  echo $out
+}
+
 handle_dates ()
 {
   local line=$1
@@ -42,7 +80,10 @@ handle_dates ()
     rep=${rep//_/ }
     run=${run//_/ }
     actual=${actual//_/ }
-    echo "<div style=\"float:right; clear:right; text-align:left; margin:0 0 0.5em 1em; color:#AAA\"><small>$reptext: $rep<br /> $runtext: $run<br /> $acttext: $actual</small></div>"
+    rep=$( dateDiff "$rep" )
+    run=$( dateDiff "$run" )
+    actual=$( dateDiff "$actual" )
+    echo "<div style=\"float:left; clear:left; text-align:left; margin:-1em -2em 0 0; color:#AAA\"><small>$reptext: $rep $agotext<br /> $runtext: $run $agotext<br /> $acttext: $actual $agotext</small></div>"
   fi
 }
 
