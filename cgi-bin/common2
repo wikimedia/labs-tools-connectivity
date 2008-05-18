@@ -29,3 +29,37 @@ no_sql_error ()
 
   return $res
 }
+
+handle_dates ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local rep=$( echo $line | sed -e 's/^\(.*\)\s\(.*\)\s\(.*\)/\1/g' )
+    local run=$( echo $line | sed -e 's/^\(.*\)\s\(.*\)\s\(.*\)/\2/g' )
+    local actual=$( echo $line | sed -e 's/^\(.*\)\s\(.*\)\s\(.*\)/\3/g' )
+    rep=${rep//_/ }
+    run=${run//_/ }
+    actual=${actual//_/ }
+    echo "<br /><center><small>$reptext: $rep<br /> $runtext: $run<br /> $acttext: $actual</small></center>"
+  fi
+}
+
+how_actual ()
+{
+  local table=$1
+  {
+
+    echo SELECT REPLACE\(rep,\' \',\'_\'\),   \
+                REPLACE\(run,\' \',\'_\'\),   \
+                REPLACE\(actual,\' \',\'_\'\) \
+                FROM $table                   \
+                ORDER BY actual DESC          \
+                LIMIT 1\;
+  } | $sql 2>&1 | { 
+                    while read -r line
+                      do handle_dates "$line"
+                    done
+                  }
+}
