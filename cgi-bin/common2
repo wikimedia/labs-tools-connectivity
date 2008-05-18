@@ -42,7 +42,7 @@ handle_dates ()
     rep=${rep//_/ }
     run=${run//_/ }
     actual=${actual//_/ }
-    echo "<br /><center><small>$reptext: $rep<br /> $runtext: $run<br /> $acttext: $actual</small></center>"
+    echo "<div style=\"float:right; clear:right; text-align:left; margin:0 0 0.5em 1em; color:#AAA\"><small>$reptext: $rep<br /> $runtext: $run<br /> $acttext: $actual</small></div>"
   fi
 }
 
