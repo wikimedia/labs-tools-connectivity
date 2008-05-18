@@ -69,6 +69,7 @@ cat << EOM
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
+how_actual categoryspruce
 
 echo "<h1>$mainh1</h1>"
 echo "<table><tr><td width=25% border=10>"
@@ -181,7 +182,6 @@ else
   echo $cattreedesc4
 fi
 
-how_actual categoryspruce
 echo "<center><table border=0><tr><th>$struchead</th></tr><tr><td align=center><small>"
 {
   echo SELECT coolcat,            \
