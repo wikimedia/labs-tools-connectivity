@@ -1459,148 +1459,6 @@ CREATE PROCEDURE isolated_refresh (namespace INT)
 //
 
 #
-# Preparing data to use in external tools.
-#
-DROP PROCEDURE IF EXISTS outertools//
-CREATE PROCEDURE outertools ()
-  BEGIN
-    IF @namespace!=14
-      THEN
-        # for sure, namespace=0
-
-        # outer tools moved after a namespace change need to continue working
-        # with categories
-        # categorizer refresh
-        DROP TABLE IF EXISTS nrcat0;
-        RENAME TABLE nrcat TO nrcat0;
-
-        CALL redirector_refresh( @namespace );
-
-        #
-        # store orcat and isolated tables data in an appropriate format
-        #
-        CALL isolated_refresh( @namespace );
-
-        #
-        # For use in "ISOLATED ARTICLES FOR A CATEGORY".
-        #
-
-        #
-        # Amount of articles for each category.
-        # Note: Think about uncategorized articles.
-        #
-        DROP TABLE IF EXISTS catvolume;
-        CREATE TABLE catvolume (
-          cv_title varchar(255) binary NOT NULL default '',
-          cv_count int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY (cv_title)
-        ) ENGINE=MEMORY AS
-        SELECT nrc_to as cv_title,
-               count(*) as cv_count
-               FROM nrcat0,
-                    articles
-               WHERE a_id=nrc_id
-               GROUP BY nrc_to;
-
-        ALTER TABLE catvolume ADD (
-          cv_isocount int(8) unsigned NOT NULL default '0',
-          cv_dsgcount int(8) unsigned NOT NULL default '0',
-          cv_ilscount int(8) unsigned NOT NULL default '0',
-          cv_tlscount int(8) unsigned NOT NULL default '0'
-        );
-
-        #
-        # No need to create additional stat for isolated categories.
-        # Pretend they are not exist.
-        #
-        DELETE catvolume
-               FROM catvolume,
-                    orcat
-               WHERE cv_title=cat;
-
-        DROP TABLE IF EXISTS isocat;
-        CREATE TABLE isocat (
-          ic_title varchar(255) binary NOT NULL default '',
-          ic_count int(8) unsigned NOT NULL default '0',
-          PRIMARY KEY (ic_title)
-        ) ENGINE=MEMORY AS
-        SELECT cv_title as ic_title,
-               count( * ) as ic_count
-               FROM nrcat0,
-                    ruwiki0,
-                    catvolume
-                    WHERE id=nrc_id and
-                          cv_title=nrc_to
-                    GROUP BY nrc_to;
-
-        UPDATE catvolume,
-               isocat
-               SET cv_isocount=ic_count
-               WHERE ic_title=cv_title;
-        DELETE FROM isocat;
-
-        #
-        # For use in "ISOLATES LINKED BY DISAMBIGUATIONS LINKED BY ARTICLES".
-        #
-
-        #
-        # Takes ruwiki0, dl and ld as inputs.
-        #
-        # Produces a2i table, containing links from articles to isolates
-        # through disambiguations (as if they are just redirects).
-        #
-        # Also updates catvolume table for categorizer.
-        #
-        CALL disambigs_as_fusy_redirects();
-
-        CALL disambiguator_unload();
-      ELSE
-        # for sure, namespace=14
-
-        #
-        # For "CATEGORYTREE CONNECTIVITY".
-        #
-
-        # unnecessary table, not used unlike to ns=0
-        # unload categorizer
-        DROP TABLE IF EXISTS nrcat;
-
-        CALL redirector_refresh( @namespace );
-
-        #
-        # store orcat and isolated tables data in an appropriate format
-        #
-        CALL isolated_refresh( @namespace );
-
-        #
-        # For use in "ISOLATES WITH LINKED INTERWIKI".
-        #
-        # Note: postponed because takes too much time.
-        CALL inter_langs();
-
-        # suggestor refresh
-        DROP TABLE IF EXISTS isdis;
-        RENAME TABLE a2i TO isdis;
-        DROP TABLE IF EXISTS isres;
-        RENAME TABLE res TO isres;
-        DROP TABLE IF EXISTS istres;
-        RENAME TABLE tres TO istres;
-
-        # categorizer refresh
-        DROP TABLE isocat;
-        DROP TABLE IF EXISTS catvolume0;
-        RENAME TABLE catvolume TO catvolume0;
-
-        #
-        # For use in "ISOLATED ARTICLES CREATORS".
-        #
-        # Note: postponed as low priority task.
-        CALL by_creators();
-    END IF;
-  END;
-//
-
-#
 # Do all the connectivity analysis.
 #
 DROP PROCEDURE IF EXISTS connectivity//
@@ -1614,20 +1472,25 @@ CREATE PROCEDURE connectivity ()
     #
     SELECT ':: echo init:' as title;
 
-    SET @starttime=now();
-
-    # sets @rep_time variable for us
+    # initializes @rep_time and @run_time variables for us
     CALL replag();
+    SET @starttime=@run_time;
 
     IF @namespace=0
       THEN
+        SET @rep_time0=@rep_time;
+        SET @run_time0=@run_time;
+
         #
         # Let wikistat be the permanent storage 
         #     for inter-run data on statistics upload
         #
         # aka WikiMirrorTime al CurrentRunTime
         #
-        CALL pretend( 'wikistat' );
+        CALL pretend( 'wikistat', @rep_time0 );
+      ELSE
+        SET @rep_time14=@rep_time;
+        SET @run_time14=@run_time;
     END IF;
 
     # the name-prefix for all output files, distinct for each function call
@@ -1779,6 +1642,155 @@ CREATE PROCEDURE connectivity ()
     END IF;
 
     DROP TABLE del;
+  END;
+//
+
+#
+# Preparing data to use in external tools.
+#
+DROP PROCEDURE IF EXISTS outertools//
+CREATE PROCEDURE outertools ()
+  BEGIN
+    IF @namespace!=14
+      THEN
+        # for sure, namespace=0
+
+        # outer tools moved after a namespace change need to continue working
+        # with categories
+        # categorizer refresh
+        DROP TABLE IF EXISTS nrcat0;
+        RENAME TABLE nrcat TO nrcat0;
+
+        CALL redirector_refresh( @namespace );
+
+        #
+        # store orcat and isolated tables data in an appropriate format
+        #
+        CALL isolated_refresh( @namespace );
+
+        #
+        # For use in "ISOLATED ARTICLES FOR A CATEGORY".
+        #
+
+        #
+        # Amount of articles for each category.
+        # Note: Think about uncategorized articles.
+        #
+        DROP TABLE IF EXISTS catvolume;
+        CREATE TABLE catvolume (
+          cv_title varchar(255) binary NOT NULL default '',
+          cv_count int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (cv_title)
+        ) ENGINE=MEMORY AS
+        SELECT nrc_to as cv_title,
+               count(*) as cv_count
+               FROM nrcat0,
+                    articles
+               WHERE a_id=nrc_id
+               GROUP BY nrc_to;
+
+        ALTER TABLE catvolume ADD (
+          cv_isocount int(8) unsigned NOT NULL default '0',
+          cv_dsgcount int(8) unsigned NOT NULL default '0',
+          cv_ilscount int(8) unsigned NOT NULL default '0',
+          cv_tlscount int(8) unsigned NOT NULL default '0'
+        );
+
+        #
+        # No need to create additional stat for isolated categories.
+        # Pretend they are not exist.
+        #
+        DELETE catvolume
+               FROM catvolume,
+                    orcat
+               WHERE cv_title=cat;
+
+        DROP TABLE IF EXISTS isocat;
+        CREATE TABLE isocat (
+          ic_title varchar(255) binary NOT NULL default '',
+          ic_count int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (ic_title)
+        ) ENGINE=MEMORY AS
+        SELECT cv_title as ic_title,
+               count( * ) as ic_count
+               FROM nrcat0,
+                    ruwiki0,
+                    catvolume
+                    WHERE id=nrc_id and
+                          cv_title=nrc_to
+                    GROUP BY nrc_to;
+
+        UPDATE catvolume,
+               isocat
+               SET cv_isocount=ic_count
+               WHERE ic_title=cv_title;
+        DELETE FROM isocat;
+
+        #
+        # For use in "ISOLATES LINKED BY DISAMBIGUATIONS LINKED BY ARTICLES".
+        #
+
+        #
+        # Takes ruwiki0, dl and ld as inputs.
+        #
+        # Produces a2i table, containing links from articles to isolates
+        # through disambiguations (as if they are just redirects).
+        #
+        # Also updates catvolume table for categorizer.
+        #
+        CALL disambigs_as_fusy_redirects();
+
+        CALL disambiguator_unload();
+      ELSE
+        # for sure, namespace=14
+
+        #
+        # For "CATEGORYTREE CONNECTIVITY".
+        #
+
+        # unnecessary table, not used unlike to ns=0
+        # unload categorizer
+        DROP TABLE IF EXISTS nrcat;
+
+        CALL redirector_refresh( @namespace );
+
+        #
+        # store orcat and isolated tables data in an appropriate format
+        #
+        CALL isolated_refresh( @namespace );
+
+        CALL actuality( 'categoryspruce', @rep_time14, @run_time14, now() );
+
+        #
+        # For use in "ISOLATES WITH LINKED INTERWIKI".
+        #
+        # Note: postponed because takes too much time.
+        CALL inter_langs();
+
+        # suggestor refresh
+        DROP TABLE IF EXISTS isdis;
+        RENAME TABLE a2i TO isdis;
+        DROP TABLE IF EXISTS isres;
+        RENAME TABLE res TO isres;
+        DROP TABLE IF EXISTS istres;
+        RENAME TABLE tres TO istres;
+
+        # categorizer refresh
+        DROP TABLE isocat;
+        DROP TABLE IF EXISTS catvolume0;
+        RENAME TABLE catvolume TO catvolume0;
+
+        #
+        # For use in "ISOLATED ARTICLES CREATORS".
+        #
+        # Note: postponed as low priority task.
+        CALL by_creators();
+
+        # creatorizer refresh
+        DROP TABLE IF EXISTS creators0;
+        RENAME TABLE creators TO creators0;
+        CALL actuality( 'creatorizer', @rep_time0, @run_time0, now() );
+    END IF;
   END;
 //
 
