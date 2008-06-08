@@ -1,5 +1,9 @@
 #!/bin/bash
 
+ #
+ #    Authors: [[:ru:user:Mashiah Davidson]], still alone
+ #
+
 iter=0
 portion=0;
 
