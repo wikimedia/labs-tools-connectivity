@@ -1,3 +1,7 @@
+ --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- <pre>
 
  --
  -- Significant speedup
@@ -87,12 +91,12 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10) )
 
         DELETE FROM dinfo;
 
-        SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as isolated, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
+        SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        SELECT CONCAT( prefix, count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
+        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates can be linked based on interwiki' )
                FROM res
                WHERE lang=language;
 
@@ -104,14 +108,14 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10) )
         SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after exclusion of already translated" )
                FROM liwl;
 
-        SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as isolated, '", language, "' as lang FROM ", dbname, '.page, liwl WHERE page_id=fr and page_namespace=0;' );
+        SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as id, '", language, "' as lang FROM ", dbname, '.page, liwl WHERE page_id=fr and page_namespace=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
         DELETE FROM liwl;
 
-        SELECT CONCAT( prefix, count(DISTINCT isolated), ' isolates can be linked with main namespace page translation' )
+        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates can be linked with main namespace page translation' )
                FROM tres
                WHERE lang=language;
     END IF;
@@ -163,14 +167,14 @@ CREATE PROCEDURE inter_langs_ct()
     DROP TABLE IF EXISTS res;
     CREATE TABLE res (
       suggestn varchar(255) not null default '',
-      isolated int(8) unsigned not null default '0',
+      id int(8) unsigned not null default '0',
       lang varchar(10) not null default ''
     ) ENGINE=MEMORY;
 
     DROP TABLE IF EXISTS tres;
     CREATE TABLE tres (
       suggestn varchar(255) not null default '',
-      isolated int(8) unsigned not null default '0',
+      id int(8) unsigned not null default '0',
       lang varchar(10) not null default ''
     ) ENGINE=MEMORY;
 
@@ -263,14 +267,14 @@ CREATE PROCEDURE inter_langs()
     DROP TABLE IF EXISTS res_s2;
     CREATE TABLE res_s2 (
       suggestn varchar(255) not null default '',
-      isolated int(8) unsigned not null default '0',
+      id int(8) unsigned not null default '0',
       lang varchar(10) not null default ''
     ) ENGINE=MEMORY;
 
     DROP TABLE IF EXISTS tres_s2;
     CREATE TABLE tres_s2 (
       suggestn varchar(255) not null default '',
-      isolated int(8) unsigned not null default '0',
+      id int(8) unsigned not null default '0',
       lang varchar(10) not null default ''
     ) ENGINE=MEMORY;
 
@@ -302,10 +306,10 @@ CREATE PROCEDURE inter_langs()
     DELETE FROM res
            WHERE suggestn='';
 
-    SELECT CONCAT( ':: echo With use of s3 ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo With use of s3 ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo With use of s3 ', count(DISTINCT isolated), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo With use of s3 ', count(DISTINCT id), ' isolates can be linked with translation' )
            FROM tres;
 
     # Looks like an infinite loop, however, a line is to be modified externally
@@ -321,59 +325,44 @@ CREATE PROCEDURE inter_langs()
     # merging s2 and s3 results
     INSERT into res
     SELECT suggestn,
-           isolated,
+           id,
            lang
            FROM res_s2;
     DROP TABLE res_s2;
 
     INSERT into tres
     SELECT suggestn,
-           isolated,
+           id,
            lang
            FROM tres_s2;
     DROP TABLE tres_s2;
 
-    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT isolated), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates can be linked with translation' )
            FROM tres;
 
-    INSERT INTO isocat
-    SELECT cv_title as ic_title,
-           count(DISTINCT isolated) as ic_count
-           FROM nrcat0,
-                res,
-                catvolume
-           WHERE nrc_id=isolated and
-                 nrc_to=cv_title
-           GROUP BY cv_title;
+    CALL categorystats( 'res', 'sglcatvolume' );
 
-    # Note: need to use IGNORE for unknown reason.
-    UPDATE IGNORE catvolume,
-           isocat
-           SET cv_ilscount=ic_count
-           WHERE ic_title=cv_title;
-    DELETE FROM isocat;
+    CALL categorystats( 'tres', 'sgtcatvolume' );
 
-    INSERT INTO isocat
-    SELECT cv_title as ic_title,
-           count(DISTINCT isolated) as ic_count
-           FROM nrcat0,
-                tres,
-                catvolume
-           WHERE nrc_id=isolated and
-                 nrc_to=cv_title
-           GROUP BY cv_title;
+    DROP TABLE nrcatl0;
 
-    DROP TABLE nrcat0;
-        
-    # Note: need to use IGNORE for unknown reason.
-    UPDATE IGNORE catvolume,
-           isocat
-           SET cv_tlscount=ic_count
-           WHERE ic_title=cv_title;
-    DELETE FROM isocat;
+    # suggestor refresh
+    DROP TABLE IF EXISTS isres;
+    RENAME TABLE res TO isres;
+    DROP TABLE IF EXISTS istres;
+    RENAME TABLE tres TO istres;
+
+    # categorizer refresh
+    DROP TABLE IF EXISTS sglcatvolume0;
+    RENAME TABLE sglcatvolume TO sglcatvolume0;
+    DROP TABLE IF EXISTS sgtcatvolume0;
+    RENAME TABLE sgtcatvolume TO sgtcatvolume0;
+
+    CALL actuality( 'lsuggestor' );
+    CALL actuality( 'tsuggestor' );
   END;
 //
 
@@ -427,17 +416,17 @@ CREATE PROCEDURE inter_langs_s2()
     UPDATE tres
            SET suggestn=REPLACE( suggestn, '"', '\\"');
 
-    SELECT CONCAT( ':: echo With use of s2 ', count(DISTINCT isolated), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo With use of s2 ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo With use of s2 ', count(DISTINCT isolated), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo With use of s2 ', count(DISTINCT id), ' isolates can be linked with translation' )
            FROM tres;
 
     SELECT ':: s3 take res_s2';
-    SELECT ":: s2 give SELECT CONCAT\( '\(\"', suggestn, '\",\"', isolated, '\",\"', lang, '\"\)' \) FROM res\;";
+    SELECT ":: s2 give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM res\;";
 
     SELECT ':: s3 take tres_s2';
-    SELECT ":: s2 give SELECT CONCAT\( '\(\"', suggestn, '\",\"', isolated, '\",\"', lang, '\"\)' \) FROM tres\;";
+    SELECT ":: s2 give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM tres\;";
 
     SELECT ':: echo all transfer issued from s2';
   END;
@@ -445,3 +434,5 @@ CREATE PROCEDURE inter_langs_s2()
 
 delimiter ;
 ############################################################
+
+ -- </pre>
