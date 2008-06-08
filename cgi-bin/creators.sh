@@ -51,19 +51,16 @@ cat << EOM
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 EOM
 
-how_actual creatorizer
-
 echo "<title>$pagetitle</title>"
 
 cat << EOM
    
-  <link rel="stylesheet" type="text/css" href="../main.css" media="all" /><style type="text/css">
-  
-  </style>
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
  </head>
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
+how_actual creatorizer
 
 echo "<h1>$mainh1</h1>"
 echo "<table><tr><td width=25% border=10>"
