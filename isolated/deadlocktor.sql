@@ -1,4 +1,19 @@
  --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ --
+ -- Shared procedures: deadend
+ --
+ -- Linking rules: Links to non-articles are not taken into account
+ --                (even for links to disambiguations or unexistent articles)
+ --
+ -- Expected outputs: Deadend articles list, what's to be (un)taged in relation
+ --                   to article links existance.
+ --
+ -- <pre>
+
+ --
  -- Significant speedup
  --
 
@@ -18,6 +33,10 @@ DROP PROCEDURE IF EXISTS deadend//
 CREATE PROCEDURE deadend (namespace INT)
   BEGIN
     DECLARE cnt INT;
+
+    SELECT ':: echo DEADLOCKTOR';
+
+    SET @starttime=now();
 
     # temporarily delete links to chrono articles
     IF namespace=0
@@ -57,18 +76,24 @@ CREATE PROCEDURE deadend (namespace INT)
     # Begin the procedure for dead end pages
     SELECT ':: echo dead end pages processing:' as title;
 
-    # DEAD-END PAGES REGISTERED AT THE MOMENT
+    # DEAD-END PAGES STORAGE
     DROP TABLE IF EXISTS del;
     CREATE TABLE del (
       id int(8) unsigned NOT NULL default '0',
       act int(8) signed NOT NULL default '0',
       PRIMARY KEY (id)
-    ) ENGINE=MEMORY AS
-    SELECT nrc_id as id,
-           -1 as act
-           FROM nrcat
-           #            a category registering deadend articles
-           WHERE nrc_to='Википедия:Тупиковые_статьи';
+    ) ENGINE=MEMORY;
+
+    IF namespace=0
+      THEN
+        # DEAD-END PAGES REGISTERED AT THE MOMENT
+        INSERT INTO del
+        SELECT nrcl_from as id,
+               -1 as act
+               FROM nrcatl
+               #                        a category registering deadend articles
+               WHERE nrcl_cat=nrcatuid('Википедия:Тупиковые_статьи');
+    END IF;
 
     # articles with links to articles
     DROP TABLE IF EXISTS lwl;
@@ -81,10 +106,10 @@ CREATE PROCEDURE deadend (namespace INT)
 
     # CURRENT DEAD-END ARTICLES
     INSERT INTO del
-    SELECT a_id as id,
+    SELECT id,
            1 as act
            FROM articles
-           WHERE a_id NOT IN
+           WHERE id NOT IN
            (
             SELECT lwl_id
                    FROM lwl
@@ -103,13 +128,13 @@ CREATE PROCEDURE deadend (namespace INT)
         IF @enable_informative_output>0
           THEN
             SELECT CONCAT(':: out ', @fprefix, 'de.info' ) as title;
-            SELECT id,
-                   a_title
+            SELECT del.id,
+                   title
                    FROM del,
                         articles
-                   WHERE a_id=id and
+                   WHERE articles.id=del.id and
                          act>=0
-                   ORDER BY a_title ASC;
+                   ORDER BY title ASC;
         END IF;
 
         IF namespace=0
@@ -121,12 +146,12 @@ CREATE PROCEDURE deadend (namespace INT)
               THEN
                 SELECT CONCAT(':: echo +: ', cnt ) as title;
                 SELECT CONCAT( ':: out ', @fprefix, 'deset.txt' );
-                SELECT a_title
+                SELECT title
                        FROM del,
                             articles
                        WHERE act=1 AND
-                             id=a_id
-                       ORDER BY a_title ASC;
+                             del.id=articles.id
+                       ORDER BY title ASC;
             END IF;
         END IF;
     END IF;
@@ -159,10 +184,13 @@ CREATE PROCEDURE deadend (namespace INT)
 
         SELECT CONCAT( ':: echo ', count(*), ' links after chrono links restore' )
                FROM l;
-     END IF;
+    END IF;
+
+    SELECT CONCAT( ':: echo dead-end processing time: ', timediff(now(), @starttime));
   END;
 //
 
 delimiter ;
 ############################################################
 
+-- </pre>
