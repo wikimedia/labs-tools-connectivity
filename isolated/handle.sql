@@ -1,4 +1,15 @@
  --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- <pre>
+
+ --
+ -- Initialize an unique prefix for use as a filename prefix
+ --
+
+set @fprefix='';
+
+ --
  -- Significant speedup
  --
 
@@ -73,6 +84,10 @@ CREATE PROCEDURE combineandout ()
   BEGIN
     DECLARE cnt INT;
 
+    SELECT ':: echo COMBINATOR';
+
+    SET @starttime=now();
+
     #
     # Create common for isolated and deadend analysis list of articles
     # to be edited.
@@ -129,9 +144,12 @@ CREATE PROCEDURE combineandout ()
     END IF;
 
     DROP TABLE task;
+
+    SELECT CONCAT( ':: echo isolated & deadend combining time: ', timediff(now(), @starttime));
   END;
 //
 
 delimiter ;
 ############################################################
 
+-- </pre>
