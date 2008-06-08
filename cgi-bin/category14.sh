@@ -62,9 +62,7 @@ EOM
 echo "<title>$pagetitle</title>"
 
 cat << EOM
-  <link rel="stylesheet" type="text/css" href="../main.css" media="all" /><style type="text/css">
-  
-  </style>
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
  </head>
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
