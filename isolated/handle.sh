@@ -1,5 +1,9 @@
 #!/bin/bash
 
+ #
+ #   Authors: [[:ru:user:Mashiah Davidson]], still alone
+ #
+
 # set the maximal replication lag value in minutes, which is allowed for apply
 # probably, less than script actually works
 maxlag=10
@@ -72,7 +76,7 @@ handle ()
               iter=$(($iter+1))
             done
             sync
-          } | perl mr.pl $myusr | ./handle.sh $cmdl &
+          } | perl mr.pl ru $myusr | ./handle.sh $cmdl &
           unset collection
         fi
       fi
@@ -140,7 +144,7 @@ handle ()
                       echo uploading statistics for first time;
                     fi
                     # cut 3 very first utf-8 bytes and upload the stats
-                    tail --bytes=+4 ./*.stat | perl r.pl 'stat' 'stat' $myusr "$stat_up_ts" | ./handle.sh $cmdl
+                    tail --bytes=+4 ./*.articles.stat | perl r.pl 'stat' 'stat' $myusr "$stat_up_ts" | ./handle.sh $cmdl
                   fi
                 fi
               fi
