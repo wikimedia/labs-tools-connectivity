@@ -1,3 +1,7 @@
+ --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- <pre>
 
  --
  -- Significant speedup
@@ -20,7 +24,7 @@ CREATE PROCEDURE dsuggest (iid VARCHAR(255))
     DECLARE done INT DEFAULT 0;
     DECLARE via_title VARCHAR(255);
     DECLARE via_id INT;
-    DECLARE cur CURSOR FOR SELECT DISTINCT page_title, a2i_via FROM isdis, ruwiki_p.page WHERE a2i_to=iid AND page_id=a2i_via ORDER BY page_title ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT page_title, a2i_via FROM isdis, ruwiki_p.page, ruwiki0 WHERE isdis.id=ruwiki0.id AND ruwiki0.title=iid AND page_id=a2i_via ORDER BY page_title ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur;
@@ -33,8 +37,10 @@ CREATE PROCEDURE dsuggest (iid VARCHAR(255))
           
           SELECT DISTINCT CONCAT( ':::' , page_title )
                  FROM isdis,
-                      ruwiki_p.page
-                 WHERE a2i_to=iid and
+                      ruwiki_p.page,
+                      ruwiki0
+                 WHERE ruwiki0.title=iid and
+                       isdis.id=ruwiki0.id and
                        a2i_via=via_id and
                        a2i_from=page_id
                  ORDER BY page_title ASC;
@@ -51,7 +57,7 @@ CREATE PROCEDURE interwiki_suggest (iid VARCHAR(255))
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE language VARCHAR(10);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM isres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM isres, ruwiki0 WHERE title=iid AND ruwiki0.id=isres.id ORDER BY lang ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur;
@@ -66,7 +72,7 @@ CREATE PROCEDURE interwiki_suggest (iid VARCHAR(255))
                  FROM isres,
                       ruwiki0
                  WHERE title=iid and
-                       id=isolated and
+                       ruwiki0.id=isres.id and
                        lang=language
                  ORDER BY suggestn ASC;
 
@@ -82,7 +88,7 @@ CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE language VARCHAR(10);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM istres, ruwiki0 WHERE title=iid AND id=isolated ORDER BY lang ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang FROM istres, ruwiki0 WHERE title=iid AND ruwiki0.id=istres.id ORDER BY lang ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur;
@@ -97,7 +103,7 @@ CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
                  FROM istres,
                       ruwiki0
                  WHERE title=iid and
-                       id=isolated and
+                       ruwiki0.id=istres.id and
                        lang=language
                  ORDER BY suggestn ASC;
 
@@ -110,3 +116,5 @@ CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
 
 delimiter ;
 ############################################################
+
+-- </pre>
