@@ -1,9 +1,13 @@
+ #
+ #    Authors: [[:ru:user:Mashiah Davidson]], still alone
+ #
+
  # 
- # Data uploader for 
- # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.
+ #    Data uploader for 
+ #    '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.
  # 
- # Works on the Toolserver and uploads connectivity analysis statistics
- # and multiple redirects list to Russian Wikipedia.
+ #    Works on the Toolserver and uploads connectivity analysis statistics
+ #    and multiple redirects list to Russian Wikipedia.
  #
  # <pre>
 
