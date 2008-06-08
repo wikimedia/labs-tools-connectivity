@@ -1,9 +1,48 @@
+ #
+ # Works on the Toolserver.
+ #
+ # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ #
+ # Purpose: 
+ #
+ #      [[:en:Connectivity (graph theory)|Connectivity]] analysis script for
+ #      [[:ru:|Russian Wikipedia]] and probably others if ready to introduce
+ #      some of guidances like
+ #            - what is an article, 
+ #            - what is a relevant link,
+ #            - what is an isolated/orphaned article,
+ #            - what is a dead-end article,
+ #            - what is a chronological article,
+ #            - what is a colloborative list of article names
+ #            - what the disambiguation is and so on.
  # 
- # Handler for 
- # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sql|isolated.sql]]'''.
- # 
- # Works on the Toolserver and outputs the processing results into a set
- # of files being switched by some API calls from '''isolated.sql'''.
+ # Use: Bash command prompt (or better use with screen)
+ #
+ #      ./isolated.sh           - to run all the analysis supported
+ #      ./isolated.sh mr        - to enable multiple redirects resolving
+ #      ./isolated.sh stat      - to enable cluster chains statistics upload
+ #      ./isolated.sh mr stat   - as we do in Ruwiki
+ #
+ # Default output:
+ #
+ #      1. Useful informative output on stdout
+ #      2. Files archieved to today.7z at some stage:
+ #         - Wrong redirects list                        (<ts>.wr.txt)
+ #         - Dead end pages not yet templated            (<ts>.deset.txt) 
+ #         - Articles with links still marked as deadend (<ts>.derem.txt)
+ #         - Isolated articles not yet templated         (<ts>.<chain>.txt)
+ #         - Articles still marked as isolated           (<ts>.orem.txt)
+ #      3. Files archieved to info.7z at some stage:
+ #         - Multiple redirects list                     (<ts>.mr.info)
+ #      4. Files archieved to stat.7z at some stage:
+ #         - Claster chains for zero namespace redirects (<ts>.redirects.stat)
+ #         - Claster chains for articles                 (<ts>.articles.stat)
+ #         - Claster chains for categories               (<ts>.categories.stat)
+ #      5. Redirects in category namespace - if any      (<ts>.r.txt)
+ #
+ # Error handling:
+ #
+ #      See debug.log if created or last file modified.
  #
  # <pre>
 
@@ -36,27 +75,36 @@ rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log
 time { 
   # run to obtain all templates management data asap
   {
+
+    #
+    # Enable/disable informative output, such as current sets of
+    # dead end articles or isolated chains of various types.
+    #
+    set @enable_informative_output=0;
+
     cat handle.sql
     cat replag.sql
+    cat namespacer.sql
+    cat categorizer.sql
     cat redirector.sql
     cat disambig.sql
     cat deadlocktor.sql
+    cat templator.sql
+    cat isolated.sql
     cat iwikispy.sql
+    cat suggestor.sql
     cat creatorizer.sql
     cat cgi.sql
 
-    echo "set @namespace=0;"
+    echo 'CALL actual_replag();'
 
     #
-    # Choose the maximal oscc size for namespace 0, note:
-    #        - 5  takes up to 10 minutes,
-    #        - 10 takes up to 15 minutes, 
-    #        - 20 takes up to 20 minutes, 
-    #        - 40 takes up to 25 minutes
-    #        - more articles requires @@max_heap_table_size=536870912.
+    # Categorizer setup, prefetch categories namespace (14)
+    # and holds categories list.
     #
-
-    echo "set @max_scc_size=10;"
+    # Creates nr14, r14 and categories.
+    #
+    echo 'CALL categories();'
 
     #
     # Choose the right limit for recursion depth allowed.
@@ -64,38 +112,51 @@ time {
     # and then set it e.g. the maximal clusters chain length doubled.
     #
 
-    echo "set max_sp_recursion_depth=10;"
+    echo "SET max_sp_recursion_depth=10;"
 
-    cat isolated.sql
-
-    echo 'CALL doouter();'
-
-    echo "set @namespace=14;"
+#    echo "SET @@max_heap_table_size=16777216;"
+#    echo "SET @@max_heap_table_size=33554432;"
+#    echo "SET @@max_heap_table_size=67108864;"
+#    echo "SET @@max_heap_table_size=134217728;"
+#    echo "SET @@max_heap_table_size=268435456;"
+    echo "SET @@max_heap_table_size=536870912;"
+#     echo "SET @@max_heap_table_size=1073741824;"
 
     #
-    # Namespace 14 can be fully thrown within 45 minutes,
-    # the oscc size in this case is set to zero, which means no limit.
+    # Analyze zero namespace connectivity. Limit claster sizes by 10.
     #
+    echo 'CALL zero_namespace_connectivity( 10 );'
 
-    echo "set @max_scc_size=0;"
+
+    echo 'CALL replag();'
 
     #
     # Choose the right limit for recursion depth allowed.
     # Set the recursion depth to 255 for the first run
     # and then set it e.g. the maximal clusters chain length doubled.
     #
+    echo "SET max_sp_recursion_depth=255;"
 
-    echo "set max_sp_recursion_depth=255;"
+    #
+    # Analyze categorytree namespace connectivity and prepare categoryspruce.
+    # No limit on claster size.
+    #
+    echo 'CALL categorytree_connectivity( 0 );'
 
-#    echo "set @@max_heap_table_size=134217728;"
-#    echo "set @@max_heap_table_size=268435456;"
-#    echo "set @@max_heap_table_size=536870912;"
-     echo "set @@max_heap_table_size=1073741824;"
+#    echo "SET @@max_heap_table_size=16777216;"
+#    echo "SET @@max_heap_table_size=33554432;"
+#    echo "SET @@max_heap_table_size=67108864;"
+#    echo "SET @@max_heap_table_size=134217728;"
+#    echo "SET @@max_heap_table_size=268435456;"
+#    echo "SET @@max_heap_table_size=536870912;"
+    echo "SET @@max_heap_table_size=1073741824;"
 
-    echo 'CALL connectivity();'
-
-    echo 'CALL doouter();'
-
+    #
+    # Isolated by category,
+    # Suggestor,
+    # Creatorizer.
+    #
+    echo 'CALL zero_namespace_postponed_tools();'
   } | $sql 2>&1 | ./handle.sh $1 $2 $3
 }
 
