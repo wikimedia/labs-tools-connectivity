@@ -1,4 +1,9 @@
  --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- <pre>
+
+ --
  -- Significant speedup
  --
 
@@ -56,6 +61,23 @@ CREATE PROCEDURE by_creators ()
   END;
 //
 
+DROP PROCEDURE IF EXISTS creatorizer//
+CREATE PROCEDURE creatorizer ()
+  BEGIN
+    #
+    # For use in "ISOLATED ARTICLES CREATORS".
+    #
+    # Note: postponed as low priority task.
+    CALL by_creators();
+
+    # creatorizer refresh
+    DROP TABLE IF EXISTS creators0;
+    RENAME TABLE creators TO creators0;
+    CALL actuality( 'creatorizer' );
+  END;
+//
+
 delimiter ;
 ############################################################
 
+-- </pre>
