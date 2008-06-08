@@ -1,16 +1,32 @@
 #!/usr/bin/perl
+
+ #
+ #    Authors: [[:ru:user:Mashiah Davidson]], still alone
+ #
+
  # 
- # Double redirects resolver for 
- # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.
+ #    Double redirects resolver
  # 
- # Works on the Toolserver and resolves double redirects for Russian Wikipedia.
+ #    Works on the Toolserver and resolves double redirects.
+ #
+ #    Inputs: Takes list of redirects pointing other redirects from stdin.
+ #
+ #            First parameter passed defines wiki-prefix (ru, en, ...)
+ #
+ #            Operates on behalf of a user defined by second command
+ #            line parameter.
+ #
+ #            Takes user password from /home/.<wiki-prefix>.cnf given there
+ #            in the format of: password = "<password>".
+ #                  
  #
  # <pre>
 
 use strict; # 'strict' insists that all variables be declared
 
+my $wikilang=shift;
 my $user=shift;
-open FILE, '</home/'.$user.'/.ru.cnf' or die ':: echo /home/'.$user.'/.ru.cnf: '.$!;
+open FILE, '</home/'.$user.'/.'.$wikilang.'.cnf' or die ':: echo /home/'.$user.'/.'.$wikilang.'.cnf: '.$!;
 print ":: echo ".$user." grants permissions to bot ";
 my $pass="";
 while( my $line = <FILE> )
@@ -49,11 +65,11 @@ my $m_i=decode('utf8', 'и');
 
 my $editor=Perlwikipedia->new($user);
 $editor->{debug} = 0;
-$editor->set_wiki('ru.wikipedia.org','w');
+$editor->set_wiki($wikilang.'.wikipedia.org','w');
 my $loginstatus=$editor->login($user, $pass);
 
 if ( $loginstatus eq '1' ) {
-  die ':: echo invalid login; possibly ~/.ru.cnf contains wrong data';
+  die ':: echo invalid login; possibly ~/.'.$wikilang.'.cnf contains wrong data';
 }
 
 my $success_count=0;
@@ -127,7 +143,7 @@ while( <> )
                      ^[\s\t\n\r]*
                      \#
                      (?:
-                       # I know about "i" modifier.
+                       # I know about "i" modifier but it doesn't work for utf8.
                        # Just to show the principle for utf-8 matched below.
                        (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
                      |
