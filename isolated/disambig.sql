@@ -1,4 +1,9 @@
  --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- <pre>
+
+ --
  -- Significant speedup
  --
 
@@ -27,10 +32,10 @@ CREATE PROCEDURE collect_disambig ()
       d_id int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (d_id)
     ) ENGINE=MEMORY AS
-    SELECT DISTINCT nrc_id as d_id
-           FROM nrcat
-                 #      disambiguation pages
-           WHERE nrc_to='Многозначные_термины';
+    SELECT DISTINCT nrcl_from as d_id
+           FROM nrcatl
+                 #                   disambiguation pages
+           WHERE nrcl_cat=nrcatuid( 'Многозначные_термины' );
 
     SELECT CONCAT( ':: echo ', count(*), ' disambiguation names found' )
            FROM d;
@@ -71,7 +76,7 @@ CREATE PROCEDURE construct_dlinks ()
                 d
            WHERE pl_from in
                  (
-                  SELECT a_id 
+                  SELECT id 
                          FROM articles
                  ) and
                  pl_to=d_id;
@@ -83,7 +88,7 @@ CREATE PROCEDURE construct_dlinks ()
     # Here we adding direct links from disambiguations to articles.
     #
     INSERT IGNORE INTO ld
-    SELECT a_id as ld_to,
+    SELECT id as ld_to,
            pl_from as ld_from
            FROM pl,
                 articles
@@ -92,7 +97,7 @@ CREATE PROCEDURE construct_dlinks ()
                   SELECT d_id 
                          FROM d
                  ) and
-                 pl_to=a_id;
+                 pl_to=id;
 
     SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to articles' )
            FROM ld;
@@ -114,19 +119,20 @@ CREATE PROCEDURE construct_dlinks ()
 //
 
 #
-# Creates statistics on disambiguation pages linking and puts it into
-# disambiguate0.
+# Creates statistics on disambiguation pages linking.
 #
 DROP PROCEDURE IF EXISTS disambiguator//
-CREATE PROCEDURE disambiguator ()
+CREATE PROCEDURE disambiguator (namespace INT)
   BEGIN
+    DECLARE st VARCHAR(255);
+
     # statistics for amount of links from articles to each linked disambig
     DROP TABLE IF EXISTS dsstat;
     CREATE TABLE dsstat (
       dss_id int(8) unsigned NOT NULL default '0',
       dss_cnt int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (dss_id)
-    ) ENGINE=MEMORY AS
+    ) ENGINE=MEMORY AS                                                                                                                
     SELECT dl_to as dss_id,
            count(*) as dss_cnt
            FROM dl
@@ -136,19 +142,37 @@ CREATE PROCEDURE disambiguator ()
     CREATE TABLE disambiguate (
       d_title varchar(255) binary NOT NULL default '',
       d_cnt int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS
-    SELECT nr_title as d_title,
-           dss_cnt as d_cnt
-           FROM dsstat,
-                nr
-           WHERE nr_id=dss_id
-           ORDER BY dss_cnt DESC;
-    DROP TABLE dsstat;
+    ) ENGINE=MEMORY;
 
-    DROP TABLE IF EXISTS disambiguate0;
-    RENAME TABLE disambiguate TO disambiguate0;
+    SET @st=CONCAT( 'INSERT INTO disambiguate SELECT nr', namespace, '.title as d_title, dss_cnt as d_cnt FROM dsstat, nr', namespace, ' WHERE nr', namespace, '.id=dss_id ORDER BY dss_cnt DESC;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    DROP TABLE dsstat;
   END;
 //
+
+#
+# Copies disambiguate table into a table with a name given for cgi tools
+#
+DROP PROCEDURE IF EXISTS disambiguator_refresh//
+CREATE PROCEDURE disambiguator_refresh ( dsname VARCHAR(255) )
+  BEGIN
+    DECLARE st VARCHAR(255);
+
+    SET @st=CONCAT( 'DROP TABLE IF EXISTS ', dsname, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SET @st=CONCAT( 'RENAME TABLE disambiguate TO ', dsname, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END;
+//
+
 
 #
 # Takes ruwiki0, dl and ld as inputs.
@@ -186,41 +210,35 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
     CREATE TABLE a2i (
       a2i_from int(8) unsigned NOT NULL default '0',
       a2i_via int(8) unsigned NOT NULL default '0',
-      a2i_to varchar(255) binary NOT NULL default '',
-      KEY (a2i_to)
+      id int(8) unsigned NOT NULL default '0',
+      KEY (id)
     ) ENGINE=MEMORY AS
     SELECT dl_from as a2i_from,
            d2i_from as a2i_via,
-           d2i_to as a2i_to
+           id
            FROM dl,
-                d2i
-           WHERE dl_to=d2i_from;
+                d2i,
+                ruwiki0
+           WHERE dl_to=d2i_from and
+                 title=d2i_to;
 
     DROP TABLE d2i;
 
     SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles through disambiguation pages linking isolates' )
            FROM a2i;
 
-    SELECT CONCAT( ':: echo ', count(DISTINCT a2i_to), ' isolated articles may become linked' )
+    SELECT CONCAT( ':: echo ', count(DISTINCT id), ' isolated articles may become linked' )
            FROM a2i;
 
-    INSERT INTO isocat
-    SELECT cv_title as ic_title,
-           count(DISTINCT a2i_to) as ic_count
-           FROM nrcat0,
-                ruwiki0,
-                a2i,
-                catvolume
-           WHERE nrc_id=id and
-                 title=a2i_to and
-                 nrc_to=cv_title
-           GROUP BY cv_title;
+    CALL categorystats( 'a2i', 'sgdcatvolume' );
 
-    UPDATE catvolume,
-           isocat
-           SET cv_dsgcount=ic_count
-           WHERE ic_title=cv_title;
-    DELETE FROM isocat;
+    DROP TABLE IF EXISTS isdis;
+    RENAME TABLE a2i TO isdis;
+
+    DROP TABLE IF EXISTS sgdcatvolume0;
+    RENAME TABLE sgdcatvolume TO sgdcatvolume0;
+
+    CALL actuality( 'dsuggestor' );
   END;
 //
 
@@ -234,3 +252,5 @@ CREATE PROCEDURE disambiguator_unload ()
 
 delimiter ;
 ############################################################
+
+-- </pre>
