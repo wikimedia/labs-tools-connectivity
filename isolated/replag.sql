@@ -1,3 +1,7 @@
+ --
+ -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ --
+ -- <pre>
 
  --
  -- Significant speedup
@@ -31,6 +35,19 @@ CREATE PROCEDURE replag ()
 //
 
 #
+# Runs replag and copies its measurements into @rep_act and @run_act
+# for use in pretend() and actuality()
+#
+DROP PROCEDURE IF EXISTS actual_replag//
+CREATE PROCEDURE actual_replag ()
+  BEGIN
+    CALL replag();
+    SET @rep_act=@rep_time;
+    SET @run_act=@run_time;
+  END;
+//
+
+#
 # Permanent storage for inter-run timing data.
 #
 # Pretends to renew timestamp for an action given
@@ -38,7 +55,7 @@ CREATE PROCEDURE replag ()
 # current time to pretnd to renew.
 #
 DROP PROCEDURE IF EXISTS pretend//
-CREATE PROCEDURE pretend ( action VARCHAR(255), marker TIMESTAMP(14) )
+CREATE PROCEDURE pretend ( action VARCHAR(255) )
   BEGIN
     DECLARE st VARCHAR(255);
 
@@ -55,7 +72,7 @@ CREATE PROCEDURE pretend ( action VARCHAR(255), marker TIMESTAMP(14) )
     DEALLOCATE PREPARE stmt;
 
     # just in case of stats uploaded during this run
-    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', marker, '" as ts, 0 as valid;' );
+    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', @rep_act, '" as ts, 0 as valid;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -95,7 +112,7 @@ CREATE PROCEDURE performed_confirmation ( action VARCHAR(255) )
 # Permanent storage for information on actuality.
 #
 DROP PROCEDURE IF EXISTS actuality//
-CREATE PROCEDURE actuality ( action VARCHAR(255), reptime TIMESTAMP(14), runtime TIMESTAMP(14), actualtime TIMESTAMP(14) )
+CREATE PROCEDURE actuality ( action VARCHAR(255) )
   BEGIN
     DECLARE st VARCHAR(255);
 
@@ -112,7 +129,7 @@ CREATE PROCEDURE actuality ( action VARCHAR(255), reptime TIMESTAMP(14), runtime
     DEALLOCATE PREPARE stmt;
 
     # just in case of stats uploaded during this run
-    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', reptime, '" as rep, "', runtime, '" as run, "', actualtime, '" as actual;' );
+    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', @rep_act, '" as rep, "', @run_act, '" as run, "', now(), '" as actual;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -122,3 +139,4 @@ CREATE PROCEDURE actuality ( action VARCHAR(255), reptime TIMESTAMP(14), runtime
 delimiter ;
 ############################################################
 
+-- </pre>
