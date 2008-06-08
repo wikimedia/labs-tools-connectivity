@@ -195,13 +195,54 @@ EOM
 echo "<title>$pagetitle</title>"
 
 cat << EOM
-  <link rel="stylesheet" type="text/css" href="../main.css" media="all" /><style type="text/css">
-  
-  </style>
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
  </head>
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
+case $listby in
+'') 
+  if [ "$title" = '' ]
+  then
+    case $suggest in
+    'disambig')
+      how_actual dsuggestor
+      ;;
+    'interlink')
+      how_actual lsuggestor
+      ;;
+    'translate')
+      how_actual tsuggestor
+      ;;
+    *)
+      how_actual tsuggestor
+      ;;
+    esac
+  else
+    how_actual tsuggestor
+  fi
+  ;;
+'disambig')
+  how_actual dsuggestor
+  ;;
+'disambigcat')
+  how_actual dsuggestor
+  ;;
+'interlink')
+  how_actual lsuggestor
+  ;;
+'interlinkcat')
+  how_actual lsuggestor
+  ;;
+'translate')
+  how_actual tsuggestor
+  ;;
+'translatecat')
+  how_actual tsuggestor
+  ;;
+*)
+  ;;
+esac
 
 echo "<h1>$mainh1</h1>"
 echo "<table><tr><td width=25% border=10>"
@@ -353,10 +394,11 @@ case $listby in
       echo "<font color=red>$clause2</font><br />"
       echo "<ul><li>$clause3</li><li>$clause4</li></ul>"
     else
+      convertedcat=$( echo $category | sed -e 's/ /_/g' )
+
       case $suggest in
       'disambig')
         echo "<br />$submenu1desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
-        convertedcat=$( echo $category | sed -e 's/ /_/g' )
 
         echo "<ol>"
         {
@@ -364,9 +406,9 @@ case $listby in
                       FROM ruwiki_p.categorylinks,             \
                            ruwiki0,                            \
                            isdis                               \
-                           WHERE id=cl_from and                \
+                           WHERE ruwiki0.id=cl_from and        \
                                  cl_to=\'${convertedcat}\' and \
-                                 a2i_to=title                  \
+                                 isdis.id=ruwiki0.id           \
                            ORDER BY title ASC\;
         } | $sql 2>&1 | { 
                           while read -r line
@@ -378,7 +420,6 @@ case $listby in
         ;;
       'interlink')
         echo "<br />$submenu2desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
-        convertedcat=$( echo $category | sed -e 's/ /_/g' )
 
         echo "<ol>"
         {
@@ -386,9 +427,9 @@ case $listby in
                       FROM ruwiki_p.categorylinks,             \
                            ruwiki0,                            \
                            isres                               \
-                           WHERE id=cl_from and                \
+                           WHERE ruwiki0.id=cl_from and        \
                                  cl_to=\'${convertedcat}\' and \
-                                 isolated=id                   \
+                                 isres.id=ruwiki0.id           \
                            ORDER BY title ASC\;
         } | $sql 2>&1 | { 
                           while read -r line
@@ -400,7 +441,6 @@ case $listby in
         ;;
       'translate')
         echo "<br />$submenu3desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
-        convertedcat=$( echo $category | sed -e 's/ /_/g' )
 
         echo "<ol>"
         {
@@ -408,9 +448,9 @@ case $listby in
                       FROM ruwiki_p.categorylinks,             \
                            ruwiki0,                            \
                            istres                              \
-                           WHERE id=cl_from and                \
+                           WHERE ruwiki0.id=cl_from and        \
                                  cl_to=\'${convertedcat}\' and \
-                                 isolated=id                   \
+                                 istres.id=ruwiki0.id          \
                            ORDER BY title ASC\;
         } | $sql 2>&1 | { 
                           while read -r line
@@ -470,9 +510,11 @@ case $listby in
 
   echo "<ol>"
   {
-    echo SELECT DISTINCT a2i_to \
-                FROM isdis        \
-                ORDER BY a2i_to ASC\;
+    echo SELECT DISTINCT title            \
+                FROM isdis,               \
+                     ruwiki0              \
+                WHERE ruwiki0.id=isdis.id \
+                ORDER BY title ASC\;
   } | $sql 2>&1 | {
                     while read -r line
                       do handle_category "$line"
@@ -492,10 +534,12 @@ case $listby in
   echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT cv_title,                 \
-                cv_dsgcount               \
-                FROM catvolume0           \
-                ORDER BY cv_dsgcount DESC \
+    echo SELECT title,              \
+                cnt                 \
+                FROM sgdcatvolume0, \
+                     categories     \
+                WHERE cat=id        \
+                ORDER BY cnt DESC   \
                 LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
                     while read -r line
@@ -515,10 +559,10 @@ case $listby in
 
   echo "<ol>"
   {
-    echo SELECT DISTINCT title    \
-                FROM isres,       \
-                     ruwiki0      \
-                WHERE id=isolated \
+    echo SELECT DISTINCT title            \
+                FROM isres,               \
+                     ruwiki0              \
+                WHERE ruwiki0.id=isres.id \
                 ORDER BY title ASC\;
   } | $sql 2>&1 | {
                     while read -r line
@@ -540,10 +584,12 @@ case $listby in
   echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT cv_title,                 \
-                cv_ilscount               \
-                FROM catvolume0           \
-                ORDER BY cv_ilscount DESC \
+    echo SELECT title,              \
+                cnt                 \
+                FROM sglcatvolume0, \
+                     categories     \
+                WHERE cat=id        \
+                ORDER BY cnt DESC   \
                 LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
                     while read -r line
@@ -563,10 +609,10 @@ case $listby in
 
   echo "<ol>"
   {
-    echo SELECT DISTINCT title    \
-                FROM istres,      \
-                     ruwiki0      \
-                WHERE id=isolated \
+    echo SELECT DISTINCT title             \
+                FROM istres,               \
+                     ruwiki0               \
+                WHERE ruwiki0.id=istres.id \
                 ORDER BY title ASC\;
   } | $sql 2>&1 | {
                     while read -r line
@@ -588,10 +634,12 @@ case $listby in
   echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT cv_title,                 \
-                cv_tlscount               \
-                FROM catvolume0           \
-                ORDER BY cv_tlscount DESC \
+    echo SELECT title,              \
+                cnt                 \
+                FROM sgtcatvolume0, \
+                     categories     \
+                WHERE cat=id        \
+                ORDER BY cnt DESC   \
                 LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
                     while read -r line
