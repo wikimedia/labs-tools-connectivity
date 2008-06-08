@@ -54,13 +54,12 @@ echo "<title>$pagetitle</title>"
 
 cat << EOM
   
-  <link rel="stylesheet" type="text/css" href="../main.css" media="all" /><style type="text/css">
-  
-  </style>
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
  </head>
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
+how_actual isolatedbycategory
 
 echo "<h1>$mainh1</h1>"
 echo "<table><tr><td width=25% border=10>"
@@ -178,11 +177,15 @@ else
 
   echo "<ol>"
   {
-    echo SELECT cv_title,                 \
-                cv_isocount,              \
-                100\*cv_isocount/cv_count \
-                FROM catvolume0           \
-                ORDER BY cv_isocount DESC \
+    echo SELECT title,                                \
+                isocatvolume0.cnt,                    \
+                100\*isocatvolume0.cnt/catvolume0.cnt \
+                FROM catvolume0,                      \
+                     isocatvolume0,                   \
+                     categories                       \
+                WHERE catvolume0.cat=id and           \
+                      isocatvolume0.cat=id            \
+                ORDER BY isocatvolume0.cnt DESC       \
                 LIMIT 100\;
   } | $sql 2>&1 | { 
                     while read -r line
@@ -196,11 +199,15 @@ else
 
   echo "<ol>"
   {
-    echo SELECT cv_title,                            \
-                cv_isocount,                         \
-                100\*cv_isocount/cv_count as pcnt    \
-                FROM catvolume0                      \
-                ORDER BY pcnt DESC, cv_isocount DESC \
+    echo SELECT title,                                        \
+                isocatvolume0.cnt,                            \
+                100\*isocatvolume0.cnt/catvolume0.cnt as pcnt \
+                FROM catvolume0,                              \
+                     isocatvolume0,                           \
+                     categories                               \
+                WHERE catvolume0.cat=id and                   \
+                      isocatvolume0.cat=id                    \
+                ORDER BY pcnt DESC, isocatvolume0.cnt DESC    \
                 LIMIT 100\;
   } | $sql 2>&1 | { 
                     while read -r line
