@@ -1,6 +1,12 @@
  --
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
+ -- Caution: PROCEDUREs defined here may have output designed for suggest.sh.
+ -- 
+ -- Shared procedures: dsuggest
+ --                    interwiki_suggest
+ --                    interwiki_suggest_translate
+ --
  -- <pre>
 
  --
