@@ -68,7 +68,7 @@ CREATE PROCEDURE creatorizer ()
     CALL actuality( 'creatorizer' );
 
     SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
-           FROM creators;
+           FROM creators0;
   END;
 //
 
