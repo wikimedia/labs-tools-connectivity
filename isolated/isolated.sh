@@ -73,7 +73,6 @@ sql2="mysql --host=$dbhost2 -A --database=u_${myusr} -n -b -N --connect_timeout=
 rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log stats_done.log
 
 time { 
-  # run to obtain all templates management data asap
   {
 
     #
@@ -125,7 +124,7 @@ time {
     #
     # Analyze zero namespace connectivity. Limit claster sizes by 10.
     #
-    echo 'CALL zero_namespace_connectivity( 10 );'
+    echo 'CALL zero_namespace_connectivity( 20 );'
 
 
     echo 'CALL replag();'
