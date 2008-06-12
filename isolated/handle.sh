@@ -1,8 +1,51 @@
-#!/bin/bash
+ #
+ # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ #
+ # Purpose: Nice handler for all output coming from various modules
+ #          written in different languages.
+ #
+ # Parameters: External tools like data/statistics upload are only invoked
+ #             when enabled in the command line. The following parameters
+ #             are supported:
+ #                            mr   - multiple redirects resolving
+ #                            stat - claster chains statistics upload
+ #
+ # Use: Just pipe all the output of your script to this handler and form it
+ #      in the following format:
+ # 
+ #      Strings starting with ':: ' are commands.
+ #         The following commands are currently supported:
+ #         :: echo <something>     - just prints <something> to stdout
+ #         :: replag <replag>      - prints <replag> and checks 
+ #                                   if replagdependent operations possible
+ #         :: out <fn>             - opens file <fn> and switches all output
+ #                                   there till next command comes
+ #         :: upload <fn> <url>    - resolves multiple redirects given with
+ #                                   use of mr.pl and stores data to a 
+ #                                   a file as 'out' does
+ #         :: stat <curts> <uts>   - uploads latest *.articles.stat file if
+ #                                   difference between timestamp is above
+ #                                   some threshold
+ #         :: s<N> <operation>     - initiates an <operation> on server s<N>
+ #                                   the following operations supported:
+ #                 call <function> - calls the <function> given
+ #                 take <table>    - informs s<N> on table name to put
+ #                                   data from 'give' operation, see import.sh
+ #                 give <select>   - passes statement <select> to s<N> to
+ #                                   send its output to another server with use
+ #                                   of import.sh
+ #                 prlc <function> - same as 'call' but in separate thread
+ #                 done <action>   - reports to s<N> on external <action>
+ #                                   completion
+ #                 init <script>   - passes file <script> with sql code to
+ #                                   server s<N>
+ #         :: 7z                   - archives output files (.txt, .info, .stat)
+ #
+ #      Reports on error if unexpected output occurs. Disables any external
+ #      tools in this case.
+ #
 
- #
- #   Authors: [[:ru:user:Mashiah Davidson]], still alone
- #
+#!/bin/bash
 
 # set the maximal replication lag value in minutes, which is allowed for apply
 # probably, less than script actually works
