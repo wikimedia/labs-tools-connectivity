@@ -567,10 +567,10 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
         # parenting links count for each parented article
         DELETE FROM lc;
         INSERT INTO lc
-               SELECT l_to as lc_pid,
-                      count( * ) as lc_amnt
-                      FROM l
-                      GROUP BY l_to;
+        SELECT l_to as lc_pid,
+               count( * ) as lc_amnt
+               FROM l
+               GROUP BY l_to;
         
         CALL _1( CONCAT(upcat, '_1') );
 
@@ -860,7 +860,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     ) ENGINE=MEMORY;
 
     #
-    # Synchronization between <<templated>> state and current toolserver state.
+    # Synchronization between {{templated}} state and current toolserver state.
     #
     # Note: Only for articles analysis, not for redirects or categories.
     #
