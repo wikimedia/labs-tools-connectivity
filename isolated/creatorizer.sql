@@ -1,6 +1,10 @@
  --
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ -- 
+ -- Shared procedures: creatorizer
+ --
  -- <pre>
 
  --
@@ -16,9 +20,11 @@ delimiter //
 #
 # For use in "ISOLATED ARTICLES CREATORS".
 #
-DROP PROCEDURE IF EXISTS by_creators//
-CREATE PROCEDURE by_creators ()
+DROP PROCEDURE IF EXISTS creatorizer//
+CREATE PROCEDURE creatorizer ()
   BEGIN
+    SELECT ':: echo CREATORIZER';
+
     # for a set given by ruwiki0.id's look for initial revisions
     DROP TABLE IF EXISTS firstrev;
     CREATE TABLE firstrev (
@@ -56,24 +62,13 @@ CREATE PROCEDURE by_creators ()
 
     DROP TABLE firstrev;
 
-    SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
-           FROM creators;
-  END;
-//
-
-DROP PROCEDURE IF EXISTS creatorizer//
-CREATE PROCEDURE creatorizer ()
-  BEGIN
-    #
-    # For use in "ISOLATED ARTICLES CREATORS".
-    #
-    # Note: postponed as low priority task.
-    CALL by_creators();
-
     # creatorizer refresh
     DROP TABLE IF EXISTS creators0;
     RENAME TABLE creators TO creators0;
     CALL actuality( 'creatorizer' );
+
+    SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated articles creators found' )
+           FROM creators;
   END;
 //
 
