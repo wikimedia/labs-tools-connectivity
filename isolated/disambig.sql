@@ -1,6 +1,13 @@
  --
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ --
+ -- Shared procedures: collect_disambig
+ --                    disambigs_as_fusy_redirects
+ --                    disambiguator_unload
+ --                    constructNdisambiguate
+ --
  -- <pre>
 
  --
@@ -247,6 +254,38 @@ CREATE PROCEDURE disambiguator_unload ()
   BEGIN
     DROP TABLE IF EXISTS dl;
     DROP TABLE IF EXISTS ld;
+  END;
+//
+
+#
+# Outputs:
+#   ld - links from disambiguation pages to articles,
+#   dl - links from articles to disambiguation pages.
+#   disambiguate0 - statistiscs on disambiguation pages linking
+#
+DROP PROCEDURE IF EXISTS constructNdisambiguate//
+CREATE PROCEDURE constructNdisambiguate ()
+  BEGIN
+    SELECT ':: echo LINKS DISAMBIGUATOR';
+
+    SET @starttime=now();
+
+    # Constructs two tables of links:
+    #  - a2d named dl;
+    #  - d2a named ld.
+    # dl and ld are not in l, so we use pl again there
+    CALL construct_dlinks();
+
+    #
+    #  LINKS DISAMBIGUATOR
+    #
+    CALL disambiguator( 0 );
+
+    CALL disambiguator_refresh( 'disambiguate0' );
+
+    CALL actuality( 'disambiguator' );
+
+    SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
   END;
 //
 
