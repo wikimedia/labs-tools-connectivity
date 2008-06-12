@@ -1,12 +1,10 @@
  #
- #    Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
-
+ # Launcher for 
+ # '''[[:ru:User:Mashiah_Davidson/toolserver/replag.sql|replag.sql]]'''.
  # 
- #    Launcher for 
- #    '''[[:ru:User:Mashiah_Davidson/toolserver/replag.sql|replag.sql]]'''.
- # 
- #    Works on the Toolserver and outputs the replag for s3.
+ # Works on the Toolserver and outputs the replag for s3.
  #
  # <pre>
 
