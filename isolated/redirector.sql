@@ -86,7 +86,7 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
 //
 
 #
-# Throws redirects and redirect chains and add all redirected chains
+# Throws redirects and redirect chains and adds all redirected chains
 # into pl table as regular links.
 #
 # Inputs: r2r, nr2r, r2nr.
