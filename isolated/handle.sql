@@ -1,6 +1,12 @@
  --
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ --
+ -- Shared procedures: outifexists
+ --                    getnsprefix
+ --                    combineandout
+ --
  -- <pre>
 
  --
