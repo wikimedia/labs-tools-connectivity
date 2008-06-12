@@ -1,6 +1,10 @@
  --
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ --
+ -- Shared procedures: inter_langs
+ --
  -- <pre>
 
  --
@@ -115,7 +119,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10) )
 
         DELETE FROM liwl;
 
-        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates can be linked with main namespace page translation' )
+        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates can be linked with main namespace pages translation' )
                FROM tres
                WHERE lang=language;
     END IF;
@@ -435,4 +439,4 @@ CREATE PROCEDURE inter_langs_s2()
 delimiter ;
 ############################################################
 
- -- </pre>
+-- </pre>
