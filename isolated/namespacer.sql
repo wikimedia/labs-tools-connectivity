@@ -1,5 +1,13 @@
  --
- -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ -- Authors: [[:ru:user:Mashiah Davidson]],
+ --          [[:ru:user:Vlsergey]]
+ --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ -- 
+ -- Shared procedures: cache_namespace_pages
+ --                    zero_namespace_connectivity
+ --                    zero_namespace_postponed_tools
+ --                    categorytree_connectivity
  --
  -- What is an article: Originally, the {{comment|Main|
  --                                               zero}} namespace has been
@@ -21,9 +29,9 @@ delimiter //
 
 #
 # Caches the pages for a namespace given to local tables 
-#   p@namespace  (for all pages, mostly for pagelinks caching),
-#   nr@namespace (for non-redirects)
-#   r@namespace  (for redirects)
+#   p<namespace>  (for all pages, mostly for pagelinks caching),
+#   nr<namespace> (for non-redirects)
+#   r<namespace>  (for redirects)
 # for speedup
 #
 DROP PROCEDURE IF EXISTS cache_namespace_pages//
@@ -338,13 +346,19 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     # Notes: 1) Links to existent pages cached only, i.e. no "red links".
     #        2) One of the key points here is that we didn't try
     #           saving pl_title, the table this way might be too large.
+    #        3) STRAIGHT_JOIN leads to connect first the pagelinks table.
+    #           This way we have a straight pass through the pl_namespace
+    #           index and then single pass trough a hash join in memory
+    #           (=fast) for p0.
+    #           This is much better than iteration trough p0 with
+    #           later indexed titles matching for all p0 values.
     #
     CREATE TABLE pl (
       pl_from int(8) unsigned NOT NULL default '0',
       pl_to int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY AS /* SLOW_OK */
-    SELECT pl_from,
-           p_id as pl_to
+    SELECT STRAIGHT_JOIN pl_from,
+                         p_id as pl_to
            FROM ruwiki_p.pagelinks,
                 p0
            WHERE pl_namespace=namespace and
@@ -398,10 +412,8 @@ CREATE PROCEDURE categorybridge ()
 #
 # Inputs: r, nr, pl, articles, d.
 #
-# Main output for connectivity analysis:
-#   l  - links from articles to articles,
-#   ld - links from disambiguation pages to articles,
-#   dl - links from articles to disambiguation pages.
+# Main output for connectivity analysis - table l
+# (links from articles to articles).
 #
 # Side output: wr, r filtered, r2nr, mr output into a file
 #
@@ -437,7 +449,6 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
     # Notes: Now the links table requires @@max_heap_table_size 
     #        to be equal to 268435456 bytes for main namespace analysis 
     #        in ruwiki.
-    #        Namespace 14 probably must be free of redirect links - todo.
     #
 
     #
@@ -458,42 +469,6 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
 
     SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles' )
            FROM l;
-
-
-    SELECT CONCAT( ':: echo init time: ', timediff(now(), @starttime));
-
-    IF namespace!=14
-      THEN
-        SELECT ':: echo LINKS DISAMBIGUATOR';
-
-        SET @starttime=now();
-
-        # Constructs two tables of links:
-        #  - a2d named dl;
-        #  - d2a named ld.
-        # dl and ld are not in l, so we use pl again there
-        CALL construct_dlinks();
-
-        #
-        #  LINKS DISAMBIGUATOR
-        #
-        CALL disambiguator( namespace );
-
-        CALL disambiguator_refresh( 'disambiguate0' );
-
-        CALL actuality( 'disambiguator' );
-
-        SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
-    END IF;
-
-    DROP TABLE pl;
-    # partial disambiguator unload
-    DROP TABLE d;
-    # partial namespacer unload
-    SET @st=CONCAT( 'DROP TABLE nr', namespace, ';' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
   END;
 //
 
@@ -516,6 +491,8 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     # aka WikiMirrorTime al CurrentRunTime
     #
     CALL pretend( 'wikistat' );
+
+    SET @initstarttime=now();
 
     # pre-loads p0, r0 and nr0 tables for fast access
     CALL cache_namespace_pages( 0 );
@@ -541,9 +518,22 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL cache_namespace_links( 0 );
 
     #
-    # Gives us l, ld, dl and some others: wr, mr, r filtered, r2nr.
+    # Gives us l and some others: wr, mr, r filtered, r2nr.
     #
     CALL throwNhull4subsets( 0 );
+
+    SELECT CONCAT( ':: echo zero namespace time: ', timediff(now(), @initstarttime));
+
+    #
+    # Collects ld, dl and disambiguate0.
+    #
+    CALL constructNdisambiguate();
+
+    DROP TABLE pl;
+    # partial disambiguator unload
+    DROP TABLE d;
+    # partial namespacer unload
+    DROP TABLE nr0;
 
     #
     # DEAD-END ARTICLES PROCESSING
@@ -674,9 +664,15 @@ CREATE PROCEDURE categorytree_connectivity ( maxsize INT )
     CALL categorybridge();
 
     #
-    # Gives us l, ld, dl and some others: wr, mr, r filtered, r2nr.
+    # Gives us l and some others: wr, mr, r filtered, r2nr.
     #
     CALL throwNhull4subsets( 14 );
+
+    DROP TABLE pl;
+    # partial disambiguator unload
+    DROP TABLE d;
+    # partial namespacer unload
+    DROP TABLE nr14;
 
     #
     # DEAD-END ARTICLES PROCESSING
