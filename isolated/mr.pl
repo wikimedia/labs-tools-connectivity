@@ -1,26 +1,23 @@
-#!/usr/bin/perl
-
  #
- #    Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
-
+ # Double redirects resolver
  # 
- #    Double redirects resolver
- # 
- #    Works on the Toolserver and resolves double redirects.
+ # Works on the Toolserver and resolves double redirects.
  #
- #    Inputs: Takes list of redirects pointing other redirects from stdin.
+ # Inputs: Takes list of redirects pointing other redirects from stdin.
  #
- #            First parameter passed defines wiki-prefix (ru, en, ...)
+ #         First parameter passed defines wiki-prefix (ru, en, ...)
  #
- #            Operates on behalf of a user defined by second command
- #            line parameter.
+ #         Operates on behalf of a user defined by second command
+ #         line parameter.
  #
- #            Takes user password from /home/.<wiki-prefix>.cnf given there
- #            in the format of: password = "<password>".
+ #         Takes user password from /home/.<wiki-prefix>.cnf given there
+ #         in the format of: password = "<password>".
  #                  
- #
  # <pre>
+
+#!/usr/bin/perl
 
 use strict; # 'strict' insists that all variables be declared
 
