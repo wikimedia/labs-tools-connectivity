@@ -1,6 +1,15 @@
  --
  -- Authors: [[:ru:user:Mashiah Davidson]], still alone
  --
+ -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
+ -- 
+ -- Shared procedures: categories
+ --                    categorylinks
+ --                    categorystats
+ --                    isolated_by_category
+ --
+ -- Shared functins: nrcatuid
+ --
  -- <pre>
 
  --
