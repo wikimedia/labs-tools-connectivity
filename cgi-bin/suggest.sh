@@ -460,9 +460,9 @@ case $listby in
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,              \
@@ -480,9 +480,9 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
 
   ;;
 'translate')
@@ -510,9 +510,9 @@ case $listby in
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,              \
@@ -530,9 +530,9 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
 
   ;;
 *) ;;
