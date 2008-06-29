@@ -29,7 +29,6 @@ CREATE PROCEDURE collect_disambig ()
   BEGIN
     #
     # Disambiguation pages collected here.
-    # The list is superflous, i.e. contains pages from all namespaces.
     #
     # With namespace=14 it does show if disambiguations category is split into
     # subcategories.
@@ -44,8 +43,10 @@ CREATE PROCEDURE collect_disambig ()
                  #                   disambiguation pages
            WHERE nrcl_cat=nrcatuid( 'Многозначные_термины' );
 
-    SELECT CONCAT( ':: echo ', count(*), ' disambiguation names found' )
+    SELECT count(*) INTO @disambiguation_pages_count
            FROM d;
+
+    SELECT CONCAT( ':: echo ', @disambiguation_pages_count, ' disambiguation pages found' );
   END;
 //
 
@@ -106,8 +107,10 @@ CREATE PROCEDURE construct_dlinks ()
                  ) and
                  pl_to=id;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links from disambigs to articles' )
+    SELECT count(*) INTO @disambiguations_to_articles_links_count
            FROM ld;
+
+    SELECT CONCAT( ':: echo ', @disambiguations_to_articles_links_count, ' links from disambigs to articles' );
 
     #
     # Linking rings between articles and disambiguation pages are constructed
@@ -120,8 +123,10 @@ CREATE PROCEDURE construct_dlinks ()
            WHERE dl_to=ld_from and
                  dl_from=ld_to;
 
-    SELECT CONCAT( ':: echo ', count(*), ' one way links from articles to disambigs' )
+    SELECT count(*) INTO @aricles_to_disambiguations_links_count
            FROM dl;
+
+    SELECT CONCAT( ':: echo ', @aricles_to_disambiguations_links_count, ' one way links from articles to disambigs' );
   END;
 //
 
@@ -149,7 +154,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
     CREATE TABLE disambiguate (
       d_title varchar(255) binary NOT NULL default '',
       d_cnt int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY;
+    ) ENGINE=MyISAM;
 
     SET @st=CONCAT( 'INSERT INTO disambiguate SELECT nr', namespace, '.title as d_title, dss_cnt as d_cnt FROM dsstat, nr', namespace, ' WHERE nr', namespace, '.id=dss_id ORDER BY dss_cnt DESC;' );
     PREPARE stmt FROM @st;
@@ -219,7 +224,7 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
       a2i_via int(8) unsigned NOT NULL default '0',
       id int(8) unsigned NOT NULL default '0',
       KEY (id)
-    ) ENGINE=MEMORY AS
+    ) ENGINE=MyISAM AS
     SELECT dl_from as a2i_from,
            d2i_from as a2i_via,
            id
@@ -286,6 +291,33 @@ CREATE PROCEDURE constructNdisambiguate ()
     CALL actuality( 'disambiguator' );
 
     SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
+  END;
+//
+
+DROP PROCEDURE IF EXISTS store_drdi//
+CREATE PROCEDURE store_drdi ()
+  BEGIN
+    DECLARE _l_ratio REAL(5,3) DEFAULT @aricles_to_disambiguations_links_count*100/(@aricles_to_disambiguations_links_count+@articles_to_articles_links_count);
+    DECLARE _d_ratio REAL(5,3) DEFAULT @disambiguation_pages_count*100/(@disambiguation_pages_count+@articles_count);
+    DECLARE _drdi REAL(5,3) DEFAULT _l_ratio*100/_d_ratio;
+
+    #
+    # DRDI, id est <<disambiguation rule>> disregard ratio.
+    #
+
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS drdi (
+      l_ratio REAL(5,3) NOT NULL,
+      d_ratio REAL(5,3) NOT NULL,
+      DRDI REAL(5,3) NOT NULL
+    ) ENGINE=MyISAM;
+
+    # no need to keep old data because the action has performed
+    DELETE FROM drdi;
+
+    # just in case of stats uploaded during this run
+    INSERT INTO drdi
+    VALUES ( _l_ratio, _d_ratio, _drdi );
   END;
 //
 
