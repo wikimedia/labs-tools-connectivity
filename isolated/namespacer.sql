@@ -133,7 +133,6 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
 DROP PROCEDURE IF EXISTS classify_namespace//
 CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
   BEGIN
-    DECLARE acount INT;
     DECLARE st VARCHAR(255);
 
     CALL categorylinks( namespace );
@@ -146,8 +145,6 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
 
     #
     # Collaborative lists collected here to for links table filtering.
-    # The list is superflous, i.e. contains pages outside the namespace
-    #
     #
     # With namespace=14 it does show if secondary lists category is split into
     # subcategories.
@@ -162,8 +159,10 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
                 #      secondary lists
            WHERE nrcl_cat=nrcatuid('Списки_статей_для_координации_работ');
 
-    SELECT CONCAT( ':: echo ', count(*), ' secondary list names found' )
+    SELECT count(*) INTO @collaborative_lists_count
            FROM cllt;
+
+    SELECT CONCAT( ':: echo ', @collaborative_lists_count, ' secondary lists found' );
 
     #
     # Categorized non-articles.
@@ -226,17 +225,17 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
 
     DROP TABLE cna;
 
-    SELECT count(*) INTO acount
+    SELECT count(*) INTO @articles_count
            FROM articles;
 
-    SELECT CONCAT( ':: echo ', acount, ' articles found' );
+    SELECT CONCAT( ':: echo ', @articles_count, ' articles found' );
 
     # No restriction on maximal scc size does not mean infinite
     # computational resources, but it is known for sure that maximal
     # scc size does not exceed the amount of elements in the set.
     IF maxsize=0
       THEN
-        SET maxsize=acount;
+        SET maxsize=@articles_count;
     END IF;
 
     IF namespace=0
@@ -326,8 +325,10 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
                      title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
                      title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
 
-        SELECT CONCAT( ':: echo ', count(*), ' chronological articles found' )
+        SELECT count(*) INTO @chrono_articles_count
                FROM chrono;
+
+        SELECT CONCAT( ':: echo ', @chrono_articles_count, ' chronological articles found' );
     END IF;
   END;
 //
@@ -467,8 +468,75 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
                  pl_to=id and
                  pl_from!=id;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles' )
+    SELECT count(*) INTO @articles_to_articles_links_count
            FROM l;
+
+    SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' links from articles to articles' );
+  END;
+//
+
+DROP PROCEDURE IF EXISTS store_paraphrases//
+CREATE PROCEDURE store_paraphrases ()
+  BEGIN
+    DECLARE art_lnks_per_ch INT DEFAULT @chrono_to_articles_links_count/@chrono_articles_count;
+    DECLARE other_lnks_per_other INT DEFAULT (@articles_to_articles_links_count-@chrono_to_articles_links_count)/(@articles_count-@chrono_articles_count);
+
+    DECLARE ch_links_prc REAL(5,3) DEFAULT @articles_to_chrono_links_count*100/@articles_to_articles_links_count;
+    DECLARE ch_lnks_per_ch INT DEFAULT @articles_to_chrono_links_count/@chrono_articles_count;
+
+    #
+    # ZNS, zero namespace stat
+    #
+
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS zns (
+      articles INT(8) unsigned NOT NULL default '0',
+      chrono INT(8) unsigned NOT NULL default '0',
+      disambig INT(8) unsigned NOT NULL default '0',
+      cllt INT(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
+    # no need to keep old data because the action has performed
+    DELETE FROM zns;
+
+    # just in case of stats uploaded during this run
+    INSERT INTO zns
+    VALUES ( @articles_count, @chrono_articles_count, @disambiguation_pages_count, @collaborative_lists_count );
+
+    #
+    # FCH, from chrono articles
+    #
+
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS fch (
+      clinks INT(8) unsigned NOT NULL default '0',
+      alinks INT(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
+    # no need to keep old data because the action has performed
+    DELETE FROM fch;
+
+    # just in case of stats uploaded during this run
+    INSERT INTO fch
+    VALUES ( art_lnks_per_ch, other_lnks_per_other );
+
+    #
+    # TCH, to chrono articles
+    #
+
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS tch (
+      clratio REAL(5,3) NOT NULL default '0',
+      linksc INT(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
+    # no need to keep old data because the action has performed
+    DELETE FROM tch;
+
+    # just in case of stats uploaded during this run
+    INSERT INTO tch
+    VALUES ( ch_links_prc, ch_lnks_per_ch );
+
   END;
 //
 
@@ -529,6 +597,11 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     #
     CALL constructNdisambiguate();
 
+    #
+    # <<Disambiguation rule>> disregard index.
+    #
+    CALL store_drdi();
+
     DROP TABLE pl;
     # partial disambiguator unload
     DROP TABLE d;
@@ -548,6 +621,11 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     SELECT ':: echo ISOLATED ARTICLES';
 
     CALL isolated( 0, 'articles', maxsize );
+
+    #
+    # Three paraphrases for titlepage.
+    #
+    CALL store_paraphrases();
 
     # socket for the template maintainer
     # minimizes amount of edits combining results for deadend and isolated analysis
