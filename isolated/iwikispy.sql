@@ -354,8 +354,10 @@ CREATE PROCEDURE inter_langs()
     DROP TABLE nrcatl0;
 
     # suggestor refresh
+    ALTER TABLE res ENGINE=MyISAM;
     DROP TABLE IF EXISTS isres;
     RENAME TABLE res TO isres;
+    ALTER TABLE tres ENGINE=MyISAM;
     DROP TABLE IF EXISTS istres;
     RENAME TABLE tres TO istres;
 
