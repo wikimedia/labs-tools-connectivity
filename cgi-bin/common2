@@ -83,7 +83,7 @@ handle_dates ()
     rep=$( dateDiff "$rep" )
     run=$( dateDiff "$run" )
     actual=$( dateDiff "$actual" )
-    echo "<div style=\"float:left; clear:left; text-align:left; margin:-1em -2em 0 0; color:#AAA\"><small>$reptext: $rep $agotext<br /> $runtext: $run $agotext<br /> $acttext: $actual $agotext</small></div>"
+    echo "<div style=\"float:left; clear:left; text-align:left; margin: -.5em -2em 0 0; color:#AAA\"><small>$reptext: $rep $agotext<br /> $runtext: $run $agotext<br /> $acttext: $actual $agotext</small></div>"
   fi
 }
 
@@ -103,4 +103,296 @@ how_actual ()
                       do handle_dates "$line"
                     done
                   }
+}
+
+#
+# Draws the menu.
+#
+# Depends on global names:
+#   everywhere:              $interface
+#                            $script
+#   depending on $script:
+#     'suggest':             $title
+#                            $listby
+#                            $suggest
+#     'suggest', 'category': $category
+#     'category14':          $networkpath
+#     'creators':            $user
+#
+the_menu ()
+{
+  local same;
+
+  case $script in
+   'category')
+    same="category=$category"
+    ;;
+   'category14')
+    same="networkpath=$networkpath"
+    ;;
+   'creators')
+    same="user=$user&registered=$registered&shift=$shift"
+    ;;
+   'disambig')
+    same="shift=$shift"
+    ;;
+   'suggest')
+    same="title=$title&listby=$listby&shift=$shift&category=$category&suggest=$suggest"
+    ;;
+   *)
+    ;;
+  esac
+
+#
+# [[:en]] [[:ru]]
+#
+  if [ "$interface" = 'ru' ]
+  then
+    echo -ne "<h1><a href=\"./$script.sh?interface=en&$same\">[[en:]]</a> [[ru:]]"
+  else
+    echo -ne "<h1>[[en:]] <a href=\"./$script.sh?interface=ru&$same\">[[ru:]]</a>"
+  fi
+  echo "</h1>"
+#
+#  1) motivation
+#
+  echo -ne "<b><a href=\"../index"
+  if [ "$interface" = 'ru' ]
+  then
+    echo -ne "ru"
+  fi
+  echo ".html\">1) $motivation</a></b><br />"
+  echo "<br />"
+
+#
+#  2) isolated articles
+#
+  echo "<b>2) <a href=\"http://ru.wikipedia.org/w/index.php?title=$isourl\">$isolatedarticles</a></b><br />"
+  echo "<ul>"
+#
+#   * by category
+#
+  if [ "$category" = '' ] && [ "$script" = 'category' ]
+  then
+    echo "<li><b><font color=red>$bycategory</font></b></li>"
+  else
+    echo "<li><b><a href=\"./category.sh?interface=$interface\">$bycategory</a></b></li>"
+  fi
+  echo "<ul>"
+#
+#   ** <category name>
+#
+  if [ "$category" != '' ]
+  then
+    if [ "$script" = 'category' ]
+    then
+      echo "<li><font color=red>${catns}:$category</font></li>"
+    else
+      if [ "$script" = 'suggest' ] && [ "$listby" = '' ]
+      then
+        echo "<li><a id=seealso href=\"./category.sh?interface=$interface&category=$category\">${catns}:$category</a></li>"
+      fi
+    fi
+  fi
+
+#
+#   ** with suggestions
+#
+  if [ "$script" = 'suggest' ] && [ "$listby$category" = '' ] && [ "$title" = '' ]
+  then
+    echo "<li><font color=red>$allsuggestions</font></li>"
+    echo "<ul>"
+  else
+    echo "<li><a href=\"./suggest.sh?interface=$interface\">$allsuggestions</a></li>"
+    echo "<ul>"
+#
+#   *** <article title>
+#
+    if [ "$script" = 'suggest' ] && [ "$listby$category" = '' ] && [ "$title" != '' ]
+    then
+      echo "<li>$fortext <font color=red>$title</font></li>"
+    fi
+  fi
+
+#
+#   *** disambigue links
+#
+  if [ "$script" = 'suggest' ] && [ "$listby" = 'disambigcat' ]
+  then
+    echo "<li><font color=red>$resolvedisambigs</font></li>"
+  else
+    echo "<li><a href=\"./suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
+  fi
+#
+#   **** <category name>
+#
+  if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'disambig' ]
+  then
+    echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
+  else
+    if [ "$suggest" = 'disambig' ]
+    then
+      echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
+    fi
+  fi
+
+#
+#   *** iwiki spy
+#
+  echo "<li>$justlink</li>"
+  echo "<ul>"
+#
+#   **** spy links
+#
+  if [ "$script" = 'suggest' ] && [ "$listby" = 'interlinkcat' ]
+  then
+    echo "<li><font color=red>$parttranslate</font></li>"
+  else
+    echo "<li><a href=\"./suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
+  fi
+#
+#   ***** <category name>
+#
+  if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'interlink' ]
+  then
+    echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
+  else
+    if [ "$suggest" = 'interlink' ]
+    then
+      echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
+    fi
+  fi
+#
+#   **** translate & link
+#
+  if [ "$script" = 'suggest' ] && [ "$listby" = 'translatecat' ]
+  then
+    echo "<li><font color=red>$translatenlink</font></li>"
+  else
+    echo "<li><a href=\"./suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
+  fi
+#
+#   ***** <category name>
+#
+  if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'translate' ]
+  then
+    echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
+  else
+    if [ "$suggest" = 'translate' ]
+    then
+      echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
+    fi
+  fi
+  echo "</ul>"
+  echo "</ul>"
+  echo "</ul>"
+
+#
+#   * lists
+#
+  echo -ne "<li><b><a href=\"../lists"
+  if [ "$interface" = 'ru' ]
+  then
+    echo -ne "ru"
+  fi
+  echo ".html\">$wholelist</a></b></li>"
+
+  case "$listby" in
+   'disambig')
+#
+#   ** disambigue links
+#
+     echo "<ul><li><font color=red>$resolvedisambigs</font></li></ul>"
+     ;;
+   'interlink')
+#
+#   ** spy links
+#
+     echo "<ul><li><font color=red>$parttranslate</font></li></ul>"
+     ;;
+   'translate')
+#
+#   ** translate & link
+#
+     echo "<ul><li><font color=red>$translatenlink</font></li></ul>"
+     ;;
+  *) ;;
+  esac
+
+#
+#   * by claster type
+#
+  echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/bytypes\">$byclastertype</a></b></li>"
+#
+#   ** orphaned articles
+#
+  echo "<ul><li><a href=\"http://ru.wikipedia.org/w/index.php?title=$orphurl\">$orphanes</a></li></ul>"
+
+#
+#   * by creator
+#
+  if [ "$script" = 'creators' ] && [ "$user" = '' ]
+  then
+    echo "<li><b><font color=red>$bycreator</font></b></li>"
+  else
+    echo "<li><b><a href=\"./creators.sh?interface=$interface\">$bycreator</a></b></li>"
+#
+#   ** <user name>
+#
+    if [ "$user" != '' ]
+    then
+      echo "<ul><li><font color=red>${usrns}:$user</font></li></ul>"
+    fi
+  fi
+
+#
+#   * graphs
+#
+  echo "<li><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$prjurl/cltgdata\">$graphdata</a></b></li>"
+  echo "</ul>"
+  echo "<br />"
+
+#
+#  3) dead-end articles
+#
+  echo "<b>3) <a href=\"http://ru.wikipedia.org/w/index.php?title=$deadendurl\">$deadend</a></b><br />"
+  echo "<br />"
+
+#
+#  4) disambiguate links
+#
+  if [ "$script" = 'disambig' ]
+  then
+    echo "<b>4) <font color=red>$disambig</font></b><br />"
+  else
+    echo "<b>4) <a href=\"./disambig.sh?interface=$interface\">$disambig</a></b><br />"
+  fi
+  echo "<br />"
+
+#
+#  5) categorytree connectivity
+#
+  if [ "$script" = 'category14' ] && [ "$networkpath" = '' ]
+  then
+    echo "<b><font color=red>5) $cattreecon</font></b><br />"
+  else
+    echo "<b>5) <a href=\"./category14.sh?interface=$interface\">$cattreecon</a></b><br />"
+#
+#   * <network path>
+#
+    if [ "$networkpath" != '' ]
+    then
+      echo "<ul><li><font color=red><small>$networkpath</small></font></li></ul>"
+    fi
+  fi
+  echo "<br />"
+
+  echo "<b>6) $contactme</b><br />"
+  echo "<ul>"
+  echo "<li><a href=\"http://ru.wikipedia.org/wiki/User:Mashiah_Davidson\">$mywikipage</a></li>"
+  echo "<li><a href=\"http://ru.wikipedia.org/wiki/User:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$botwikipage</a></li>"
+  echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
+  echo "<li>mashiah $attext <a href="irc://irc.freenode.net/$ircchan">#$ircchan</a></li>"
+  echo "</ul>"
+  echo "<p align=justify>$srclocation <a href="http://fisheye.ts.wikimedia.org/browse/mashiah">toolserver fisheye</a>.</p>"
 }
