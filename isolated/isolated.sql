@@ -67,6 +67,9 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
                  );
     DROP TABLE chrono;
 
+    SELECT @articles_to_articles_links_count-count(*) INTO @chrono_to_articles_links_count
+           FROM l;
+
     SELECT CONCAT( ':: echo ', count(*), ' links after chrono-cleanup' )
            FROM l;
 
@@ -826,7 +829,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     IF targetset!='redirects'
       THEN
         # redirector has carried out its purpose
-        CALL redirector_unload();
+        CALL redirector_unload( namespace );
     END IF;
 
     SELECT CONCAT( ':: echo isolated ', targetset,' processing:') as title;
@@ -881,7 +884,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
                                          # categories mechanism
                           page_namespace=14;
 
-        SELECT CONCAT( ':: echo . ', count(*), ' isolated categories templated' )
+        SELECT CONCAT( ':: echo . ', count(*), ' isolated chain types registered' )
                FROM orcat;
      
         #
@@ -1018,7 +1021,7 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
       uid int(8) unsigned NOT NULL AUTO_INCREMENT,
       coolcat varchar(255) binary NOT NULL default '',
       PRIMARY KEY (uid)
-    ) ENGINE=MEMORY AS
+    ) ENGINE=MyISAM AS
     SELECT uid,
            coolcat
            FROM orcat;
@@ -1030,7 +1033,7 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
       title varchar(255) binary NOT NULL default '',
       PRIMARY KEY (id),
       KEY (cat)
-    ) ENGINE=MEMORY;
+    ) ENGINE=MyISAM;
 
     IF postfix='r'
       THEN
