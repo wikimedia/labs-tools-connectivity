@@ -59,7 +59,7 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
     CREATE TABLE wr (
       wr_title varchar(255) binary NOT NULL default '',
       PRIMARY KEY (wr_title)
-    ) ENGINE=MEMORY;
+    ) ENGINE=MyISAM;
 
     SET @st=CONCAT( 'INSERT IGNORE INTO wr', namespace, ' SELECT r_title as wr_title FROM r', namespace, ', rlc WHERE rlc_cnt>1 and rlc_id=r_id;' );
     PREPARE stmt FROM @st;
@@ -289,10 +289,15 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 //
 
 DROP PROCEDURE IF EXISTS redirector_unload//
-CREATE PROCEDURE redirector_unload ()
+CREATE PROCEDURE redirector_unload (namespace INT)
   BEGIN
     # partial namespacer unload
-    DROP TABLE IF EXISTS r0;
+    IF namespace=0
+      THEN
+        DROP TABLE IF EXISTS r0;
+      ELSE
+        ALTER TABLE r14 ENGINE=MyISAM;
+    END IF;
     DROP TABLE IF EXISTS r2nr;
   END;
 //
