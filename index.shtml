@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+
+  Authors: [[:ru:user:Mashiah Davidson]],
+           [[:ru:user:Lvova]]
+
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <title>Mashiah's Connectivity Projects</title><link rel="stylesheet" type="text/css" href="./main.css" media="all" />
+ </head>
+ <body>
+<a href="/"><img id="poweredbyicon" src="./wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
+<div style="border: 0px; padding: 0px; margin: .55em 2em 0 0;">
+<!--#include virtual="./cgi-bin/zns.sh?interface=en&resume=timestamp" -->
+</div>
+<h1>Mashiah's Connectivity Projects .ru</h1>
+<table>
+<tr>
+<td width=25%>
+<h1>[[en:]] <a href="./indexru.shtml">[[ru:]]</a></h1>
+<font color=red><b>1) scope</b></font><br />
+<br />
+<b>2) <a href="http://ru.wikipedia.org/w/index.php?title=%D0%9A%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D1%8F:%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%98%D0%B7%D0%BE%D0%BB%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5_%D1%81%D1%82%D0%B0%D1%82%D1%8C%D0%B8">navigate isolates for ruwiki</a></b><br />
+<ul>
+  <li><b><a href="./cgi-bin/category.sh?interface=en">by category</a></b></li>
+  <ul>
+    <li><a href="./cgi-bin/suggest.sh?interface=en">with suggestions</a></li>
+    <ul>
+      <li><a href="./cgi-bin/suggest.sh?interface=en&listby=disambigcat">disambigue links</a></li>
+      <li>iwiki spy</li>
+      <ul>
+        <li><a href="./cgi-bin/suggest.sh?interface=en&listby=interlinkcat">spy links</a></li>
+        <li><a href="./cgi-bin/suggest.sh?interface=en&listby=translatecat">translate & link</a></li>
+     </ul>
+    </ul>
+  </ul>
+  <li><b><a href="./lists.html">lists</a></b></li>
+  <li><b><a href="http://ru.wikipedia.org/w/index.php?title=%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/bytypes">by claster type</a></b></li>
+  <ul>
+     <li><a href="http://ru.wikipedia.org/w/index.php?title=%D0%9A%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D1%8F:%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%98%D0%B7%D0%BE%D0%BB%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5_%D1%81%D1%82%D0%B0%D1%82%D1%8C%D0%B8/%D1%81%D0%B8%D1%80%D0%BE%D1%82%D0%B00">orphaned articles</a></li>
+  </ul>
+  <li><b><a href="./cgi-bin/creators.sh?interface=en">by creator</a></b></li>
+  <li><b><a href="http://ru.wikipedia.org/w/index.php?title=%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/cltgdata">graphs</a></b></li>
+</ul>
+<br />
+<b>3) <a href="http://ru.wikipedia.org/w/index.php?title=%D0%9A%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D1%8F:%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%A2%D1%83%D0%BF%D0%B8%D0%BA%D0%BE%D0%B2%D1%8B%D0%B5_%D1%81%D1%82%D0%B0%D1%82%D1%8C%D0%B8">dead-end articles</a></b><br />
+<br />
+<b>4) <a href="./cgi-bin/disambig.sh?interface=en">disambiguate links</a></b><br />
+<br />
+<b>5) <a href="./cgi-bin/category14.sh?interface=en">categorytree connectivity</a></b><br />
+<br />
+<b>6) contact</b><br />
+<ul>
+  <li><a href="http://ru.wikipedia.org/wiki/User:Mashiah_Davidson">my russian userpage</a></li>
+  <li><a href="http://ru.wikipedia.org/wiki/User:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC">my bot's page</a></li>
+  <li><a href="http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC">our shared discussion</a></li>
+  <li>mashiah at <a href="irc://irc.freenode.net/wikimedia-toolserver">#wikimedia-toolserver</a></li>
+</ul>
+<p align=justify>For sources refer to
+<a href="http://fisheye.ts.wikimedia.org/browse/mashiah">toolserver fisheye</a>.
+</p>
+</td>
+<td width=75%>
+<A name="scope"></A>
+<h1>scope</h1>
+<p align=justify>
+Let define articles as named connected texts in main namespace with content
+about one of possible meanings of the term used as the text name.</p>
+
+<p align=justify>
+Disambiguation articles describe multiple term meanings, collaborative
+lists and redirection pages contain no connected text,
+so they both cannot be threated as articles according to the definition above.</p>
+
+<center>
+<div style="align:center; border: 1px solid black; padding: 3px;">
+<!--#include virtual="./cgi-bin/zns.sh?interface=en&resume=zns" -->
+</div>
+</center>
+<!--
+    --------------------------------------------------------------
+   /                                                              \
+             Main namespace consists of 268267 articles            
+             (4466 of them are chronological articles),            
+       21636 disambiguation pages and 1571 collaborative lists.    
+   \                                                              /
+    --------------------------------------------------------------
+ -->
+<p align=justify>Links from chronological articles are not enough as providing
+low achievability to articles they link. Thus we do not take them into
+account doing orphaned and other isolated articles analysis.</p>
+
+<center>
+<div style="align:center; border: 1px solid black; padding: 3px;">
+<!--#include virtual="./cgi-bin/zns.sh?interface=en&resume=fromchrono" -->
+</div>
+</center>
+<!--
+    --------------------------------------------------------------
+   /                                                              \
+      Average chronological article links 114 distinct articles.   
+           Other articles link in average just 35 articles.        
+   \                                                              /
+    --------------------------------------------------------------
+ -->
+<p align=justify>Dead-end articles do not contain any links to other existent
+non-chronological articles.</p>
+
+<center>
+<div style="align:center; border: 1px solid black; padding: 3px;">
+<!--#include virtual="./cgi-bin/zns.sh?interface=en&resume=tochrono" -->
+</div>
+</center>
+<!--
+    --------------------------------------------------------------
+   /                                                              \
+    16.75% of links between articles are links to chrono articles. 
+         Average chrono article is linked from 368 articles.  
+   \                                                              /
+    --------------------------------------------------------------
+ -->
+The following tasks are now solved:
+
+<ul>
+ <li>Dead-end articles list according to the definition above</li>
+ <li>Orphaned articles list according to the definition above</li>
+ <li>All types of isolated clusters and chains of isolated clusters,
+     which are present and have size less than some threshold</li>
+</ul>
+
+<p align=justify>Some of the tasks solved by the way:</p>
+<ul>
+ <li>List multiple redirects, which for unknown reason is more
+     complete than the list MediaWiki produces</li>
+ <li>List of wrong redirects (having uncommented text with links after
+     redirection magic.</li>
+ <li>Statistics on isolated clusters amount for different types of
+     clusters</li>
+ <li>Data for querying isolated articles by authors and categories</li>
+ <li>Suggestions on isolated articles resolving based on resolving
+     links to disambiguations, and interwiki lookup.</li>
+</ul>
+
+<h2>what's wrong with it</h2>
+<p align=justify>It is ok for 300 000 articles, but for enwiki it is too slow yet.</p>
+<p align=justify>AWB is actually used to apply the data (set/remove some templates).
+Will be solved when my stupid brain overcome the task of templates management in perl, or
+may be when one or more smart brains will come with their help.</p>
+
+<h2>motivation</h2>
+
+<p align=justify>
+MediaWiki among other things collects two lists:
+orphaned and deadend pages. Let see how good they are.
+</p>
+<p align=justify>
+It is important to understand what the difference between page and article is.
+Page is everything in main namespace, which is not a redirect, including
+disambiguation pages. The page is linked when any link from other page points
+to the page we are considering. Even when this link is from other namespaces
+(page has been considered to be deleted e.g. or just a discussion about this
+page taken place somewhere) or from a disambiguation page (disambiguations are
+not to be linked, so links from disambiguations do not help connecting articles 
+one to another).
+</p>
+
+<p align=justify>MediaWiki also does not recognise links from lists or
+chronological articles.
+Such links are rarely relevant and nobody usually came from them. Other rules
+can also be introduced when we need to understand how well connected our
+articles are.</p>
+
+<p align=justify>Thinking about connectivity we may need to consider more
+than just orphanes. There may be a group of two, three or more pages connecting
+each other but without any links from outside of the group, 
+i.e. isolated clusters (or strongly connected components).
+One cluster may link other and there may be
+a chain of isolated clusters, which is not linked from the main connected 
+component containing most part of good articles. MediaWiki does not recognize
+isolated articles at all.</p>
+
+<p align=justify>When MediaWiki locates dead-end pages it looks if the
+page contain a link. It doesn't matter for the engine if this link is
+set from a template and just talks about some problems in a page or the
+link is to an article. Links to disambiguation pages are also threated
+as valid by the engine.</p>
+
+<p align=justify>Connectivity analysis for articles allows to authors
+make their articles better adding them an attention of other people, who
+are authors of other articles or just readers following links.</p>
+
+<p align=justify>One more point to begin with connectivity analysis is that
+this task is usually solved with procedural languages analyzing offline
+links bases.
+In order to make the connectivity data more actual it is necessary to
+run the analyzer closer to severs to avoid large data transmittal. So,
+it is required to be written in SQL, and there were no SQL solutions
+for oriented graph connectivity analysis introduced. So, here we go.</p>
+
+</td>
+</tr>
+</table>
+
+ </body>
+</html>
