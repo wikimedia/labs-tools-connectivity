@@ -4,7 +4,7 @@ img {
 body {
   background: #FFF;
   color: #000;
-  margin: 3em 5em;
+  margin: 0.3em 0.5em;
   font-family: Arial, Verdana, 'DejaVu Sans', sans-serif;
   font-size: 9pt;
 }
@@ -240,7 +240,7 @@ table.e-table td.e-right {
   text-align:left;
   float:right;
   clear:right;
-  margin:-.5em 0 1em 1em;
+  margin: 0 0 1em 1em;
   background:#FFE;
   border:1px solid #CCC;
   padding:0.3em;
