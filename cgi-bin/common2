@@ -154,7 +154,7 @@ the_menu ()
   fi
   echo "</h1>"
 #
-#  1) motivation
+#  1) scope
 #
   echo -ne "<b><a href=\"../index"
   if [ "$interface" = 'ru' ]
