@@ -233,6 +233,9 @@ case $resume in
                     done
                   }
   ;;
+ 'timestamp')
+    how_actual isolatedbycategory
+  ;;
  *)
   ;;
 esac
