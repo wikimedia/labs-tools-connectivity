@@ -57,8 +57,10 @@ CREATE PROCEDURE deadend (namespace INT)
                              FROM chrono
                      );
 
-        SELECT CONCAT( ':: echo ', count(*), ' to be excluded as links to chrono articles' )
+        SELECT count(*) INTO @articles_to_chrono_links_count
                FROM a2cr;
+
+        SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' to be excluded as links to chrono articles' );
 
         # deletion of links to timelines, recoverable, since we have a2cr
         DELETE FROM l
