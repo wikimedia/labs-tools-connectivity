@@ -5,6 +5,7 @@ source ./common
 
 parse_query category
 parse_query interface
+parse_query shift
 if [ "$interface" != 'ru' ]
 then
   interface='en'
@@ -106,7 +107,7 @@ then
 else
   echo "<h4>$top1name</h4>"
 
-  echo "<ol>"
+  echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,                                \
                 isocatvolume0.cnt,                    \
@@ -117,7 +118,7 @@ else
                 WHERE catvolume0.cat=id and           \
                       isocatvolume0.cat=id            \
                 ORDER BY isocatvolume0.cnt DESC       \
-                LIMIT 100\;
+                LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line"
@@ -128,7 +129,7 @@ else
 
   echo "<h4>$top2name</h4>"
 
-  echo "<ol>"
+  echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,                                        \
                 isocatvolume0.cnt,                            \
@@ -139,7 +140,7 @@ else
                 WHERE catvolume0.cat=id and                   \
                       isocatvolume0.cat=id                    \
                 ORDER BY pcnt DESC, isocatvolume0.cnt DESC    \
-                LIMIT 100\;
+                LIMIT $((shift)),100\;
   } | $sql 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line"
