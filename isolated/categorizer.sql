@@ -42,7 +42,7 @@ CREATE PROCEDURE categories ()
       title varchar(255) binary NOT NULL default '',
       PRIMARY KEY (id),
       UNIQUE KEY title (title)
-    ) ENGINE=MEMORY AS
+    ) ENGINE=MyISAM AS
     SELECT id,
            title
            FROM nr14;
@@ -96,7 +96,7 @@ CREATE PROCEDURE categorystats (inname VARCHAR(255), outname VARCHAR(255))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SET @st=CONCAT( 'CREATE TABLE ', outname, " ( cat int(8) unsigned NOT NULL default '0', cnt int(8) unsigned NOT NULL default '0', PRIMARY KEY (cat) ) ENGINE=MEMORY AS SELECT nrcl_cat as cat, count(DISTINCT id) as cnt FROM nrcatl0, ", inname, ' WHERE id=nrcl_from GROUP BY nrcl_cat;' );
+    SET @st=CONCAT( 'CREATE TABLE ', outname, " ( cat int(8) unsigned NOT NULL default '0', cnt int(8) unsigned NOT NULL default '0', PRIMARY KEY (cat) ) ENGINE=MyISAM AS SELECT nrcl_cat as cat, count(DISTINCT id) as cnt FROM nrcatl0, ", inname, ' WHERE id=nrcl_from GROUP BY nrcl_cat;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
