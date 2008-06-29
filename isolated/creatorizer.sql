@@ -52,7 +52,7 @@ CREATE PROCEDURE creatorizer ()
       title varchar(255) binary NOT NULL default '',
       user int(8) unsigned NOT NULL default '0',
       user_text varchar(255) binary NOT NULL default ''
-    ) ENGINE=MEMORY AS
+    ) ENGINE=MyISAM AS
     SELECT title,
            rev_user as user,
            rev_user_text as user_text
