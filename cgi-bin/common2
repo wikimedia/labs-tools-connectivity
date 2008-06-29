@@ -161,7 +161,7 @@ the_menu ()
   then
     echo -ne "ru"
   fi
-  echo ".html\">1) $motivation</a></b><br />"
+  echo ".shtml\">1) $motivation</a></b><br />"
   echo "<br />"
 
 #
