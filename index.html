@@ -72,7 +72,7 @@
 
 <p align=justify>
 MediaWiki among other things collects two lists:
-orphaned and deadend pages. Lets see how good they are.
+orphaned and deadend pages. Let see how good they are.
 </p>
 <p align=justify>
 It is important to understand what the difference between page and article is.
@@ -118,23 +118,67 @@ run the analyzer closer to severs to avoid large data transmittal. So,
 it is required to be written in SQL, and there were no SQL solutions
 for oriented graph connectivity analysis introduced. So, here we go.</p>
 
+<A name="scope"></A>
 <h2>scope</h2>
-<p align=justify>Let suppose we have an article defined as non-redirect and 
-non-disambiguation page from the main namespace. Let also suppose article has
-a link from other article if this is a direct or redirected link from 
-non-chronological article (can be easily disabled if necessary). Let suppose 
-the article is not a dead-end page if it contains one or more links to other
-existent articles.</p>
+<p align=justify>
+Let define articles as named connected texts in main namespace with content
+about one of possible meanings of the term used as the text name.</p>
 
-<p align=justify>The following tasks are now solved:</p>
+<p align=justify>
+Disambiguation articles describe multiple term meanings, collaborative
+lists and redirection pages contain no connected text,
+so they both cannot be threated as articles according to the definition above.</p>
+
+<center><IFRAME src="./cgi-bin/zns.sh?interface=en&resume=zns" width="500" height="60" scrolling="no" frameborder="1">
+Your user agent does not support frames or is currently configured not to display frames. However, you may <A href="./cgi-bin/zns.sh?interface=en&resume=zns">found the summary here</A>.
+</IFRAME></center>
+<!--
+    --------------------------------------------------------------
+   /                                                              \
+             Main namespace consists of 268267 articles            
+             (4466 of them are chronological articles),            
+       21636 disambiguation pages and 1571 collaborative lists.    
+   \                                                              /
+    --------------------------------------------------------------
+ -->
+<p align=justify>Links from chronological articles are not enough as providing
+low achievability to articles they link.</p>
+
+<center><IFRAME src="./cgi-bin/zns.sh?interface=en&resume=fromchrono" width="500" height="44" scrolling="no" frameborder="1">
+Your user agent does not support frames or is currently configured not to display frames. However, you may <A href="./cgi-bin/zns.sh?interface=en&resume=fromchrono">found the summary here</A>.
+</IFRAME></center>
+<!--
+    --------------------------------------------------------------
+   /                                                              \
+      Average chronological article links 114 distinct articles.   
+           Other articles link in average just 35 articles.        
+   \                                                              /
+    --------------------------------------------------------------
+ -->
+<p align=justify>Dead-end articles do not contain any links to other existent
+non-chronological articles.</p>
+
+<center><IFRAME src="./cgi-bin/zns.sh?interface=en&resume=tochrono" width="500" height="44" scrolling="no" frameborder="1">
+Your user agent does not support frames or is currently configured not to display frames. However, you may <A href="./cgi-bin/zns.sh?interface=en&resume=tochrono">found the summary here</A>.
+</IFRAME></center>
+<!--
+    --------------------------------------------------------------
+   /                                                              \
+    16.75% of links between articles are links to chrono articles. 
+         Average chrono article is linked from 368 articles.  
+   \                                                              /
+    --------------------------------------------------------------
+ -->
+The following tasks are now solved:
+
 <ul>
- <li>Dead-end articles list according to the above definition</li>
- <li>Orphaned articles list according to the above definition</li>
+ <li>Dead-end articles list according to the definition above</li>
+ <li>Orphaned articles list according to the definition above</li>
  <li>All types of isolated clusters and chains of isolated clusters,
      which are present and have size less than some threshold</li>
 </ul>
 
-<p align=justify>Tasks solved by the way:</p>
+<p align=justify>Some of the tasks solved by the way:</p>
 <ul>
  <li>List multiple redirects, which for unknown reason is more
      complete than the list MediaWiki produces</li>
@@ -147,20 +191,8 @@ existent articles.</p>
      links to disambiguations, and interwiki lookup.</li>
 </ul>
 
-<h2>how does it work</h2>
-<p align=justify>There are two mains scrips. One is <a href="http://fisheye.ts.wikimedia.org/browse/mashiah/isolated/isolated.sh">isolated.sh</a>,
-it runs on hemlock to drive the process. The second script <a href="http://fisheye.ts.wikimedia.org/browse/mashiah/isolated/isolated.sql">isolated.sql</a>
-is called by isolated.sh, works yarrow (for ruwiki at the moment) and does 
-all the connectivity analysis. When some sort of articles is found,
-the sql scripts puts some command to stdout, which is controlled by
-isolated.sh, and switches the output handler to put data to a file,
-upload it to Wikipedia or do something specific.</p>
-
-<p align=justify>Hope, following above links more data on how does connectivity
-analysis work can be found.</p>
-
-<h3>what's wrong with it</h3>
-<p align=justify>It is ok for 200 000 articles, but for enwiki it is too slow yet.</p>
+<h2>what's wrong with it</h2>
+<p align=justify>It is ok for 300 000 articles, but for enwiki it is too slow yet.</p>
 <p align=justify>AWB is actually used to apply the data (set/remove some templates).
 Will be solved when my stupid brain overcome the task of templates management in perl, or
 may be when one or more smart brains will come with their help.</p>
