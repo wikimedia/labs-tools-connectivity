@@ -130,7 +130,7 @@ CREATE PROCEDURE actuality ( action VARCHAR(255) )
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    # no need to keep old data cause the action has performed
+    # no need to keep old data because the action has performed
     SET @st=CONCAT( 'DELETE FROM ', action, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
