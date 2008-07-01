@@ -184,24 +184,6 @@ tochrono ()
 echo Content-type: text/html
 echo ""
 
-cat << EOM
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
- <head>
-  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-EOM
-
-echo "<title>paraphrazer</title>"
-
-cat << EOM
-   
-  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
- </head>
- <body><center>
-EOM
-
 case $resume in
  'zns')
   {
@@ -239,8 +221,3 @@ case $resume in
  *)
   ;;
 esac
-
-cat << EOM
- </center></body>
-</html>
-EOM
