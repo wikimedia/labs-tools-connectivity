@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <title>Lists of isolated articles</title><link rel="stylesheet" type="text/css" href="./main.css" media="all" />
+ </head>
+ <body>
+<a href="/"><img id="poweredbyicon" src="./wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
+<h1>Mashiah's Connectivity Projects .ru</h1>
+<table>
+<tr>
+<td width=25%>
+<!--#include virtual="./cgi-bin/domenu?interface=en&script=lists" -->
+</td>
+<td width=75%>
+<h1>available lists of isolated articles</h1>
+
+<p>Some data on isolated articles is available here in the
+form of lists. This includes:</p>
+
+<h3><a href="./cgi-bin/suggest.sh?interface=en&listby=disambig">Full list of articles with suggestions on links disambiguation</a></h3>
+
+<h3><a href="./cgi-bin/suggest.sh?interface=en&listby=interlink">Full list of articles with suggestion on linking from interwiki spy</a></h3>
+
+<h3><a href="./cgi-bin/suggest.sh?interface=en&listby=translate">Full list of articles with suggestions on linking with translation</a></h3>
+
+</td>
+</tr>
+</table>
+
+ </body>
+</html>
