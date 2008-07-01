@@ -20,63 +20,22 @@
 <table>
 <tr>
 <td width=25%>
-<h1>[[en:]] <a href="./indexru.shtml">[[ru:]]</a></h1>
-<font color=red><b>1) scope</b></font><br />
-<br />
-<b>2) <a href="http://ru.wikipedia.org/w/index.php?title=%D0%9A%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D1%8F:%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%98%D0%B7%D0%BE%D0%BB%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5_%D1%81%D1%82%D0%B0%D1%82%D1%8C%D0%B8">navigate isolates for ruwiki</a></b><br />
-<ul>
-  <li><b><a href="./cgi-bin/category.sh?interface=en">by category</a></b></li>
-  <ul>
-    <li><a href="./cgi-bin/suggest.sh?interface=en">with suggestions</a></li>
-    <ul>
-      <li><a href="./cgi-bin/suggest.sh?interface=en&listby=disambigcat">disambigue links</a></li>
-      <li>iwiki spy</li>
-      <ul>
-        <li><a href="./cgi-bin/suggest.sh?interface=en&listby=interlinkcat">spy links</a></li>
-        <li><a href="./cgi-bin/suggest.sh?interface=en&listby=translatecat">translate & link</a></li>
-     </ul>
-    </ul>
-  </ul>
-  <li><b><a href="./lists.html">lists</a></b></li>
-  <li><b><a href="http://ru.wikipedia.org/w/index.php?title=%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/bytypes">by claster type</a></b></li>
-  <ul>
-     <li><a href="http://ru.wikipedia.org/w/index.php?title=%D0%9A%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D1%8F:%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%98%D0%B7%D0%BE%D0%BB%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5_%D1%81%D1%82%D0%B0%D1%82%D1%8C%D0%B8/%D1%81%D0%B8%D1%80%D0%BE%D1%82%D0%B00">orphaned articles</a></li>
-  </ul>
-  <li><b><a href="./cgi-bin/creators.sh?interface=en">by creator</a></b></li>
-  <li><b><a href="http://ru.wikipedia.org/w/index.php?title=%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/cltgdata">graphs</a></b></li>
-</ul>
-<br />
-<b>3) <a href="http://ru.wikipedia.org/w/index.php?title=%D0%9A%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D1%8F:%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%A2%D1%83%D0%BF%D0%B8%D0%BA%D0%BE%D0%B2%D1%8B%D0%B5_%D1%81%D1%82%D0%B0%D1%82%D1%8C%D0%B8">dead-end articles</a></b><br />
-<br />
-<b>4) <a href="./cgi-bin/disambig.sh?interface=en">disambiguate links</a></b><br />
-<br />
-<b>5) <a href="./cgi-bin/category14.sh?interface=en">categorytree connectivity</a></b><br />
-<br />
-<b>6) contact</b><br />
-<ul>
-  <li><a href="http://ru.wikipedia.org/wiki/User:Mashiah_Davidson">my russian userpage</a></li>
-  <li><a href="http://ru.wikipedia.org/wiki/User:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC">my bot's page</a></li>
-  <li><a href="http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC">our shared discussion</a></li>
-  <li>mashiah at <a href="irc://irc.freenode.net/wikimedia-toolserver">#wikimedia-toolserver</a></li>
-</ul>
-<p align=justify>For sources refer to
-<a href="http://fisheye.ts.wikimedia.org/browse/mashiah">toolserver fisheye</a>.
-</p>
+<!--#include virtual="./cgi-bin/domenu?interface=en&script=scope" -->
 </td>
 <td width=75%>
 <A name="scope"></A>
 <h1>scope</h1>
-<p align=justify>
+<p>
 Let define articles as named connected texts in main namespace with content
 about one of possible meanings of the term used as the text name.</p>
 
-<p align=justify>
+<p>
 Disambiguation articles describe multiple term meanings, collaborative
 lists and redirection pages contain no connected text,
 so they both cannot be threated as articles according to the definition above.</p>
 
 <center>
-<div style="align:center; border: 1px solid black; padding: 3px;">
+<div style="align: center; border: 1px solid black; padding: 3px;">
 <!--#include virtual="./cgi-bin/zns.sh?interface=en&resume=zns" -->
 </div>
 </center>
@@ -89,7 +48,7 @@ so they both cannot be threated as articles according to the definition above.</
    \                                                              /
     --------------------------------------------------------------
  -->
-<p align=justify>Links from chronological articles are not enough as providing
+<p>Links from chronological articles are not enough as providing
 low achievability to articles they link. Thus we do not take them into
 account doing orphaned and other isolated articles analysis.</p>
 
@@ -106,7 +65,7 @@ account doing orphaned and other isolated articles analysis.</p>
    \                                                              /
     --------------------------------------------------------------
  -->
-<p align=justify>Dead-end articles do not contain any links to other existent
+<p>Dead-end articles do not contain any links to other existent
 non-chronological articles.</p>
 
 <center>
@@ -131,7 +90,7 @@ The following tasks are now solved:
      which are present and have size less than some threshold</li>
 </ul>
 
-<p align=justify>Some of the tasks solved by the way:</p>
+<p>Some of the tasks solved by the way:</p>
 <ul>
  <li>List multiple redirects, which for unknown reason is more
      complete than the list MediaWiki produces</li>
@@ -145,18 +104,18 @@ The following tasks are now solved:
 </ul>
 
 <h2>what's wrong with it</h2>
-<p align=justify>It is ok for 300 000 articles, but for enwiki it is too slow yet.</p>
-<p align=justify>AWB is actually used to apply the data (set/remove some templates).
+<p>It is ok for 300 000 articles, but for enwiki it is too slow yet.</p>
+<p>AWB is actually used to apply the data (set/remove some templates).
 Will be solved when my stupid brain overcome the task of templates management in perl, or
 may be when one or more smart brains will come with their help.</p>
 
 <h2>motivation</h2>
 
-<p align=justify>
+<p>
 MediaWiki among other things collects two lists:
 orphaned and deadend pages. Let see how good they are.
 </p>
-<p align=justify>
+<p>
 It is important to understand what the difference between page and article is.
 Page is everything in main namespace, which is not a redirect, including
 disambiguation pages. The page is linked when any link from other page points
@@ -167,13 +126,13 @@ not to be linked, so links from disambiguations do not help connecting articles
 one to another).
 </p>
 
-<p align=justify>MediaWiki also does not recognise links from lists or
+<p>MediaWiki also does not recognise links from lists or
 chronological articles.
 Such links are rarely relevant and nobody usually came from them. Other rules
 can also be introduced when we need to understand how well connected our
 articles are.</p>
 
-<p align=justify>Thinking about connectivity we may need to consider more
+<p>Thinking about connectivity we may need to consider more
 than just orphanes. There may be a group of two, three or more pages connecting
 each other but without any links from outside of the group, 
 i.e. isolated clusters (or strongly connected components).
@@ -182,17 +141,17 @@ a chain of isolated clusters, which is not linked from the main connected
 component containing most part of good articles. MediaWiki does not recognize
 isolated articles at all.</p>
 
-<p align=justify>When MediaWiki locates dead-end pages it looks if the
+<p>When MediaWiki locates dead-end pages it looks if the
 page contain a link. It doesn't matter for the engine if this link is
 set from a template and just talks about some problems in a page or the
 link is to an article. Links to disambiguation pages are also threated
 as valid by the engine.</p>
 
-<p align=justify>Connectivity analysis for articles allows to authors
+<p>Connectivity analysis for articles allows to authors
 make their articles better adding them an attention of other people, who
 are authors of other articles or just readers following links.</p>
 
-<p align=justify>One more point to begin with connectivity analysis is that
+<p>One more point to begin with connectivity analysis is that
 this task is usually solved with procedural languages analyzing offline
 links bases.
 In order to make the connectivity data more actual it is necessary to
