@@ -36,6 +36,7 @@ a#seealso {
 p {
   margin:0.5em 0;
   line-height: 1.4em;
+  align:justify;
 }
 .sub {
   font-size:7.5pt;
@@ -240,7 +241,7 @@ table.e-table td.e-right {
   text-align:left;
   float:right;
   clear:right;
-  margin: 0 0 1em 1em;
+  margin: -.5 0 1em 1em;
   background:#FFE;
   border:1px solid #CCC;
   padding:0.3em;
