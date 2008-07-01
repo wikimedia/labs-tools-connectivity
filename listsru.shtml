@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <title>Списки изолированных статей</title>
+  <link rel="stylesheet" type="text/css" href="./main.css" media="all" />
+ </head>
+ <body>
+<a href="/"><img id="poweredbyicon" src="./wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
+
+<h1><a href="http://ru.wikipedia.org/w/index.php?title=ВП:П:С">[[Википедия:Проект:Связность]]</a></h1>
+<table>
+<tr>
+<td width=25%>
+<!--#include virtual="./cgi-bin/domenu?interface=ru&script=lists" -->
+</td>
+<td width=75%>
+<h1>доступные списки изолированных статей</h1>
+
+<p>Некоторые данные по изолированным статьям доступны в виде списков.
+В том числе:</p>
+
+<h3><a href="./cgi-bin/suggest.sh?interface=ru&listby=disambig">Полный список изолированных статей с советами по толкованию ссылок</a></h3>
+
+<h3><a href="./cgi-bin/suggest.sh?interface=ru&listby=interlink">Полный список изолированных статей с советами по переёму ссылок</a></h3>
+
+<h3><a href="./cgi-bin/suggest.sh?interface=ru&listby=translate">Полный список изолированных статей с советами по установке ссылок через перевод</a></h3>
+
+</td>
+</tr>
+</table>
+
+ </body>
+</html>
