@@ -121,7 +121,9 @@ how_actual ()
 #
 the_menu ()
 {
-  local same;
+  local same
+  local top='..'
+  local cgibin='.'
 
   case $script in
    'category')
@@ -140,28 +142,55 @@ the_menu ()
     same="title=$title&listby=$listby&shift=$shift&category=$category&suggest=$suggest"
     ;;
    *)
+    top='.'
+    cgibin='./cgi-bin'
     ;;
   esac
 
 #
 # [[:en]] [[:ru]]
 #
-  if [ "$interface" = 'ru' ]
-  then
-    echo -ne "<h1><a href=\"./$script.sh?interface=en&$same\">[[en:]]</a> [[ru:]]"
-  else
-    echo -ne "<h1>[[en:]] <a href=\"./$script.sh?interface=ru&$same\">[[ru:]]</a>"
-  fi
-  echo "</h1>"
+  case $script in
+   'scope')
+    if [ "$interface" = 'ru' ]
+    then
+      echo "<h1><a href=\"./index.shtml\">[[en:]]</a> [[ru:]]</h1>"
+    else
+      echo "<h1>[[en:]] <a href=\"./indexru.shtml\">[[ru:]]</a></h1>"
+    fi
+    ;;
+   'lists')
+    if [ "$interface" = 'ru' ]
+    then
+      echo "<h1><a href=\"./lists.shtml\">[[en:]]</a> [[ru:]]</h1>"
+    else
+      echo "<h1>[[en:]] <a href=\"./listsru.shtml\">[[ru:]]</a></h1>"
+    fi
+    ;;
+   *)
+    if [ "$interface" = 'ru' ]
+    then
+      echo -ne "<h1><a href=\"$cgibin/$script.sh?interface=en&$same\">[[en:]]</a> [[ru:]]"
+    else
+      echo -ne "<h1>[[en:]] <a href=\"$cgibin/$script.sh?interface=ru&$same\">[[ru:]]</a>"
+    fi
+    echo "</h1>"
+    ;;
+  esac
 #
 #  1) scope
 #
-  echo -ne "<b><a href=\"../index"
-  if [ "$interface" = 'ru' ]
+  if [ "$script" = 'scope' ]
   then
-    echo -ne "ru"
+    echo "<b><font color=red>1) $motivation</font></b><br />"
+  else
+    echo -ne "<b><a href=\"$top/index"
+    if [ "$interface" = 'ru' ]
+    then
+      echo -ne "ru"
+    fi
+    echo ".shtml\">1) $motivation</a></b><br />"
   fi
-  echo ".shtml\">1) $motivation</a></b><br />"
   echo "<br />"
 
 #
@@ -176,7 +205,7 @@ the_menu ()
   then
     echo "<li><b><font color=red>$bycategory</font></b></li>"
   else
-    echo "<li><b><a href=\"./category.sh?interface=$interface\">$bycategory</a></b></li>"
+    echo "<li><b><a href=\"$cgibin/category.sh?interface=$interface\">$bycategory</a></b></li>"
   fi
   echo "<ul>"
 #
@@ -190,7 +219,7 @@ the_menu ()
     else
       if [ "$script" = 'suggest' ] && [ "$listby" = '' ]
       then
-        echo "<li><a id=seealso href=\"./category.sh?interface=$interface&category=$category\">${catns}:$category</a></li>"
+        echo "<li><a id=seealso href=\"$cgibin/category.sh?interface=$interface&category=$category\">${catns}:$category</a></li>"
       fi
     fi
   fi
@@ -203,7 +232,7 @@ the_menu ()
     echo "<li><font color=red>$allsuggestions</font></li>"
     echo "<ul>"
   else
-    echo "<li><a href=\"./suggest.sh?interface=$interface\">$allsuggestions</a></li>"
+    echo "<li><a href=\"$cgibin/suggest.sh?interface=$interface\">$allsuggestions</a></li>"
     echo "<ul>"
 #
 #   *** <article title>
@@ -221,14 +250,14 @@ the_menu ()
   then
     echo "<li><font color=red>$resolvedisambigs</font></li>"
   else
-    echo "<li><a href=\"./suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
+    echo "<li><a href=\"$cgibin/suggest.sh?interface=$interface&listby=disambigcat\">$resolvedisambigs</a></li>"
   fi
 #
 #   **** <category name>
 #
   if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'disambig' ]
   then
-    echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
+    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
   else
     if [ "$suggest" = 'disambig' ]
     then
@@ -248,14 +277,14 @@ the_menu ()
   then
     echo "<li><font color=red>$parttranslate</font></li>"
   else
-    echo "<li><a href=\"./suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
+    echo "<li><a href=\"$cgibin/suggest.sh?interface=$interface&listby=interlinkcat\">$parttranslate</a></li>"
   fi
 #
 #   ***** <category name>
 #
   if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'interlink' ]
   then
-    echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
+    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
   else
     if [ "$suggest" = 'interlink' ]
     then
@@ -269,14 +298,14 @@ the_menu ()
   then
     echo "<li><font color=red>$translatenlink</font></li>"
   else
-    echo "<li><a href=\"./suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
+    echo "<li><a href=\"$cgibin/suggest.sh?interface=$interface&listby=translatecat\">$translatenlink</a></li>"
   fi
 #
 #   ***** <category name>
 #
   if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'translate' ]
   then
-    echo "<ul><li><a id=seealso href=\"./suggest.sh?interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
+    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
   else
     if [ "$suggest" = 'translate' ]
     then
@@ -290,12 +319,17 @@ the_menu ()
 #
 #   * lists
 #
-  echo -ne "<li><b><a href=\"../lists"
-  if [ "$interface" = 'ru' ]
+  if [ "$script" = 'lists' ]
   then
-    echo -ne "ru"
+    echo "<li><b><font color=red>$wholelist</font></b></li>"
+  else
+    echo -ne "<li><b><a href=\"$top/lists"
+    if [ "$interface" = 'ru' ]
+    then
+      echo -ne "ru"
+    fi
+    echo ".shtml\">$wholelist</a></b></li>"
   fi
-  echo ".html\">$wholelist</a></b></li>"
 
   case "$listby" in
    'disambig')
@@ -335,7 +369,7 @@ the_menu ()
   then
     echo "<li><b><font color=red>$bycreator</font></b></li>"
   else
-    echo "<li><b><a href=\"./creators.sh?interface=$interface\">$bycreator</a></b></li>"
+    echo "<li><b><a href=\"$cgibin/creators.sh?interface=$interface\">$bycreator</a></b></li>"
 #
 #   ** <user name>
 #
@@ -365,7 +399,7 @@ the_menu ()
   then
     echo "<b>4) <font color=red>$disambig</font></b><br />"
   else
-    echo "<b>4) <a href=\"./disambig.sh?interface=$interface\">$disambig</a></b><br />"
+    echo "<b>4) <a href=\"$cgibin/disambig.sh?interface=$interface\">$disambig</a></b><br />"
   fi
   echo "<br />"
 
@@ -376,7 +410,7 @@ the_menu ()
   then
     echo "<b><font color=red>5) $cattreecon</font></b><br />"
   else
-    echo "<b>5) <a href=\"./category14.sh?interface=$interface\">$cattreecon</a></b><br />"
+    echo "<b>5) <a href=\"$cgibin/category14.sh?interface=$interface\">$cattreecon</a></b><br />"
 #
 #   * <network path>
 #
@@ -394,5 +428,5 @@ the_menu ()
   echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
   echo "<li>mashiah $attext <a href="irc://irc.freenode.net/$ircchan">#$ircchan</a></li>"
   echo "</ul>"
-  echo "<p align=justify>$srclocation <a href="http://fisheye.ts.wikimedia.org/browse/mashiah">toolserver fisheye</a>.</p>"
+  echo "<p>$srclocation <a href="http://fisheye.ts.wikimedia.org/browse/mashiah">toolserver fisheye</a>.</p>"
 }
