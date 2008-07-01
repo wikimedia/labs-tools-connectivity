@@ -1,0 +1,23 @@
+#!/bin/bash
+
+source ./common
+
+parse_query interface
+parse_query script
+if [ "$interface" != 'ru' ]
+then
+  interface='en'
+fi
+if [ "$script" = '' ]
+then
+  interface='scope'
+fi
+
+source ./common.$interface
+source ./common2
+
+echo Content-type: text/html
+echo ""
+echo ""
+
+the_menu
