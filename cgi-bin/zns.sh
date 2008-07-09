@@ -1,4 +1,8 @@
 #!/bin/bash
+ #
+ # Authors: [[:ru:user:Mashiah Davidson]]
+ #          [[:ru:user:Lvova]]
+ #
 
 script="zns"
 source ./common
