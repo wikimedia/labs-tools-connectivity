@@ -1,3 +1,4 @@
+#!/bin/bash
  #
  # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
@@ -22,7 +23,6 @@
  #
  #      Allowed values for <sender-server> and <receiver-server> are: s2 and s3.
 
-#!/bin/bash
 
 iter=0
 portion=0;
