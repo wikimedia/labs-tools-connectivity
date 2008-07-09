@@ -1,3 +1,4 @@
+#!/usr/bin/perl
  #
  # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
@@ -8,8 +9,6 @@
  # and multiple redirects list to Russian Wikipedia.
  #
  # <pre>
-
-#!/usr/bin/perl
 
 use strict; # 'strict' insists that all variables be declared
 
