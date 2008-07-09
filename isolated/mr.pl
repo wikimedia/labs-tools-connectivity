@@ -1,3 +1,4 @@
+#!/usr/bin/perl
  #
  # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
@@ -16,8 +17,6 @@
  #         in the format of: password = "<password>".
  #                  
  # <pre>
-
-#!/usr/bin/perl
 
 use strict; # 'strict' insists that all variables be declared
 
