@@ -1,3 +1,4 @@
+#!/bin/bash
  #
  # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
@@ -44,8 +45,6 @@
  #      Reports on error if unexpected output occurs. Disables any external
  #      tools in this case.
  #
-
-#!/bin/bash
 
 # set the maximal replication lag value in minutes, which is allowed for apply
 # probably, less than script actually works
