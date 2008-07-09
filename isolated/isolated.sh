@@ -1,3 +1,4 @@
+#!/bin/bash
  #
  # Works on the Toolserver.
  #
@@ -45,8 +46,6 @@
  #      See debug.log if created or last file modified.
  #
  # <pre>
-
-#!/bin/bash
 
 do_templates=0
 do_stat=0
