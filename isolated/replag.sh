@@ -1,3 +1,4 @@
+#!/bin/bash
  #
  # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
@@ -7,8 +8,6 @@
  # Works on the Toolserver and outputs the replag for s3.
  #
  # <pre>
-
-#!/bin/bash
 
 dbhost="sql-s3"
 myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
