@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+﻿#!/usr/bin/perl
  #
  # Authors: [[:ru:user:Mashiah Davidson]], still alone
  #
@@ -22,6 +22,9 @@ use strict; # 'strict' insists that all variables be declared
 
 my $wikilang=shift;
 my $user=shift;
+
+binmode STDOUT, ':utf8';
+
 open FILE, '</home/'.$user.'/.'.$wikilang.'.cnf' or die ':: echo /home/'.$user.'/.'.$wikilang.'.cnf: '.$!;
 print ":: echo ".$user." grants permissions to bot ";
 my $pass="";
@@ -164,7 +167,7 @@ while( <> )
 
       if( $r eq $mr )
       {
-        do_edit( $r, '{{db|happy self-redirect}}', '{{db|happy self-redirect}}'."\n#REDIRECT [[$r]]" );
+        do_edit( $r, '{{db|перенаправление ссылается само на себя}}', '{{db|перенаправление ссылается само на себя}}'."\n#REDIRECT [[$r]]" );
         if( $editor->{errstr} ne '' )
         {
           $failed_count+=1;
@@ -214,7 +217,7 @@ while( <> )
               # this happy self-redirect.
               # Here we rely on web-API smartness and suppose edits with
               # the same content will not occur.
-              do_edit( $r, '{{db|happy self-redirect}}', '{{db|happy self-redirect}}'."\n#REDIRECT [[$r]]" );
+              do_edit( $r, '{{db|перенаправление ссылается само на себя}}', '{{db|перенаправление ссылается само на себя}}'."\n#REDIRECT [[$r]]" );
               if( $editor->{errstr} ne '' )
               {
                 $failed_count+=1;
@@ -229,7 +232,7 @@ while( <> )
             }
             elsif( $target eq $mr )
             {
-              do_edit( $r, '{{db|ring of two redirects}}', '{{db|ring of two redirects}}'."\n#REDIRECT [[$r]]" );
+              do_edit( $r, '{{db|кольцо из двух перенаправлений}}', '{{db|кольцо из двух перенаправлений}}'."\n#REDIRECT [[$r]]" );
               if( $editor->{errstr} ne '' )
               {
                 $failed_count+=1;
@@ -238,7 +241,7 @@ while( <> )
               }
               else
               {
-                do_edit( $mr, '{{db|ring of two redirects}}', '{{db|ring of two redirects}}'."\n#REDIRECT [[$mr]]" );
+                do_edit( $mr, '{{db|кольцо из двух перенаправлений}}', '{{db|кольцо из двух перенаправлений}}'."\n#REDIRECT [[$mr]]" );
                 if( $editor->{errstr} ne '' )
                 {
                   $failed_count+=1;
@@ -261,7 +264,7 @@ while( <> )
               }
 
               # resolving the double redirect
-              do_edit( $mr, 'double redirects resolving with perlwikipedia', "#REDIRECT [[$target]]");
+              do_edit( $mr, 'исправление [[ВП:Двойные перенаправления|двойных перенаправлений]] с помощью perlwikipedia', "#REDIRECT [[$target]]");
               if( $editor->{errstr} ne '' )
               {
                 $failed_count+=1;
