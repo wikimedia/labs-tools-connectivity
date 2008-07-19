@@ -12,6 +12,8 @@
 
 use strict; # 'strict' insists that all variables be declared
 
+binmode STDOUT, ':utf8';
+
 my $outpage=shift;
 my $mode=shift;
 my $user=shift;
