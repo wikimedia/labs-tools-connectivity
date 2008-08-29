@@ -346,6 +346,7 @@ case $listby in
     fi
   else
     titleurl=${title//\"/\%22}
+    titleurl=${title//\_/\%20}
     titlesql=${title//\"/\"\'\"\'\"}
 
     convertedtitle=$( echo $titleurl | sed -e 's/?/\%3F/g' )
