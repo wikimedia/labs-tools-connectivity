@@ -229,16 +229,26 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     #
     CALL isolated( namespace, 'redirects', @rcount );
 
-    # Claster _1 is of nothing to do with, regular redirects.
-    # Clasters like _X, X>1 are rings and cannot point outside redirects set.
-    # Claserts _1_..._1_X, X>1 are like above but with a source chain.
-    DELETE FROM orcat
-           WHERE coolcat NOT RLIKE '(_1){2,}';
-
     #
     # now we have orcatr and ruwikir.
     #
     CALL isolated_refresh( 'r', namespace );
+
+    #
+    # Prevent redirect rings in r2r table for normal function of other
+    # chains throwing.
+    #
+    DELETE ruwikir
+           FROM orcatr,
+                ruwikir
+           WHERE coolcat NOT RLIKE '(_1){1,}' and
+                 cat=coolcat;
+
+    # Claster _1 is of nothing to do with, regular redirects.
+    # Clasters like _X, X>1 are rings and cannot point outside redirects set.
+    # Claserts _1_..._1_X, X>1 are like above but with a source chain.
+    DELETE FROM orcatr
+           WHERE coolcat NOT RLIKE '(_1){2,}';
 
     # Clasters like _1_..._1 are all to be thrown
 
