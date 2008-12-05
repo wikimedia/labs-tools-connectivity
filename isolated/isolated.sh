@@ -78,7 +78,7 @@ time {
     # Enable/disable informative output, such as current sets of
     # dead end articles or isolated chains of various types.
     #
-    set @enable_informative_output=0;
+    echo "set @enable_informative_output=0;"
 
     cat handle.sql
     cat replag.sql
