@@ -20,7 +20,7 @@ my $user=shift;
 my $tstime=shift;
 
 open FILE, '</home/'.$user.'/.ru.cnf' or die ":: echo $!";
-print $user." grants permissions to bot ";
+print ":: echo ".$user." grants permissions to bot ";
 my $pass="";
 while( my $line = <FILE> )
 {
