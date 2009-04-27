@@ -33,6 +33,7 @@ DROP PROCEDURE IF EXISTS deadend//
 CREATE PROCEDURE deadend (namespace INT)
   BEGIN
     DECLARE cnt INT;
+    DECLARE st VARCHAR(255);
 
     SELECT ':: echo DEADLOCKTOR';
 
@@ -168,12 +169,11 @@ CREATE PROCEDURE deadend (namespace INT)
           THEN
             SELECT CONCAT(':: echo -: ', cnt ) as title;
             SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
-            SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
-                   FROM del,
-                        ruwiki_p.page
-                   WHERE act=-1 AND
-                         id=page_id
-                   ORDER BY page_title ASC;
+
+            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace), page_title) as title FROM del, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
         END IF;
 
         # Restore previously deleted links to cronological articles
