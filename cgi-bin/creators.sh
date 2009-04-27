@@ -1,5 +1,6 @@
 #!/bin/bash
 
+language="ru"
 script="creators"
 source ./common
 
@@ -105,7 +106,7 @@ then
                 FROM creators0                 \
                 WHERE user_text=\"${usersql}\" \
                 ORDER BY title ASC\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_isolates "$line"
                     done
@@ -129,7 +130,7 @@ else
                 GROUP BY user_text \
                 ORDER BY cnt DESC  \
                 LIMIT $((shift)),100\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_userlist "$line"
                     done
