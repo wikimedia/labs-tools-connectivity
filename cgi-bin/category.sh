@@ -1,5 +1,6 @@
 #!/bin/bash
 
+language="ru"
 script="category"
 source ./common
 
@@ -91,13 +92,8 @@ then
 
   echo "<ol>"
   {
-    echo SELECT title                                \
-                FROM ruwiki_p.categorylinks,         \
-                     ruwiki0                         \
-                     WHERE id=cl_from and            \
-                           cl_to=\"${convertedcat}\" \
-                     ORDER BY title ASC\;
-  } | $sql 2>&1 | { 
+    echo CALL isolated_for_category\(\"${convertedcat}\"\, \'${language}\'\)\;
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_category "$line"
                     done
@@ -119,7 +115,7 @@ else
                       isocatvolume0.cat=id            \
                 ORDER BY isocatvolume0.cnt DESC       \
                 LIMIT $((shift)),100\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line"
                     done
@@ -141,7 +137,7 @@ else
                       isocatvolume0.cat=id                    \
                 ORDER BY pcnt DESC, isocatvolume0.cnt DESC    \
                 LIMIT $((shift)),100\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line"
                     done
