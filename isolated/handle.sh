@@ -20,7 +20,7 @@
  #         :: replag <replag>      - prints <replag> and checks 
  #                                   if replagdependent operations possible
  #         :: out <fn>             - opens file <fn> and switches all output
- #                                   there till next command comes
+ #                                   there till the next command came
  #         :: upload <fn> <url>    - resolves multiple redirects given with
  #                                   use of mr.pl and stores data to a 
  #                                   a file as 'out' does
@@ -35,7 +35,10 @@
  #                 give <select>   - passes statement <select> to s<N> to
  #                                   send its output to another server with use
  #                                   of import.sh
+ #                 valu <val>      - prepares a value for a special call type
+ #                                   of call named prlc
  #                 prlc <function> - same as 'call' but in separate thread
+ #                                   and a bit special
  #                 done <action>   - reports to s<N> on external <action>
  #                                   completion
  #                 init <script>   - passes file <script> with sql code to
@@ -70,11 +73,19 @@ then
   do_stat=1
 fi
 
-dbhost="sql-s3"
-dbhost2="sql-s2"
-myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
-sql="mysql --host=$dbhost -A --database=u_${myusr} -n -b -N --connect_timeout=10"
-sql2="mysql --host=$dbhost2 -A --database=u_${myusr} -n -b -N --connect_timeout=10"
+language="ru"
+
+#
+# Server for connection depends on the target language
+#
+server=$( ./toolserver.sh "$language" )
+
+#
+# Initialize variables: $dbserver, $dbhost, $usr.
+#
+# Creates sql( $server ) function.
+#
+source ../cgi-bin/ts $server
 
 extminutes ()
 {
@@ -118,7 +129,7 @@ handle ()
               iter=$(($iter+1))
             done
             sync
-          } | perl mr.pl ru $myusr | ./handle.sh $cmdl &
+          } | perl mr.pl ru $usr | ./handle.sh $cmdl &
           unset collection
         fi
       fi
@@ -153,6 +164,10 @@ handle ()
           state=1 # file output
           if [ ! -f $out ]
           then
+            #
+            # Put utf-8 "byte-order mask", which is indeed just identifies
+            # utf-8 encoding for applications like Notepad.
+            #
             echo -ne \\0357\\0273\\0277 > $out
           fi
         else
@@ -183,10 +198,10 @@ handle ()
                   then
                     if [ ${line:28} = '00:00:00' ]
                     then
-                      echo uploading statistics for first time;
+                      echo uploading statistics for the first time;
                     fi
                     # cut 3 very first utf-8 bytes and upload the stats
-                    tail --bytes=+4 ./*.articles.stat | perl r.pl 'stat' 'stat' $myusr "$stat_up_ts" | ./handle.sh $cmdl
+                    tail --bytes=+4 ./*.articles.stat | perl r.pl 'stat' 'stat' $usr "$stat_up_ts" | ./handle.sh $cmdl
                   fi
                 fi
               fi
@@ -194,11 +209,7 @@ handle ()
             else
               if [ "${line:3:1}" = 's' ]
               then
-                case ${line:4:1} in
-                '2') sqlserver=$sql2;;
-                '3') sqlserver=$sql;;
-                *)   sqlserver='';;
-                esac
+                 params="${line:4:1} u_${usr}_golem_${language}"
                 outcommand=${line:6:4}
                 case $outcommand in
                 'call')
@@ -207,37 +218,52 @@ handle ()
 #                     echo "set @@max_heap_table_size=268435456;"
                      echo "set @@max_heap_table_size=536870912;"
                      echo "CALL ${line:11}();"
-                   } | $sqlserver 2>&1 | ./handle.sh $cmdl
+                   } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'take')
+                   tosqlservernum=${line:4:1}
                    outtable=${line:11}
-                   tosqlserver=$sqlserver
+                   toparams=$params
                    ;;
                 'give')
-                   echo "${line:11}" | $sqlserver 2>&1 | ./import.sh $outtable | $tosqlserver 2>&1 | ./handle.sh $cmdl &
+                   echo "${line:11}" | $( sql $params ) 2>&1 | ./import.sh $outtable ${line:4:1} $tosqlservernum | $( sql $toparams ) 2>&1 | ./handle.sh $cmdl &
+                   ;;
+                'valu')
+                   # get a value for transmission as prlc parameter
+                   outvariable=${line:11}
                    ;;
                 'prlc')
-                   # call but as a parallel thread
+                   # call in a parallel thread 
+                   # with slave and master identifiers as parameters
                    {
-                     echo "CALL ${line:11}();"
-                   } | $sqlserver 2>&1 | ./handle.sh $cmdl &
+                     echo "CALL ${line:11}( ${line:4:1}, '$outvariable' );"
+                   } | $( sql $params ) 2>&1 | ./handle.sh $cmdl &
                    ;;
                 'done')
                    # update inter-run timing data for a name given
                    {
                      echo "CALL performed_confirmation( '${line:11}' );"
-                   } | $sqlserver 2>&1 | ./handle.sh $cmdl
+                   } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'init')
                    # handle dynamical request from sql for subscripts to
                    # be loaded to different servers
                    {
+                     #
+                     # New language database might have to be created.
+                     #
+                     echo "create database if not exists u_${usr}_golem_${language};"
+                   } | $( sql ${line:4:1} ) 2>&1
+                   {
+                     #
+                     # Infecting the database with a script
+                     #
                      cat "${line:11}"
-                   } | $sqlserver 2>&1 | ./handle.sh $cmdl
+                   } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 *) ;;
                 esac
-                state=3 # communicate between servers
+                state=3 # communicate among servers
               else
                 if [ "${line:3:2}" = '7z' ]
                 then
@@ -275,7 +301,7 @@ handle ()
        else
          if [ "${line:0:20}" = 'ERROR 1049 (42000): ' ]
          then
-           echo user database is not exist for some reason, need to be examined\; nothing will be applied
+           echo user database does not exist for some reason, need to be examined\; nothing will be applied
          else
            if [ "$line" != '' ]
            then
