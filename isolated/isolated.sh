@@ -22,7 +22,7 @@
  #      ./isolated.sh           - to run all the analysis supported
  #      ./isolated.sh mr        - to enable multiple redirects resolving
  #      ./isolated.sh stat      - to enable cluster chains statistics upload
- #      ./isolated.sh mr stat   - as we do in Ruwiki
+ #      ./isolated.sh mr stat   - like we do in Ruwiki
  #
  # Default output:
  #
@@ -63,16 +63,37 @@ then
   do_stat=1
 fi
 
-dbhost="sql-s3"
-dbhost2="sql-s2"
-myusr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
-sql="mysql --host=$dbhost -A --database=u_${myusr} -n -b -N --connect_timeout=10"
-sql2="mysql --host=$dbhost2 -A --database=u_${myusr} -n -b -N --connect_timeout=10"
+language="ru"
+
+#
+# Server for connection depends on the target language
+#
+server=$( ./toolserver.sh "$language" )
+
+#
+# Initialize variables: $dbserver, $dbhost, $usr.
+#
+# Creates sql( $server ) function.
+#
+source ../cgi-bin/ts $server
 
 rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log stats_done.log
 
+{
+  #
+  # New language database might have to be created.
+  #
+  echo "create database if not exists u_${usr}_golem_${language};"
+
+} | $( sql $server ) 2>&1 | ./handle.sh $1 $2 $3
+
 time { 
   {
+
+    #
+    # Configure the target wikipedia language name for analysis
+    #
+    echo "set @target_lang='$language';"
 
     #
     # Enable/disable informative output, such as current sets of
@@ -94,7 +115,7 @@ time {
     cat creatorizer.sql
     cat cgi.sql
 
-    echo 'CALL actual_replag();'
+    echo "CALL actual_replag( '$language' );"
 
     #
     # Categorizer setup, prefetch categories namespace (14)
@@ -126,7 +147,7 @@ time {
     echo 'CALL zero_namespace_connectivity( 20 );'
 
 
-    echo 'CALL replag();'
+    echo "CALL replag( '$language' );"
 
     #
     # Choose the right limit for recursion depth allowed.
@@ -154,8 +175,9 @@ time {
     # Suggestor,
     # Creatorizer.
     #
-    echo 'CALL zero_namespace_postponed_tools();'
-  } | $sql 2>&1 | ./handle.sh $1 $2 $3
+    echo "CALL zero_namespace_postponed_tools( $server );"
+
+  } | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh $1 $2 $3
 }
 
 # </pre>
