@@ -21,7 +21,7 @@ delimiter //
 # Prepare interwiki based linking suggestions for one language
 #
 DROP PROCEDURE IF EXISTS inter_lang//
-CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10) )
+CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VARCHAR(10) )
   BEGIN
     DECLARE st VARCHAR(255);
     DECLARE prefix VARCHAR(32);
@@ -95,7 +95,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10) )
 
         DELETE FROM dinfo;
 
-        SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
+        SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -104,7 +104,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10) )
                FROM res
                WHERE lang=language;
 
-        SET @st=CONCAT( 'DELETE liwl FROM ', dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='ru';" );
+        SET @st=CONCAT( 'DELETE liwl FROM ', dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -183,9 +183,9 @@ CREATE PROCEDURE inter_langs_ct()
     ) ENGINE=MEMORY;
 
     #
-    # The table just for one row with single value.
-    # state is 0 when the process is running on both s2 and s3
-    # state is set externally to 1 when s2 is finished and data uploaded to s3
+    # The table just for one row for single value named state.
+    #
+    # During any transfer the receiver state is being updated by the sender.
     #
     DROP TABLE IF EXISTS communication_exchange;
     CREATE TABLE communication_exchange (
@@ -195,33 +195,69 @@ CREATE PROCEDURE inter_langs_ct()
 //
 
 #
+# This procedure is being run on the master-host (s3). It insects slave-hosts
+# with its code and tables, initialtes transfer of initial data from master to
+# slaves
+# 
+#
 # Prepare interwiki based linking suggestions for isolated articles.
 #
 DROP PROCEDURE IF EXISTS inter_langs//
-CREATE PROCEDURE inter_langs()
+CREATE PROCEDURE inter_langs( srv INT )
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE cur_lang VARCHAR(16);
     DECLARE cur_db VARCHAR(32);
     DECLARE ready INT DEFAULT 0;
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server!=2 ORDER BY size DESC;
+    DECLARE cur_sv INT DEFAULT 0;
+    DECLARE dsync INT DEFAULT 0;
+    DECLARE st VARCHAR(511);
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=srv ORDER BY size DESC;
+    DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and server!=srv ORDER BY server ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
-    SELECT ':: s2 init iwikispy.sql';
+    #
+    # Insect slave servers with this library code 
+    # and inform them on who is the master.
+    #
+    OPEN scur;
+    SET done = 0;
 
-    SELECT ':: s2 call inter_langs_ct';
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SELECT CONCAT( ':: s', cur_sv, ' init iwikispy.sql' );
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
+
+    #
+    # Insect everyone with necessary communication tables.
+    #
+    OPEN scur;
+    SET done = 0;
+
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SELECT CONCAT( ':: s', cur_sv, ' call inter_langs_ct' );
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
+
     CALL inter_langs_ct();
 
     #
     # Prepare interwiki links for isolated articles.
     #
-    INSERT INTO iwl
-    SELECT id,
-           REPLACE(ll_title,' ','_') as title,
-           ll_lang as lang
-           FROM ruwiki_p.langlinks, 
-                ruwiki0 
-           WHERE id=ll_from;
+    SET @st=CONCAT( 'INSERT INTO iwl SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @target_lang, 'wiki_p.langlinks, ruwiki0 WHERE id=ll_from;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     DELETE FROM iwl
            WHERE title='';
@@ -229,7 +265,11 @@ CREATE PROCEDURE inter_langs()
     SELECT CONCAT( ':: echo ', count(*), ' interwiki links for isolated articles found' )
            FROM iwl;
 
-    # for transfer need to escape all quote marks
+    #
+    # Prior to any transfer we need to escape quote marks.
+    #
+    # Note: master host languages may be left not updated due to no transfer.
+    #
     UPDATE iwl 
            SET title=REPLACE (title, '"', '\\"')
            WHERE lang IN 
@@ -237,70 +277,125 @@ CREATE PROCEDURE inter_langs()
                    SELECT lang 
                           FROM toolserver.wiki
                           WHERE family='wikipedia' and
-                                server=2
+                                server!=srv
                  );
 
     #
-    # Initiate interwiki transfer to s2.
+    # Initiate interwiki transfer to slaves.
     #
-    SELECT ':: s2 take iwl';
-    SELECT ":: s3 give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=2 and iwl.lang=toolserver.wiki.lang\;";
+    OPEN scur;
+    SET done = 0;
+
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SELECT CONCAT( ':: s', cur_sv, ' take iwl' );
+          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and iwl.lang=toolserver.wiki.lang\;" );
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
 
     #
     # Exclusion of disambiguation pages requires the categoryname.
-    # We can obtain it from interwiki links fir the local disambiguations
+    # We can obtain it from interwiki links for the local disambiguations
     # category.
     #
-    INSERT INTO d_i18n
-    SELECT ll_lang as lang,
-           REPLACE(SUBSTRING(ll_title,LOCATE(':',ll_title)+1), ' ', '_') as dn
-           FROM ruwiki_p.langlinks,
-                ruwiki_p.page
-           WHERE page_title='Многозначные_термины' and
-                 page_namespace=14 and
-                 ll_from=page_id;
+    SET @st=CONCAT( 'INSERT INTO d_i18n SELECT ll_lang as lang, REPLACE(SUBSTRING(ll_title,LOCATE(', "':'", ',ll_title)+1), ', "' ', '_'", ') as dn FROM ', @target_lang, 'wiki_p.langlinks, ', @target_lang, 'wiki_p.page WHERE page_title=', "'", 'Многозначные_термины', "'", ' and page_namespace=14 and ll_from=page_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     #
-    # Initiate the categoryname for disambigs translated to s2.
+    # Initiate distribution of translated disambig categoryname.
     #
-    SELECT ':: s2 take d_i18n';
-    SELECT ":: s3 give SELECT CONCAT\( '\( \"', d_i18n.lang, '\",\"', dn, '\" \)' \) FROM d_i18n, toolserver.wiki WHERE family='wikipedia' and server=2 and d_i18n.lang=toolserver.wiki.lang\;";
+    OPEN scur;
+    SET done = 0;
 
-    SELECT ':: echo all transfer issued from s3';
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SELECT CONCAT( ':: s', cur_sv, ' take d_i18n' );
+          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', d_i18n.lang, '\",\"', dn, '\" \)' \) FROM d_i18n, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and d_i18n.lang=toolserver.wiki.lang\;" );
+      END IF;
+    UNTIL done END REPEAT;
 
-    DROP TABLE IF EXISTS res_s2;
-    CREATE TABLE res_s2 (
-      suggestn varchar(255) not null default '',
-      id int(8) unsigned not null default '0',
-      lang varchar(10) not null default ''
-    ) ENGINE=MEMORY;
+    CLOSE scur;
 
-    DROP TABLE IF EXISTS tres_s2;
-    CREATE TABLE tres_s2 (
-      suggestn varchar(255) not null default '',
-      id int(8) unsigned not null default '0',
-      lang varchar(10) not null default ''
-    ) ENGINE=MEMORY;
+    SELECT CONCAT( ':: echo all transfer issued from s', srv );
 
     #
-    # Call on s2 in parallel thread.
-    # It is keeping track on data input sync.
+    # Create output tables for res and tres from slaves.
     #
-    SELECT ':: s2 prlc inter_langs_s2';
+    OPEN scur;
+    SET done = 0;
 
-    # s1 and s3 languages loop
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SET @st=CONCAT( "DROP TABLE IF EXISTS res_s", cur_sv, ";" );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+          SET @st=CONCAT( "CREATE TABLE res_s", cur_sv, " \( suggestn varchar\(255\) not null default '', id int\(8\) unsigned not null default '0', lang varchar\(10\) not null default '' \) ENGINE=MEMORY\;" );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+
+          SET @st=CONCAT( "DROP TABLE IF EXISTS tres_s", cur_sv, ";" );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+          SET @st=CONCAT( "CREATE TABLE tres_s", cur_sv, " \( suggestn varchar\(255\) not null default '', id int\(8\) unsigned not null default '0', lang varchar\(10\) not null default '' \) ENGINE=MEMORY\;" );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
+
+    #
+    # Call on slaves in parallel threads.
+    #
+    # Note: Callee are keeping track on data input sync.
+    #
+    OPEN scur;
+    SET done = 0;
+
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SELECT CONCAT( ':: s', cur_sv, ' valu ', @target_lang );
+          SELECT CONCAT( ':: s', cur_sv, ' prlc inter_langs_slave' );
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
+
+    #
+    # Master languages loop
+    #
     OPEN cur;
+    SET done = 0;
 
     REPEAT
       FETCH cur INTO cur_lang, cur_db;
       IF NOT done
         THEN
-          CALL inter_lang( cur_db, cur_lang );
+          CALL inter_lang( cur_db, cur_lang, @target_lang );
       END IF;
     UNTIL done END REPEAT;
 
     CLOSE cur;
 
+    #
+    # Deinitialize and report on master results.
+    #
     DROP TABLE d_i18n;
     DROP TABLE dinfo;
     DROP TABLE rinfo;
@@ -310,37 +405,67 @@ CREATE PROCEDURE inter_langs()
     DELETE FROM res
            WHERE suggestn='';
 
-    SELECT CONCAT( ':: echo With use of s3 ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo With use of s', srv, ' ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo With use of s3 ', count(DISTINCT id), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo With use of s', srv, ' ', count(DISTINCT id), ' isolates can be linked with translation' )
            FROM tres;
 
-    # Looks like an infinite loop, however, a line is to be modified externally
-    # when transfer done.
+    #
+    # The expected amount of synchonization events from slave processes.
+    #
+    SELECT 2*(count(DISTINCT server)-1) INTO dsync
+           FROM toolserver.wiki
+           WHERE family='wikipedia';
+
+    #
+    # Looks like an infinite loop, right?
+    #
+    # Note: Lines are to be added by slaves when their transfer done.
+    #
     REPEAT
       # no more than once per second
       SELECT sleep( 1 ) INTO ready;
       SELECT count(*) INTO ready
              FROM communication_exchange;
-    UNTIL ready=2 END REPEAT;
+    UNTIL ready=dsync END REPEAT;
     DROP TABLE communication_exchange;
 
-    # merging s2 and s3 results
-    INSERT into res
-    SELECT suggestn,
-           id,
-           lang
-           FROM res_s2;
-    DROP TABLE res_s2;
+    #
+    # Merging slave results to res and tres
+    #
+    OPEN scur;
+    SET done = 0;
 
-    INSERT into tres
-    SELECT suggestn,
-           id,
-           lang
-           FROM tres_s2;
-    DROP TABLE tres_s2;
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          SET @st=CONCAT( 'INSERT INTO res SELECT suggestn, id, lang FROM res_s', cur_sv, ';' );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+          SET @st=CONCAT( 'DROP TABLE res_s', cur_sv, ';' );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
 
+          SET @st=CONCAT( 'INSERT INTO tres SELECT suggestn, id, lang FROM tres_s', cur_sv, ';' );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+          SET @st=CONCAT( 'DROP TABLE tres_s', cur_sv, ';' );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
+
+    #
+    # Report and refresh the web
+    #
     SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
            FROM res;
 
@@ -374,17 +499,23 @@ CREATE PROCEDURE inter_langs()
 
 #
 # Prepare interwiki based linking suggestions for isolated articles linked
-# from s2 languages.
+# from slave languages and push results to the master server.
 #
-DROP PROCEDURE IF EXISTS inter_langs_s2//
-CREATE PROCEDURE inter_langs_s2()
+DROP PROCEDURE IF EXISTS inter_langs_slave//
+CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
   BEGIN
+    DECLARE mnum INT DEFAULT 0;
     DECLARE done INT DEFAULT 0;
     DECLARE cur_lang VARCHAR(16);
     DECLARE cur_db VARCHAR(32);
     DECLARE ready INT DEFAULT 0;
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=2 ORDER BY size DESC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=snum ORDER BY size DESC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+
+    # Convert master language name to master server number
+    SELECT server INTO mnum
+           FROM toolserver.wiki
+           WHERE domain=CONCAT( mlang, '.wikipedia.org');
 
     # Looks like an infinite loop, however, a line is to be modified externally
     # when transfer done.
@@ -394,14 +525,14 @@ CREATE PROCEDURE inter_langs_s2()
     UNTIL ready=2 END REPEAT;
     DROP TABLE communication_exchange;
 
-    # s2 languages loop
+    # slave languages loop
     OPEN cur;
 
     REPEAT
       FETCH cur INTO cur_lang, cur_db;
       IF NOT done
         THEN
-          CALL inter_lang( cur_db, cur_lang );
+          CALL inter_lang( cur_db, cur_lang, mlang );
       END IF;
     UNTIL done END REPEAT;
 
@@ -422,19 +553,19 @@ CREATE PROCEDURE inter_langs_s2()
     UPDATE tres
            SET suggestn=REPLACE( suggestn, '"', '\\"');
 
-    SELECT CONCAT( ':: echo With use of s2 ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo With use of s2 ', count(DISTINCT id), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates can be linked with translation' )
            FROM tres;
 
-    SELECT ':: s3 take res_s2';
-    SELECT ":: s2 give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM res\;";
+    SELECT CONCAT( ':: s', mnum, ' take res_s', snum );
+    SELECT CONCAT( ":: s", snum, " give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM res\;" );
 
-    SELECT ':: s3 take tres_s2';
-    SELECT ":: s2 give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM tres\;";
+    SELECT CONCAT( ':: s', mnum, ' take tres_s', snum );
+    SELECT CONCAT( ":: s", snum, " give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM tres\;" );
 
-    SELECT ':: echo all transfer issued from s2';
+    SELECT CONCAT( ':: echo all transfer issued from s', snum );
   END;
 //
 
