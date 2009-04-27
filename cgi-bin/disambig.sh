@@ -1,5 +1,6 @@
 #!/bin/bash
 
+language="ru"
 script="disambig"
 source ./common
 
@@ -84,7 +85,7 @@ echo "$whatisit<br><br>"
 {
   echo SELECT \* \
               FROM drdi\;
-} | $sql 2>&1 | {
+} | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                   while read -r line
                     do paraphrase $line
                   done
@@ -107,7 +108,7 @@ echo "<ol start=$((shift+1))>"
               FROM disambiguate0  \
               ORDER BY d_cnt DESC \
               LIMIT $((shift)),100\;
-} | $sql 2>&1 | { 
+} | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                   while read -r line
                     do handle_dsglist "$line"
                   done
