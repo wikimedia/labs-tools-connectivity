@@ -642,7 +642,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
           SELECT CONCAT( ':: echo ', tmp, ': ', cnt ) as title;
 
           SELECT CONCAT( ':: out ', @fprefix, targetset, '.stat' );
-          SELECT CONCAT( outprefix, '[[:Категория:', cat, '|', tmp, ']]: ', cnt )
+          SELECT CONCAT( outprefix, '[[:', getnsprefix(14), cat, '|', tmp, ']]: ', cnt )
                  FROM orcat
                  WHERE coolcat=tmp;
 
@@ -805,7 +805,7 @@ CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
 DROP PROCEDURE IF EXISTS isolated//
 CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
   BEGIN
-    DECLARE tmp VARCHAR(255);
+    DECLARE st VARCHAR(511);
     DECLARE rank INT;
     DECLARE cnt INT;
     DECLARE overall INT;
@@ -869,20 +869,10 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     #
     IF targetset='articles'
       THEN
-        INSERT INTO orcat
-        SELECT categories.id as uid,
-               page_title as cat,
-               convertcat( page_title ) as coolcat
-               FROM ruwiki_p.categorylinks,
-                    ruwiki_p.page,
-                    categories
-                    WHERE page_title=categories.title and
-                          cl_to='Википедия:Изолированные_статьи' and
-                          page_id=cl_from and
-                                         # this should be constant because
-                                         # isolates are registered with
-                                         # categories mechanism
-                          page_namespace=14;
+        SET @st=CONCAT( 'INSERT INTO orcat SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @target_lang, 'wiki_p.categorylinks, ', @target_lang, 'wiki_p.page, categories WHERE page_title=categories.title and cl_to=', "'", 'Википедия:Изолированные_статьи', "'", ' and page_id=cl_from and page_namespace=14;' );
+        PREPARE stmt FROM @st; 
+        EXECUTE stmt; 
+        DEALLOCATE PREPARE stmt; 
 
         SELECT CONCAT( ':: echo . ', count(*), ' isolated chain types registered' )
                FROM orcat;
@@ -974,12 +964,11 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
           THEN
             SELECT CONCAT(':: echo parented isolates: ', cnt ) as title;
             SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
-            SELECT CONCAT(getnsprefix(page_namespace), page_title) as title
-                   FROM isolated,
-                        ruwiki_p.page
-                   WHERE act=-1 AND
-                         id=page_id
-                   ORDER BY page_title ASC;
+
+            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace), page_title) as title FROM isolated, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
+            PREPARE stmt FROM @st; 
+            EXECUTE stmt; 
+            DEALLOCATE PREPARE stmt; 
         END IF;
     END IF;
 
@@ -993,7 +982,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     SELECT CONCAT( ':: echo ', overall, ' isolated ', targetset, ' found' );
     
     SELECT CONCAT( ':: out ', @fprefix, targetset, '.stat' );
-    SELECT CONCAT( 'Общее количество изолированных статей: ', overall );
+    SELECT CONCAT( '{{total amount of isolated articles}}: ', overall );
 
     # this table is pretty well worn here after isolated processing
     #
