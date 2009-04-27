@@ -1,0 +1,27 @@
+dbserver="$1"
+dbhost="sql-s${dbserver}"
+usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
+
+#
+# Returns mysql handler.
+#
+# The first parameter is for the server id and the second one could be
+# used for the database name specification or omitted.
+#
+# However, the specified names should refer to existent matters.
+#
+sql ()
+{
+  local dbs=$1
+  local dbn=$2
+  local ret=''
+
+  if [ "$dbn" = '' ]
+  then
+    ret="mysql --defaults-file=/home/${usr}/.my.cnf --host=sql-s${dbs} -A  -n -b -N --connect_timeout=10"
+  else
+    ret="mysql --defaults-file=/home/${usr}/.my.cnf --host=sql-s${dbs} -A --database=$dbn -n -b -N --connect_timeout=10"
+  fi
+
+  echo $ret
+}
