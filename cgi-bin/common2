@@ -98,7 +98,7 @@ how_actual ()
                 FROM $table                   \
                 ORDER BY actual DESC          \
                 LIMIT 1\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_dates "$line"
                     done
