@@ -74,11 +74,11 @@ CREATE FUNCTION nrcatuid (name VARCHAR(255))
 DROP PROCEDURE IF EXISTS categorylinks//
 CREATE PROCEDURE categorylinks (namespace INT)
   BEGIN
-    DECLARE st VARCHAR(255);
+    DECLARE st VARCHAR(511);
 
-    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=MEMORY AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ruwiki_p.categorylinks, nr', namespace, ', categories WHERE nr', namespace,'.id=cl_from and cl_to=categories.title;' );
-    PREPARE stmt FROM @st;
     DROP TABLE IF EXISTS nrcatl;
+    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=MEMORY AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @target_lang, 'wiki_p.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
+    PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
@@ -90,7 +90,8 @@ CREATE PROCEDURE categorylinks (namespace INT)
 DROP PROCEDURE IF EXISTS categorystats//
 CREATE PROCEDURE categorystats (inname VARCHAR(255), outname VARCHAR(255))
   BEGIN
-    DECLARE st VARCHAR(255);
+    DECLARE st VARCHAR(511);
+
     SET @st=CONCAT( 'DROP TABLE IF EXISTS ', outname, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
