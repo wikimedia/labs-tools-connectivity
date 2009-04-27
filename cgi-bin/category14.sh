@@ -1,5 +1,6 @@
 #!/bin/bash
 
+language="ru"
 script="category14"
 source ./common
 
@@ -110,7 +111,7 @@ then
                 FROM ruwiki14                   \
                      WHERE cat=\'$networkpath\' \
                      ORDER BY title ASC\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_layer "$line"
                     done
@@ -133,7 +134,7 @@ echo "<center><table border=0><tr><th>$struchead</th></tr><tr><td align=center><
               WHERE coolcat=cat   \
               GROUP BY cat        \
               ORDER BY REPLACE\(coolcat,\'_\',\'\+\'\) ASC\;
-} | $sql 2>&1 | { 
+} | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                   while read -r line
                     do handle_table "$line"
                   done
@@ -153,7 +154,7 @@ then
     echo SELECT r_title  \
                 FROM r14 \
                 ORDER BY r_title ASC\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_rlist "$line"
                     done
@@ -175,7 +176,7 @@ then
     echo SELECT wr_title  \
                 FROM wr14 \
                 ORDER BY wr_title ASC\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_rlist "$line"
                     done
