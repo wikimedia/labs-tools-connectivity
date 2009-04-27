@@ -55,11 +55,14 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
     DEALLOCATE PREPARE stmt;
 
     # REDIRECT PAGES WITH MORE THAN ONE LINK
-    DROP TABLE IF EXISTS wr;
-    CREATE TABLE wr (
-      wr_title varchar(255) binary NOT NULL default '',
-      PRIMARY KEY (wr_title)
-    ) ENGINE=MyISAM;
+    SET @st=CONCAT( 'DROP TABLE IF EXISTS wr', namespace );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET @st=CONCAT( 'CREATE TABLE wr', namespace, ' (wr_title varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (wr_title)) ENGINE=MyISAM;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;   
 
     SET @st=CONCAT( 'INSERT IGNORE INTO wr', namespace, ' SELECT r_title as wr_title FROM r', namespace, ', rlc WHERE rlc_cnt>1 and rlc_id=r_id;' );
     PREPARE stmt FROM @st;
