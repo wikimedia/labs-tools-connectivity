@@ -197,6 +197,8 @@ CREATE PROCEDURE disambiguator_refresh ( dsname VARCHAR(255) )
 DROP PROCEDURE IF EXISTS disambigs_as_fusy_redirects//
 CREATE PROCEDURE disambigs_as_fusy_redirects ()
   BEGIN
+    DECLARE st VARCHAR(511);
+
     #
     # Isolated articles linked from disambiguations.
     # 
@@ -241,6 +243,17 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
 
     SELECT CONCAT( ':: echo ', count(DISTINCT id), ' isolated articles may become linked' )
            FROM a2i;
+
+    #
+    # Named disambiguations list for use in web tools.
+    #
+    DROP TABLE IF EXISTS d0site;
+    SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT d_id as id, page_title as name FROM d0, ', @target_lang, 'wiki_p.page WHERE page_id=d_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    DROP TABLE d0;
 
     CALL categorystats( 'a2i', 'sgdcatvolume' );
 
