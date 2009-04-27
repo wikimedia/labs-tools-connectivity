@@ -1,5 +1,6 @@
 #!/bin/bash
 
+language="ru"
 script="suggest"
 source ./common
 
@@ -139,8 +140,8 @@ suggestions ()
   convertedtitle=$( echo $titlesql | sed -e 's/ /_/g' )
   echo "<ol>"
   {
-    echo CALL dsuggest\(\"$convertedtitle\"\)\;
-  } | $sql 2>&1 | {
+    echo CALL dsuggest\(\"$convertedtitle\"\, \'${language}\'\)\;
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_dsmbg "$line"
                     done
@@ -156,7 +157,7 @@ suggestions ()
   echo "<ol>"
   {
     echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_lnk "$line"
                     done
@@ -172,7 +173,7 @@ suggestions ()
   echo "<ol>"
   {
     echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     lang=''
                     while read -r line
                       do handle_trns "$line"
@@ -283,15 +284,8 @@ case $listby in
 
         echo "<ol>"
         {
-          echo SELECT DISTINCT title                           \
-                      FROM ruwiki_p.categorylinks,             \
-                           ruwiki0,                            \
-                           isdis                               \
-                           WHERE ruwiki0.id=cl_from and        \
-                                 cl_to=\'${convertedcat}\' and \
-                                 isdis.id=ruwiki0.id           \
-                           ORDER BY title ASC\;
-        } | $sql 2>&1 | { 
+          echo CALL isolated_for_category_dsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
+        } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                           while read -r line
                             do handle_category "$line"
                           done
@@ -304,15 +298,8 @@ case $listby in
 
         echo "<ol>"
         {
-          echo SELECT DISTINCT title                           \
-                      FROM ruwiki_p.categorylinks,             \
-                           ruwiki0,                            \
-                           isres                               \
-                           WHERE ruwiki0.id=cl_from and        \
-                                 cl_to=\'${convertedcat}\' and \
-                                 isres.id=ruwiki0.id           \
-                           ORDER BY title ASC\;
-        } | $sql 2>&1 | { 
+          echo CALL isolated_for_category_ilsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
+        } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                           while read -r line
                             do handle_category "$line"
                           done
@@ -325,15 +312,8 @@ case $listby in
 
         echo "<ol>"
         {
-          echo SELECT DISTINCT title                           \
-                      FROM ruwiki_p.categorylinks,             \
-                           ruwiki0,                            \
-                           istres                              \
-                           WHERE ruwiki0.id=cl_from and        \
-                                 cl_to=\'${convertedcat}\' and \
-                                 istres.id=ruwiki0.id          \
-                           ORDER BY title ASC\;
-        } | $sql 2>&1 | { 
+          echo CALL isolated_for_category_itsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
+        } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                           while read -r line
                             do handle_category "$line"
                           done
@@ -356,7 +336,7 @@ case $listby in
     # for orphaned and other isolated articles we use different definitions.
     {
       echo "SELECT cat FROM ruwiki0 WHERE title=\"${convertedtitle// /_}\";"
-    } | $sql 2>&1 | {
+    } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                       isotype=''
 
                       while read -r line
@@ -397,7 +377,7 @@ case $listby in
                      ruwiki0              \
                 WHERE ruwiki0.id=isdis.id \
                 ORDER BY title ASC\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_category "$line"
                     done
@@ -423,7 +403,7 @@ case $listby in
                 WHERE cat=id        \
                 ORDER BY cnt DESC   \
                 LIMIT $((shift)),100\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line" 'disambig'
                     done
@@ -446,7 +426,7 @@ case $listby in
                      ruwiki0              \
                 WHERE ruwiki0.id=isres.id \
                 ORDER BY title ASC\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_category "$line"
                     done
@@ -473,7 +453,7 @@ case $listby in
                 WHERE cat=id        \
                 ORDER BY cnt DESC   \
                 LIMIT $((shift)),100\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line" 'interlink'
                     done
@@ -496,7 +476,7 @@ case $listby in
                      ruwiki0               \
                 WHERE ruwiki0.id=istres.id \
                 ORDER BY title ASC\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_category "$line"
                     done
@@ -523,7 +503,7 @@ case $listby in
                 WHERE cat=id        \
                 ORDER BY cnt DESC   \
                 LIMIT $((shift)),100\;
-  } | $sql 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line" 'translate'
                     done
