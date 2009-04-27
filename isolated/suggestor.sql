@@ -17,7 +17,7 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 DROP PROCEDURE IF EXISTS suggestor//
-CREATE PROCEDURE suggestor ()
+CREATE PROCEDURE suggestor ( srv INT )
   BEGIN
     SET @starttime=now();
 
@@ -40,8 +40,9 @@ CREATE PROCEDURE suggestor ()
     #
     # For use in "ISOLATES WITH LINKED INTERWIKI".
     #
-    # Note: postponed because takes too much time.
-    CALL inter_langs();
+    # Note: postponed as taking too long.
+    #
+    CALL inter_langs( srv );
 
     DROP TABLE ll_orcat;
 
