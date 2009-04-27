@@ -22,19 +22,28 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# Replication timestamp and replication lag for ruwiki (yet).
+# Replication timestamp and replication lag for a language given.
 #
 DROP PROCEDURE IF EXISTS replag//
-CREATE PROCEDURE replag ()
+CREATE PROCEDURE replag ( language VARCHAR(64) )
   BEGIN
-    # ruwiki is placed on s3 and the largest wiki on s3 is frwiki
-    # when the last edit there happen?
-    SELECT max( rc_timestamp ) INTO @rep_time
-           FROM frwiki_p.recentchanges;
+    DECLARE st VARCHAR(255);
+    DECLARE nbr VARCHAR(64);
+
+    # what is the name or the latest neighbour of the language given
+    SELECT largest_neighbour( language ) INTO nbr;
+
+    # when the latest edit in the neighbour has happen?
+    SET @st=CONCAT( 'SELECT max( rc_timestamp ) INTO @rep_time FROM ', nbr, 'wiki_p.recentchanges;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     SELECT CONCAT( ':: echo last replicated timestamp: ', @rep_time );
 
-    # store run time value for referencing
+    #
+    # Store run time value for referencing
+    #
     SELECT now() INTO @run_time;
 
     # how old the latest edit there is?
@@ -47,9 +56,9 @@ CREATE PROCEDURE replag ()
 # for use in pretend() and actuality()
 #
 DROP PROCEDURE IF EXISTS actual_replag//
-CREATE PROCEDURE actual_replag ()
+CREATE PROCEDURE actual_replag ( language VARCHAR(64) )
   BEGIN
-    CALL replag();
+    CALL replag( language );
     SET @rep_act=@rep_time;
     SET @run_act=@run_time;
   END;
