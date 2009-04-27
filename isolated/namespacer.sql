@@ -37,22 +37,14 @@ delimiter //
 DROP PROCEDURE IF EXISTS cache_namespace_pages//
 CREATE PROCEDURE cache_namespace_pages (namespace INT)
   BEGIN
-    DECLARE st VARCHAR(255);
+    DECLARE st VARCHAR(511);
 
     # Requires @@max_heap_table_size not less than 134217728 for zero namespace.
     DROP TABLE IF EXISTS p;
-    CREATE TABLE p (
-      p_id int(8) unsigned NOT NULL default '0',
-      p_title varchar(255) binary NOT NULL default '',
-      p_is_redirect tinyint(1) unsigned NOT NULL default '0',
-      PRIMARY KEY (p_id),
-      UNIQUE KEY rtitle (p_title)
-    ) ENGINE=MEMORY AS
-    SELECT page_id as p_id,
-           page_title as p_title,
-           page_is_redirect as p_is_redirect
-           FROM ruwiki_p.page
-           WHERE page_namespace=namespace;
+    SET @st=CONCAT( 'CREATE TABLE p ( p_id int(8) unsigned NOT NULL default ', "'0'", ', p_title varchar(255) binary NOT NULL default ', "''", ', p_is_redirect tinyint(1) unsigned NOT NULL default ', "'0'", ', PRIMARY KEY (p_id), UNIQUE KEY rtitle (p_title) ) ENGINE=MEMORY AS SELECT page_id as p_id, page_title as p_title, page_is_redirect as p_is_redirect FROM ', @target_lang, 'wiki_p.page WHERE page_namespace=', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     SELECT CONCAT( ':: echo ', count(*), ' pages found for namespace ', namespace, ':' )
            FROM p;
@@ -339,6 +331,8 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
 DROP PROCEDURE IF EXISTS cache_namespace_links//
 CREATE PROCEDURE cache_namespace_links (namespace INT)
   BEGIN
+    DECLARE st VARCHAR(511);
+
     DROP TABLE IF EXISTS pl;
 
     #
@@ -354,16 +348,10 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     #           This is much better than iteration trough p0 with
     #           later indexed titles matching for all p0 values.
     #
-    CREATE TABLE pl (
-      pl_from int(8) unsigned NOT NULL default '0',
-      pl_to int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY AS /* SLOW_OK */
-    SELECT STRAIGHT_JOIN pl_from,
-                         p_id as pl_to
-           FROM ruwiki_p.pagelinks,
-                p0
-           WHERE pl_namespace=namespace and
-                 pl_title=p_title;
+    SET @st=CONCAT( 'CREATE TABLE pl ( pl_from int(8) unsigned NOT NULL default ', "'0'", ', pl_to int(8) unsigned NOT NULL default ', "'0'", ' ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from, p_id as pl_to FROM ', @target_lang, 'wiki_p.pagelinks, p0 WHERE pl_namespace=', namespace, ' and pl_title=p_title;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', namespace )
            FROM pl;
@@ -424,8 +412,6 @@ CREATE PROCEDURE categorybridge ()
 DROP PROCEDURE IF EXISTS throwNhull4subsets//
 CREATE PROCEDURE throwNhull4subsets (namespace INT)
   BEGIN
-    DECLARE st VARCHAR(255);
-
     # collects wrong redirects and excludes them from pl
     CALL cleanup_wrong_redirects( namespace );
 
@@ -503,16 +489,6 @@ CREATE PROCEDURE store_paraphrases ()
     INSERT INTO zns
     VALUES ( @articles_count, @chrono_articles_count, @disambiguation_pages_count, @collaborative_lists_count );
 
-    #
-    # FCH, from chrono articles
-    #
-
-    # permanent storage for inter-run data created here if not exists
-    CREATE TABLE IF NOT EXISTS fch (
-      clinks INT(8) unsigned NOT NULL default '0',
-      alinks INT(8) unsigned NOT NULL default '0'
-    ) ENGINE=MyISAM;
-
     # no need to keep old data because the action has performed
     DELETE FROM fch;
 
@@ -586,6 +562,16 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL cache_namespace_links( 0 );
 
     #
+    # FCH, from chrono articles
+    #
+
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS fch (
+      clinks INT(8) unsigned NOT NULL default '0',
+      alinks INT(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
+    #
     # Gives us l and some others: wr, mr, r filtered, r2nr.
     #
     CALL throwNhull4subsets( 0 );
@@ -603,8 +589,9 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL store_drdi();
 
     DROP TABLE pl;
-    # partial disambiguator unload
-    DROP TABLE d;
+    # this table now will be used for web queries
+    DROP TABLE IF EXISTS d0;
+    RENAME TABLE d TO d0;
     # partial namespacer unload
     DROP TABLE nr0;
 
@@ -683,11 +670,11 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
 //
 
 DROP PROCEDURE IF EXISTS zero_namespace_postponed_tools//
-CREATE PROCEDURE zero_namespace_postponed_tools ()
+CREATE PROCEDURE zero_namespace_postponed_tools ( server INT )
   BEGIN
     SELECT ':: echo POSTPONED ZERO NAMESPACE TOOLS';
 
-    CALL suggestor();
+    CALL suggestor( server );
 
     CALL creatorizer();
   END;
