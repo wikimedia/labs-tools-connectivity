@@ -21,8 +21,8 @@
  #
  #      SELECT ':: <receiver-server> take <table-name>';
  #
- #      Allowed values for <sender-server> and <receiver-server> are: s2 and s3.
-
+ #      Allowed values for <sender-server> and <receiver-server> are: s<1-3>.
+ #
 
 iter=0
 portion=0;
@@ -49,4 +49,4 @@ done
 # this indicates the transfer is done
 echo "INSERT INTO communication_exchange VALUES (1);";
 
-echo 'SELECT CONCAT( ":: echo . ", count(*), " items received" ) FROM '"$1"';'
+echo "SELECT CONCAT( \":: echo . \", count(*), \" s$2 items received at s$3\" ) FROM $1;"
