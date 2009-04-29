@@ -269,7 +269,7 @@ while( <> )
               {
                 $failed_count+=1;
                 $editor->{errstr}='';
-                print ":: echo error editing to resolve double redirect";
+                print ":: echo error editing to resolve double redirect\n";
               }
               else
               {
