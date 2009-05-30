@@ -131,9 +131,20 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
 
     #
     # In order to exclude disambiguations from articles set,
-    # disambiguation pages are collected here into d table.
+    # disambiguation pages are being collected here into d table.
     #
-    CALL collect_disambig();
+    DROP TABLE IF EXISTS d;
+    CREATE TABLE d (
+      d_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (d_id)
+    ) ENGINE=MEMORY;
+
+    CALL collect_disambig( CONCAT( @target_lang, 'wiki_p' ), namespace, ':: echo ' );
+    #
+    # One more call to another version of this function allows some languages
+    # controlling difference between disambiguation category content and
+    # templated content.
+    #
 
     #
     # Collaborative lists collected here to for links table filtering.
@@ -196,7 +207,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
         SELECT cllt_id as cna_id
                FROM cllt;
 
-        SELECT CONCAT( ':: echo ', count(*), ' categorized exclusion names found' )
+        SELECT CONCAT( ':: echo ', count(*), ' categorized/templated exclusion names found' )
                FROM cna;
     END IF;
     DROP TABLE cllt;
