@@ -1,5 +1,6 @@
  --
- -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ -- Authors: [[:ru:user:Mashiah Davidson]],
+ --          [[:ru:user:Kalan]]
  --
  -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
  --
@@ -21,34 +22,119 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# Select pages in a set given by nrcat table and categorized there as
-# disambiguation pages.
+# Disambiguation pages could be found in two different ways and just 
+# one of them is implemented here
+#
+
+#
+# Templates marking disambiguation pages are being collected by administrators
+# at [[:ru:MediaWiki:Disambiguationspage]].
+#
+# So, here we extract links to template pages from this special page and then
+# collect disambiguation pages templated.
+# 
+# This works much better than selection by category name, which could be
+# different in its meaning, content and naming for various languages.
+#
+# See also: another version of this function commented out below.
 #
 DROP PROCEDURE IF EXISTS collect_disambig//
-CREATE PROCEDURE collect_disambig ()
+CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VARCHAR(32))
   BEGIN
+    DECLARE st VARCHAR(511);
+
     #
-    # Disambiguation pages collected here.
+    # All disambiguation templates including templates-redirects are being
+    # stored here.
     #
-    # With namespace=14 it does show if disambiguations category is split into
-    # subcategories.
+    DROP TABLE IF EXISTS dt;
+    SET @st=CONCAT( 'CREATE TABLE dt ( dt_title varchar(255) binary NOT NULL default "", PRIMARY KEY (dt_title) ) ENGINE=MEMORY AS SELECT DISTINCT pl_title as dt_title FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( prefix, count(*), ' disambiguating template names found' )
+           FROM dt;
+
     #
-    DROP TABLE IF EXISTS d;
-    CREATE TABLE d (
-      d_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (d_id)
-    ) ENGINE=MEMORY AS
-    SELECT DISTINCT nrcl_from as d_id
-           FROM nrcatl
-                 #                   disambiguation pages
-           WHERE nrcl_cat=nrcatuid( 'Многозначные_термины' );
+    # Dirty list of disambiguation pages, everything, 
+    # not just the namespace given.
+    #
+    SET @st=CONCAT( 'INSERT INTO d SELECT DISTINCT tl_from as d_id FROM dt, ', dbname, '.templatelinks WHERE tl_namespace=10 and tl_title=dt_title;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     SELECT count(*) INTO @disambiguation_pages_count
            FROM d;
 
-    SELECT CONCAT( ':: echo ', @disambiguation_pages_count, ' disambiguation pages found' );
+    SELECT CONCAT( prefix, @disambiguation_pages_count, ' disambiguation pages for all namespaces' );
+
+    IF namespace>=0
+      THEN
+        #
+        # Disambiguation pages for the namespace given are being collected here.
+        #
+        SET @st=CONCAT( 'DELETE FROM d WHERE d_id not in (select id from nr', namespace, ');' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SELECT count(*) INTO @disambiguation_pages_count
+               FROM d;
+
+        SELECT CONCAT( prefix, @disambiguation_pages_count, ' disambiguation pages found for namespace ', namespace );
+    END IF;
+
+    DROP TABLE dt;
+
   END;
 //
+
+
+###############################################################################
+#
+# Allows filtering disambiguation pages marked by direct inclusion to category.
+# Allows filtering articles marked as disambiguation pages in a mistake.
+#
+# See also: See classify_namespace procedure defined in namespacer.
+#
+# Notes: With no change can be used for russian wikipedia only.
+#
+#        For languages with a category for all disambiguation pages can be
+#        easily modified.
+#
+#        Too difficult to support interlanguage data especially due to
+#        sometimes strange hierarchy of disambiguation pages categorization.
+#
+##
+## This is the second (classical) way to construct the list of
+## disambiguation pages.
+##
+## Select pages in a set given by nrcat table and categorized there as
+## disambiguation pages.
+##
+#DROP PROCEDURE IF EXISTS collect_disambig//
+#CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VARCHAR(32))
+#  BEGIN
+#    #
+#    # Disambiguation pages collected here.
+#    #
+#    # With namespace=14 it does show if disambiguations category is split into
+#    # subcategories.
+#    #
+#    INSERT INTO d
+#    SELECT DISTINCT nrcl_from as d_id
+#           FROM nrcatl
+#                 #                   disambiguation pages
+#           WHERE nrcl_cat=nrcatuid( 'Многозначные_термины' );
+#
+#    SELECT count(*) INTO @disambiguation_pages_count
+#           FROM d;
+#
+#    SELECT CONCAT( ':: echo ', @disambiguation_pages_count, ' disambiguation pages found' );
+#  END;
+#//
 
 #
 # Links from articles to disambiguations are constructed here.
