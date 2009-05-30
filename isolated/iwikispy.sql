@@ -74,33 +74,27 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
 
         DELETE FROM rinfo;
 
-        SET @st=CONCAT( 'INSERT INTO dinfo SELECT cl_from FROM d_i18n, ', dbname, ".categorylinks WHERE lang='", language, "' and cl_to=dn;" );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-        SELECT CONCAT( prefix, count(*), ' disambiguation pages found' )
-               FROM dinfo;
+        CALL collect_disambig( dbname, -1, prefix );
 
         #
         # No need to suggest disambiguation pages translation.
         #
         DELETE liwl 
                FROM liwl,
-                    dinfo 
-               WHERE fr=did;
+                    d 
+               WHERE fr=d_id;
     
         SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after disambiguations cleanup" )
                FROM liwl;
 
-        DELETE FROM dinfo;
+        DELETE FROM d;
 
         SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates can be linked based on interwiki' )
+        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates could be linked based on interwiki' )
                FROM res
                WHERE lang=language;
 
@@ -119,7 +113,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
 
         DELETE FROM liwl;
 
-        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates can be linked with main namespace pages translation' )
+        SELECT CONCAT( prefix, count(DISTINCT id), ' isolates could be linked with main namespace pages translation' )
                FROM tres
                WHERE lang=language;
     END IF;
@@ -140,12 +134,6 @@ CREATE PROCEDURE inter_langs_ct()
       KEY (title)
     ) ENGINE=MEMORY;
 
-    DROP TABLE IF EXISTS d_i18n;
-    CREATE TABLE d_i18n (
-      lang varchar(10) binary NOT NULL default '',
-      dn varchar(255) binary NOT NULL default ''
-    ) ENGINE=MEMORY;
-
     DROP TABLE IF EXISTS liwl;
     CREATE TABLE liwl (
       fr int(8) unsigned not null default '0',
@@ -162,10 +150,10 @@ CREATE PROCEDURE inter_langs_ct()
       KEY (page_is_redirect, page_title)
     ) ENGINE=MEMORY;
 
-    DROP TABLE IF EXISTS dinfo;
-    CREATE TABLE dinfo (
-      did int(8) unsigned not null default '0',
-      PRIMARY KEY (did)
+    DROP TABLE IF EXISTS d;
+    CREATE TABLE d (
+      d_id int(8) unsigned not null default '0',
+      PRIMARY KEY (d_id)
     ) ENGINE=MEMORY;
 
     DROP TABLE IF EXISTS res;
@@ -227,6 +215,7 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_sv;
       IF NOT done
         THEN
+          SELECT CONCAT( ':: s', cur_sv, ' init disambig.sql' );
           SELECT CONCAT( ':: s', cur_sv, ' init iwikispy.sql' );
       END IF;
     UNTIL done END REPEAT;
@@ -292,33 +281,6 @@ CREATE PROCEDURE inter_langs( srv INT )
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' take iwl' );
           SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and iwl.lang=toolserver.wiki.lang\;" );
-      END IF;
-    UNTIL done END REPEAT;
-
-    CLOSE scur;
-
-    #
-    # Exclusion of disambiguation pages requires the categoryname.
-    # We can obtain it from interwiki links for the local disambiguations
-    # category.
-    #
-    SET @st=CONCAT( 'INSERT INTO d_i18n SELECT ll_lang as lang, REPLACE(SUBSTRING(ll_title,LOCATE(', "':'", ',ll_title)+1), ', "' ', '_'", ') as dn FROM ', @target_lang, 'wiki_p.langlinks, ', @target_lang, 'wiki_p.page WHERE page_title=', "'", 'Многозначные_термины', "'", ' and page_namespace=14 and ll_from=page_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    #
-    # Initiate distribution of translated disambig categoryname.
-    #
-    OPEN scur;
-    SET done = 0;
-
-    REPEAT
-      FETCH scur INTO cur_sv;
-      IF NOT done
-        THEN
-          SELECT CONCAT( ':: s', cur_sv, ' take d_i18n' );
-          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', d_i18n.lang, '\",\"', dn, '\" \)' \) FROM d_i18n, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and d_i18n.lang=toolserver.wiki.lang\;" );
       END IF;
     UNTIL done END REPEAT;
 
@@ -396,8 +358,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # Deinitialize and report on master results.
     #
-    DROP TABLE d_i18n;
-    DROP TABLE dinfo;
+    DROP TABLE d;
     DROP TABLE rinfo;
     DROP TABLE iwl;
     DROP TABLE liwl;
@@ -405,10 +366,10 @@ CREATE PROCEDURE inter_langs( srv INT )
     DELETE FROM res
            WHERE suggestn='';
 
-    SELECT CONCAT( ':: echo With use of s', srv, ' ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo With use of s', srv, ' ', count(DISTINCT id), ' isolates could be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo With use of s', srv, ' ', count(DISTINCT id), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo With use of s', srv, ' ', count(DISTINCT id), ' isolates could be linked with translation' )
            FROM tres;
 
     #
@@ -466,10 +427,10 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # Report and refresh the web
     #
-    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates could be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates could be linked with translation' )
            FROM tres;
 
     CALL categorystats( 'res', 'sglcatvolume' );
@@ -522,7 +483,7 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
     REPEAT
       SELECT count(*) INTO ready
              FROM communication_exchange;
-    UNTIL ready=2 END REPEAT;
+    UNTIL ready=1 END REPEAT;
     DROP TABLE communication_exchange;
 
     # slave languages loop
@@ -538,8 +499,7 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
 
     CLOSE cur;
 
-    DROP TABLE d_i18n;
-    DROP TABLE dinfo;
+    DROP TABLE d;
     DROP TABLE rinfo;
     DROP TABLE iwl;
     DROP TABLE liwl;
@@ -553,10 +513,10 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
     UPDATE tres
            SET suggestn=REPLACE( suggestn, '"', '\\"');
 
-    SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates can be linked based on interwiki' )
+    SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates could be linked based on interwiki' )
            FROM res;
 
-    SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates can be linked with translation' )
+    SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates could be linked with translation' )
            FROM tres;
 
     SELECT CONCAT( ':: s', mnum, ' take res_s', snum );
