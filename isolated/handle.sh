@@ -123,7 +123,7 @@ handle ()
           elem=${#collection[*]}
           {
             iter=0
-            while [ $iter -lt $elem ]
+            while (($iter < $elem))
             do
               echo ${collection[$iter]}
               iter=$(($iter+1))
@@ -148,7 +148,7 @@ handle ()
         if [ "$do_templates" = "1" ]
         then
           extminutes ${line:10}
-          if [ $minutes -ge $maxlag ]
+          if (($minutes >= $maxlag))
           then
             echo replag of $minutes minutes is to big, must be below $maxlag
             echo perishable data will not be applied
@@ -194,7 +194,7 @@ handle ()
                   do_stat=0
                 else
                   extminutes ${line:28}
-                  if [ ${line:28} = '00:00:00' ] || [ $minutes -ge $statintv ]
+                  if [ ${line:28} = '00:00:00' ] || (($minutes >= $statintv))
                   then
                     if [ ${line:28} = '00:00:00' ]
                     then
