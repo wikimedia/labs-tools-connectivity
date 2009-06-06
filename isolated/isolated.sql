@@ -65,7 +65,6 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
                   SELECT chr_id
                          FROM chrono
                  );
-    DROP TABLE chrono;
 
     SELECT @articles_to_articles_links_count-count(*) INTO @chrono_to_articles_links_count
            FROM l;
@@ -621,6 +620,10 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
           THEN
             SELECT MAX(grp.cnt) INTO actmaxsize
                  FROM grp;
+            IF actmaxsize>maxsize
+              THEN
+                SET actmaxsize=maxsize;
+            END IF;
         END IF;
     END IF;
 
