@@ -24,7 +24,7 @@ language="ru"
 # Later could be changed to any other constant or chosen
 # among the existent server list.
 #
-server=3
+server=1
 
 #
 # Initialize variables: $dbserver, $dbhost, $usr.
