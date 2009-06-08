@@ -22,11 +22,6 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# Disambiguation pages could be found in two different ways and just 
-# one of them is implemented here
-#
-
-#
 # Templates marking disambiguation pages are being collected by administrators
 # at [[:ru:MediaWiki:Disambiguationspage]].
 #
@@ -35,8 +30,6 @@ delimiter //
 # 
 # This works much better than selection by category name, which could be
 # different in its meaning, content and naming for various languages.
-#
-# See also: another version of this function commented out below.
 #
 DROP PROCEDURE IF EXISTS collect_disambig//
 CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VARCHAR(32))
@@ -90,51 +83,6 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
 
   END;
 //
-
-
-###############################################################################
-#
-# Allows filtering disambiguation pages marked by direct inclusion to category.
-# Allows filtering articles marked as disambiguation pages in a mistake.
-#
-# See also: See classify_namespace procedure defined in namespacer.
-#
-# Notes: With no change can be used for russian wikipedia only.
-#
-#        For languages with a category for all disambiguation pages can be
-#        easily modified.
-#
-#        Too difficult to support interlanguage data especially due to
-#        sometimes strange hierarchy of disambiguation pages categorization.
-#
-##
-## This is the second (classical) way to construct the list of
-## disambiguation pages.
-##
-## Select pages in a set given by nrcat table and categorized there as
-## disambiguation pages.
-##
-#DROP PROCEDURE IF EXISTS collect_disambig//
-#CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VARCHAR(32))
-#  BEGIN
-#    #
-#    # Disambiguation pages collected here.
-#    #
-#    # With namespace=14 it does show if disambiguations category is split into
-#    # subcategories.
-#    #
-#    INSERT INTO d
-#    SELECT DISTINCT nrcl_from as d_id
-#           FROM nrcatl
-#                 #                   disambiguation pages
-#           WHERE nrcl_cat=nrcatuid( 'Многозначные_термины' );
-#
-#    SELECT count(*) INTO @disambiguation_pages_count
-#           FROM d;
-#
-#    SELECT CONCAT( ':: echo ', @disambiguation_pages_count, ' disambiguation pages found' );
-#  END;
-#//
 
 #
 # Links from articles to disambiguations are constructed here.
