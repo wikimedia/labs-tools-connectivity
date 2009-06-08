@@ -115,10 +115,8 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
 
 #
 # Categorized non-articles are given for each project by page named
-#    ConnectivityProjectInternationalization/CategorizedNonArticles
+#    @i18n_page/CategorizedNonArticles
 # in fourth namespace.
-#
-# See also: another version of this function commented out below.
 #
 DROP PROCEDURE IF EXISTS get_categorized_non_articles//
 CREATE PROCEDURE get_categorized_non_articles (namespace INT)
@@ -127,7 +125,7 @@ CREATE PROCEDURE get_categorized_non_articles (namespace INT)
 
     DROP TABLE IF EXISTS cllt;
 
-    SET @st=CONCAT( 'CREATE TABLE cllt ( cllt_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (cllt_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as cllt_id FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks, ', @target_lang, 'wiki_p.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="ConnectivityProjectInternationalization/CategorizedNonArticles";' );
+    SET @st=CONCAT( 'CREATE TABLE cllt ( cllt_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (cllt_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as cllt_id FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks, ', @target_lang, 'wiki_p.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -144,53 +142,10 @@ CREATE PROCEDURE get_categorized_non_articles (namespace INT)
   END;
 //
 
-##
-## For ruwiki the following code has been used previously
-##
-#DROP PROCEDURE IF EXISTS get_categorized_non_articles//
-#CREATE PROCEDURE get_categorized_non_articles (namespace INT)
-#  BEGIN
-#    #
-#    # Collaborative lists collected here to for links table filtering.
-#    #
-#    # With namespace=14 it does show if secondary lists category is split into
-#    # subcategories.
-#    #
-#    DROP TABLE IF EXISTS cllt;
-#    CREATE TABLE cllt (
-#      cllt_id int(8) unsigned NOT NULL default '0',
-#      PRIMARY KEY  (cllt_id)
-#    ) ENGINE=MEMORY AS
-#    SELECT DISTINCT nrcl_from as cllt_id
-#           FROM nrcatl
-#                #      secondary lists
-#           WHERE nrcl_cat=nrcatuid('Списки_статей_для_координации_работ');
-#
-#    #
-#    # Add soft redirects to cllt.
-#    #
-#    INSERT INTO cllt
-#    SELECT DISTINCT nrcl_from as cllt_id
-#           FROM nrcatl
-#                 #      soft redirects
-#           WHERE nrcl_cat=nrcatuid('Википедия:Мягкие_перенаправления');
-#
-#    SELECT count(*) INTO @collaborative_lists_count
-#           FROM cllt;
-#
-#    SELECT CONCAT( ':: echo ', @collaborative_lists_count, ' categorized non-articles found' );
-#  END;
-#//
-
-#
-# Chrono articles could be found in two different ways and just 
-# one of them is implemented here
-#
-
 #
 # Chrono articles are defined by a set of links to category pages from
 # page named
-#    ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks
+#    @i18n_page/ArticlesNotFormingValidLinks
 # in fourth namespace.
 #
 # See also: another version of this function commented out below.
@@ -202,7 +157,7 @@ CREATE PROCEDURE get_chrono ()
 
     DROP TABLE IF EXISTS chrono;
 
-    SET @st=CONCAT( 'CREATE TABLE chrono ( chr_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (chr_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as chr_id FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks, ', @target_lang, 'wiki_p.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks";' );
+    SET @st=CONCAT( 'CREATE TABLE chrono ( chr_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (chr_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as chr_id FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks, ', @target_lang, 'wiki_p.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -223,105 +178,6 @@ CREATE PROCEDURE get_chrono ()
     SELECT CONCAT( ':: echo ', @chrono_articles_count, ' chronological articles found' );
   END;
 //
-
-
-###############################################################################
-##
-## Old way to determine chrono articles. Could be helpful for ruwiki for 
-## periodical checking.
-##
-#DROP PROCEDURE IF EXISTS get_chrono//
-#CREATE PROCEDURE get_chrono ()
-#  BEGIN
-#
-#  DROP TABLE IF EXISTS chrono;
-#  CREATE TABLE chrono (
-#    chr_id int(8) unsigned NOT NULL default '0',
-#    PRIMARY KEY  (chr_id)
-#  ) ENGINE=MEMORY AS
-#  SELECT DISTINCT id as chr_id
-#         FROM articles
-#               #           Common Era years 
-#         WHERE title LIKE '_!_год' escape '!' OR
-#               title LIKE '__!_год' escape '!' OR             
-#               title LIKE '___!_год' escape '!' OR             
-#               title LIKE '____!_год' escape '!' OR
-#               #           years B.C.
-#               title LIKE '_!_год!_до!_н.!_э.' escape '!' OR             
-#               title LIKE '__!_год!_до!_н.!_э.' escape '!' OR             
-#               title LIKE '___!_год!_до!_н.!_э.' escape '!' OR             
-#               title LIKE '____!_год!_до!_н.!_э.' escape '!' OR
-#               #           decades
-#               title LIKE '_-е' escape '!' OR             
-#               title LIKE '__-е' escape '!' OR             
-#               title LIKE '___-е' escape '!' OR
-#               title LIKE '____-е' escape '!' OR
-#               #           decades B.C.
-#               title LIKE '_-е!_до!_н.!_э.' escape '!' OR             
-#               title LIKE '__-е!_до!_н.!_э.' escape '!' OR             
-#               title LIKE '___-е!_до!_н.!_э.' escape '!' OR
-#               title LIKE '____-е!_до!_н.!_э.' escape '!' OR
-#               #           centuries
-#               title LIKE '_!_век' escape '!' OR
-#               title LIKE '__!_век' escape '!' OR
-#               title LIKE '___!_век' escape '!' OR
-#               title LIKE '____!_век' escape '!' OR
-#               title LIKE '_____!_век' escape '!' OR
-#               title LIKE '______!_век' escape '!' OR
-#               #           centuries B.C.
-#               title LIKE '_!_век!_до!_н.!_э.' escape '!' OR
-#               title LIKE '__!_век!_до!_н.!_э.' escape '!' OR
-#               title LIKE '___!_век!_до!_н.!_э.' escape '!' OR
-#               title LIKE '____!_век!_до!_н.!_э.' escape '!' OR
-#               title LIKE '_____!_век!_до!_н.!_э.' escape '!' OR
-#               title LIKE '______!_век!_до!_н.!_э.' escape '!' OR
-#               #           milleniums
-#               title LIKE '_!_тысячелетие' escape '!' OR
-#               title LIKE '__!_тысячелетие' escape '!' OR
-#               #             milleniums B.C.
-#               title LIKE '_!_тысячелетие!_до!_н.!_э.' escape '!' OR
-#               title LIKE '__!_тысячелетие!_до!_н.!_э.' escape '!' OR
-#               title LIKE '___!_тысячелетие!_до!_н.!_э.' escape '!' OR
-#               #             years in different application domains
-#               title LIKE '_!_год!_в!_%' escape '!' OR
-#               title LIKE '__!_год!_в!_%' escape '!' OR
-#               title LIKE '___!_год!_в!_%' escape '!' OR
-#               title LIKE '____!_год!_в!_%' escape '!' OR
-#               #             calendar dates in the year
-#               title LIKE '_!_января' escape '!' OR
-#               title LIKE '__!_января' escape '!' OR
-#               title LIKE '_!_февраля' escape '!' OR
-#               title LIKE '__!_февраля' escape '!' OR
-#               title LIKE '_!_марта' escape '!' OR
-#               title LIKE '__!_марта' escape '!' OR
-#               title LIKE '_!_апреля' escape '!' OR
-#               title LIKE '__!_апреля' escape '!' OR
-#               title LIKE '_!_мая' escape '!' OR
-#               title LIKE '__!_мая' escape '!' OR
-#               title LIKE '_!_июня' escape '!' OR
-#               title LIKE '__!_июня' escape '!' OR
-#               title LIKE '_!_июля' escape '!' OR
-#               title LIKE '__!_июля' escape '!' OR
-#               title LIKE '_!_августа' escape '!' OR
-#               title LIKE '__!_августа' escape '!' OR
-#               title LIKE '_!_сентября' escape '!' OR
-#               title LIKE '__!_сентября' escape '!' OR
-#               title LIKE '_!_октября' escape '!' OR
-#               title LIKE '__!_октября' escape '!' OR
-#               title LIKE '_!_ноября' escape '!' OR
-#               title LIKE '__!_ноября' escape '!' OR
-#               title LIKE '_!_декабря' escape '!' OR
-#               title LIKE '__!_декабря' escape '!' OR
-#               #           year lists by the first week day 
-#               title LIKE 'Високосный!_год,!_начинающийся!_в%' escape '!' OR
-#               title LIKE 'Невисокосный!_год,!_начинающийся!_в%' escape '!';
-#
-#    SELECT count(*) INTO @chrono_articles_count
-#           FROM chrono;
-#
-#    SELECT CONCAT( ':: echo ', @chrono_articles_count, ' chronological articles found' );
-#  END;
-#//
 
 #
 # Constructs nrcatl, the categorizing links for the namespace given.
