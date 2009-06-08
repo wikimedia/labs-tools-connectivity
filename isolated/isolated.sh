@@ -96,6 +96,11 @@ time {
     echo "set @target_lang='$language';"
 
     #
+    # Root page for various language related configurations
+    #
+    echo "set @i18n_page='ConnectivityProjectInternationalization';"
+
+    #
     # Enable/disable informative output, such as current sets of
     # dead end articles or isolated chains of various types.
     #
@@ -140,6 +145,16 @@ time {
 #    echo "SET @@max_heap_table_size=268435456;"
     echo "SET @@max_heap_table_size=536870912;"
 #     echo "SET @@max_heap_table_size=1073741824;"
+
+    #
+    # Isolated and analysis is being run for different target sets,
+    # so we have to initialize it once before any processing
+    #
+    # Localized isolated category name and subcategories naming rules
+    # are initialized here as defined at
+    #   ConnectivityProjectInternationalization/IsolatedArticles
+    #
+    echo "CALL get_isolated_category_names();"
 
     #
     # Analyze zero namespace connectivity. Limit claster sizes by 10.
