@@ -36,9 +36,9 @@ CREATE PROCEDURE get_known_deadend ()
     #
     # Category name for deadend articles categoryname.
     #
-    # Derived from 'ConnectivityProjectInternationalization/DeadEndArticles'.
+    # Derived from @i18n_page/DeadEndArticles.
     #
-    SET @st=CONCAT( 'SELECT DISTINCT pl_title INTO @deadend_category_name FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="ConnectivityProjectInternationalization/DeadEndArticles" ORDER BY pl_title ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT DISTINCT pl_title INTO @deadend_category_name FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/DeadEndArticles" ORDER BY pl_title ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -50,26 +50,6 @@ CREATE PROCEDURE get_known_deadend ()
            WHERE nrcl_cat=nrcatuid(@deadend_category_name);
   END;
 //
-
-##
-## This code is obsolete, it works just for ru.
-##
-## DEAD-END PAGES REGISTERED AT THE MOMENT
-#DROP PROCEDURE IF EXISTS get_known_deadend//
-#CREATE PROCEDURE get_known_deadend ()
-#  BEGIN
-#    DECLARE cnt INT;
-#    DECLARE st VARCHAR(255);
-#
-#    INSERT INTO del
-#    SELECT nrcl_from as id,
-#           -1 as act
-#           FROM nrcatl
-#           #                        a category registering deadend articles
-#           WHERE nrcl_cat=nrcatuid('Википедия:Тупиковые_статьи');
-#  END;
-#//
-
 
 #
 # Collects dead-end articles, i.e. articles having no links to other
