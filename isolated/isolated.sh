@@ -96,6 +96,11 @@ time {
     echo "set @target_lang='$language';"
 
     #
+    # Set master server id
+    #
+    echo "set @master_server_id=$server;"
+
+    #
     # Root page for various language related configurations
     #
     echo "set @i18n_page='ConnectivityProjectInternationalization';"
