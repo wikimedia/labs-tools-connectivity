@@ -18,6 +18,8 @@ my $outpage=shift;
 my $mode=shift;
 my $user=shift;
 my $tstime=shift;
+my $fix_stat_for=shift;
+my $reply_to=shift;
 
 open FILE, '</home/'.$user.'/.ru.cnf' or die ":: echo $!";
 print ":: echo ".$user." grants permissions to bot ";
@@ -48,9 +50,7 @@ if ( $loginstatus eq '1' ) {
   die ':: echo invalid login; possibly ~/.ru.cnf contains wrong data';
 }
 
-#            may need to be driven from outside
-#my $article="User:Mashiah Davidson/".$outpage;
-my $article=decode('utf8','Участник:Mashiah Davidson/'.$outpage);
+my $article=decode('utf8',$outpage);
 
 my $current=$editor->get_text($article);
 chomp $current;
@@ -92,12 +92,66 @@ if( $mode eq 'pre' )
   $text=$text.'|}'."\n";
 }
 
-if( $text eq $current )
+my $time_to_upload=0;
+
+if( $current eq '' ) 
 {
-  print ":: echo no need to upload\n";
+
+  print ":: echo page is empty, upload required\n";
+  $time_to_upload=1;
+
+} elsif( $text eq $current ) {
+
+  print ":: echo data not changed, no need for upload\n";
+  $time_to_upload=0;
+
+} else {
+
+  my @lastedit=$editor->get_history($article,1);
+
+  my $editcomment = $lastedit[0]->{comment};
+
+  if( $editcomment !~ qr/(\d{4})\-(\d\d)\-(\d\d)\s(\d\d)\:(\d\d)\:(\d\d)$/ )
+  {
+    print ":: echo upload due to unrecognizable comment for the previous edit\n";
+    $time_to_upload=1;
+  } else {
+
+    #
+    # Mashiah Davidson: thanks to Dr.Ruud for my time saved
+    # (http://www.nntp.perl.org/group/perl.datetime/2006/05/msg6342.html)
+    #
+    sub delta_time
+    {
+      my $t ;
+
+      my $RE = qr/(\d{4})\-(\d\d)\-(\d\d)\s(\d\d)\:(\d\d)\:(\d\d)$/ ;
+
+      sub calc { ( ( ( ( $1*365.25 + $2*365.25/12 + $3
+                       ) * 24 + $4
+                     ) * 60 + $5
+                   ) * 60 + $6
+                 )
+               }
+
+      $_[0] =~ $RE  and  $t -= calc()  and
+      $_[1] =~ $RE  and  $t += calc()  and  return $t ;
+      return
+    }
+
+    my $minutes_left=int(delta_time( $editcomment, $tstime)/60);
+
+    if ( $minutes_left >= $fix_stat_for ) {
+      print ":: it now time to upload\n";
+      $time_to_upload=1;
+    } else {
+      print ":: echo too early to upload\n";
+      $time_to_upload=0;
+    }
+  }
 }
-else
-{
+
+if( $time_to_upload ) {
   my $edit_summary='updated, toolserver time is '.$tstime;
 
   my $is_minor = 0;
@@ -106,7 +160,7 @@ else
   $editor->edit($article, $text, $edit_summary, $is_minor);
 
   print ":: echo data successfully uploaded\n";
-  print ":: s3 done wikistat\n";
+  print ":: s".$reply_to." done wikistat\n";
 }
 
 # </pre>
