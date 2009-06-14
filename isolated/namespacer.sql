@@ -485,6 +485,31 @@ CREATE PROCEDURE store_paraphrases ()
 //
 
 #
+# This function obtains page name for statistics upload from templated named
+#  {{Connectivity project root}}
+# and initialte isolated clusters statistics upload to this page. 
+#
+DROP PROCEDURE IF EXISTS initiate_statistics_upload//
+CREATE PROCEDURE initiate_statistics_upload ()
+  BEGIN
+    DECLARE st VARCHAR(511);
+
+    SELECT max(ts) INTO @curts
+           FROM wikistat
+           WHERE valid=0;
+
+    SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace ), pl_title ) INTO @connectivity_project_root FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: stat ', @curts, ' ', @master_server_id, ' ', @connectivity_project_root, '/stat' );
+
+  END;
+//
+
+
+#
 # Do all the zero namespace connectivity analysis assuming maxsize as
 # maximal possible claster size, zero means no limit.
 #
@@ -497,7 +522,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
 
     #
-    # Let wikistat be the permanent storage 
+    # Let wikistat table be a permanent storage 
     #     for inter-run data on statistics upload
     #
     # aka WikiMirrorTime al CurrentRunTime
@@ -590,30 +615,13 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL isolated_refresh( '0', 0 );
 
     #
-    # STATIST INITIATION
+    # Initiate statistics upload on isolated chains
     #
+    call initiate_statistics_upload();
 
-    # initiate statistics upload 
-    SELECT count(*) INTO @validexists
-           FROM wikistat
-           WHERE valid=1;
-    SELECT max(ts) INTO @curts
-           FROM wikistat
-           WHERE valid=0;
-    IF @validexists=0
-      THEN
-        # first statistics upload
-        SELECT CONCAT( ':: stat ', @curts, ' 00:00:00' );
-      ELSE
-        SELECT max(ts) INTO @valid
-               FROM wikistat
-               WHERE valid=1;
-        SELECT timediff(@curts, @valid) INTO @valid;
-
-        SELECT CONCAT( ':: stat ', @curts, ' ', @valid );
-    END IF;
-
-    # pack files for delivery
+    #
+    # Pack files for delivery
+    #
     SELECT ':: 7z';
 
     # allow orcat table to be used in postponed namespace 0 tools
