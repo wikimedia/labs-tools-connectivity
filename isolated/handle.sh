@@ -185,7 +185,6 @@ handle ()
             if [ "${line:3:5}" = 'stat ' ]
             then
               stat_up_ts=${line:8:19}
-              echo time since last stat upload: ${line:28}
               echo got current upload timestamp as $stat_up_ts
               if [ "$do_stat" = "1" ]
               then
@@ -193,16 +192,10 @@ handle ()
                 then
                   do_stat=0
                 else
-                  extminutes ${line:28}
-                  if [ ${line:28} = '00:00:00' ] || (($minutes >= $statintv))
-                  then
-                    if [ ${line:28} = '00:00:00' ]
-                    then
-                      echo uploading statistics for the first time;
-                    fi
-                    # cut 3 very first utf-8 bytes and upload the stats
-                    tail --bytes=+4 ./*.articles.stat | perl r.pl 'stat' 'stat' $usr "$stat_up_ts" | ./handle.sh $cmdl
-                  fi
+                   stats_reply_to=${line:28:1}
+                   stats_store=${line:30}
+                  # cut 3 very first utf-8 bytes and upload the stats
+                  tail --bytes=+4 ./*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to | ./handle.sh $cmdl
                 fi
               fi
               echo -ne \\0357\\0273\\0277 > stats_done.log
