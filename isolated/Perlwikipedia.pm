@@ -240,6 +240,8 @@ sub get_history {
     my @return;
     my @revisions;
 
+    $pagename = uri_escape_utf8($pagename);
+
     if ( $limit > 50 ) {
         $self->{errstr} = "Error requesting history for $pagename: Limit may not be set to values above 50";
         carp $self->{errstr};
@@ -253,7 +255,6 @@ sub get_history {
     	$query .= "&rvdir=$direction";
     }
     my $res = $self->_get_api($query);
-
     unless ($res) { return 1; }
     my $xml = XMLin( $res->decoded_content );
 
