@@ -7,11 +7,16 @@
 script="zns"
 source ./common
 
+parse_query language
 parse_query interface
 parse_query resume
-if [ "$interface" != 'ru' ]
+if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
 then
   interface='en'
+fi
+if [ "$language" = '' ]
+then
+  language='ru'
 fi
 
 source ./common.$interface
@@ -193,7 +198,7 @@ case $resume in
   {
     echo SELECT \* \
                 FROM zns\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do zns $line
                     done
@@ -203,7 +208,7 @@ case $resume in
   {
     echo SELECT \* \
                 FROM fch\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do fromchrono $line
                     done
@@ -213,7 +218,7 @@ case $resume in
   {
     echo SELECT \* \
                 FROM tch\;
-  } | $sql 2>&1 | {
+  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do tochrono $line
                     done
