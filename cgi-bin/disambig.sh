@@ -1,18 +1,22 @@
 #!/bin/bash
 
-language="ru"
 script="disambig"
 source ./common
 
+parse_query language
 parse_query interface
 parse_query shift
-if [ "$interface" != 'ru' ]
+if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
 then
   interface='en'
 fi
+if [ "$language" = '' ]
+then
+  language='ru'
+fi
 
 source ./common.$interface
-source ./disambig.$interface
+source ./$script.$interface
 source ./common2
 
 handle_dsglist ()
@@ -28,7 +32,7 @@ handle_dsglist ()
     local cname=${name//\?/\%3F}
     cname=${cname//\&/\%26}
     cname=${cname//\"/\%22}
-    echo "<li><a href=\"http://ru.wikipedia.org/w/index.php?title=$name\" target=\"blank\">$name</a>: $volume</li>"
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name\" target=\"blank\">$name</a>: $volume</li>"
   fi
 }
 
@@ -68,7 +72,16 @@ cat << EOM
 EOM
 how_actual disambiguator
 
-echo "<h1>$mainh1</h1>"
+#
+# Switching between interface languages at the top right
+#
+if_lang
+
+#
+# The page header at the center
+#
+the_page_header
+
 echo "<table><tr><td width=25% border=10>"
 
 #
@@ -98,9 +111,9 @@ shiftprev=$((shift-100))
 echo -ne "<br />$list1expl "
 if [ $((shift)) -gt 0 ]
 then
-  echo "<a href=\"./disambig.sh?shift=$shiftprev&interface=$interface\">$previous 100</a> "
+  echo "<a href=\"./disambig.sh?language=$language&interface=$interface&shift=$shiftprev\">$previous 100</a> "
 fi
-echo "<a href=\"./disambig.sh?shift=$shiftnext&interface=$interface\">$next 100</a>"
+echo "<a href=\"./disambig.sh?language=$language&interface=$interface&shift=$shiftnext\">$next 100</a>"
 echo "<ol start=$((shift+1))>"
 {
   echo SELECT d_title,            \
@@ -116,9 +129,9 @@ echo "<ol start=$((shift+1))>"
 echo "</ol>"
 if [ $((shift)) -gt 0 ]
 then
-  echo "<a href=\"./disambig.sh?shift=$shiftprev&interface=$interface\">$previous 100</a> "
+  echo "<a href=\"./disambig.sh?language=$language&interface=$interface&shift=$shiftprev\">$previous 100</a> "
 fi
-echo "<a href=\"./disambig.sh?shift=$shiftnext&interface=$interface\">$next 100</a>"
+echo "<a href=\"./disambig.sh?language=$language&interface=$interface&shift=$shiftnext\">$next 100</a>"
 
 cat << EOM
 </td>
