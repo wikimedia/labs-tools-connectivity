@@ -20,8 +20,9 @@ my $user=shift;
 my $tstime=shift;
 my $fix_stat_for=shift;
 my $reply_to=shift;
+my $language=shift;
 
-open FILE, '</home/'.$user.'/.ru.cnf' or die ":: echo $!";
+open FILE, '</home/'.$user.'/.'.$language.'.cnf' or die ":: echo $!";
 print ":: echo ".$user." grants permissions to bot ";
 my $pass="";
 while( my $line = <FILE> )
@@ -43,11 +44,11 @@ use Encode;
 
 my $editor=Perlwikipedia->new($user);
 $editor->{debug} = 0;
-$editor->set_wiki('ru.wikipedia.org','w');
+$editor->set_wiki( $language.'.wikipedia.org', 'w' );
 my $loginstatus=$editor->login($user, $pass);
 
 if ( $loginstatus eq '1' ) {
-  die ':: echo invalid login; possibly ~/.ru.cnf contains wrong data';
+  die ':: echo invalid login; possibly ~/.'.$language.'.cnf contains wrong data';
 }
 
 my $article=decode('utf8',$outpage);
