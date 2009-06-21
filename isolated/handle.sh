@@ -5,11 +5,11 @@
  # Purpose: Nice handler for all output coming from various modules
  #          written in different languages.
  #
- # Parameters: External tools like data/statistics upload are only invoked
- #             when enabled in the command line. The following parameters
+ # Parameters: External tools like data/statistics upload are always invoked
+ #             unless disabled in the command line. The following parameters
  #             are supported:
- #                            mr   - multiple redirects resolving
- #                            stat - claster chains statistics upload
+ #                            nomr   - prevents multiple redirects resolving
+ #                            nostat - prevents claster chains statistics upload
  #
  # Use: Just pipe all the output of your script to this handler and form it
  #      in the following format:
@@ -56,36 +56,7 @@ maxlag=10
 # statintv minutes
 statintv=720
 
-do_templates=0
-do_stat=0
-do_mr=0
-cmdl="$1 $2 $3"
-if [ "$1" = "templates" ] || [ "$2" = "templates" ] || [ "$3" = "templates" ]
-then
-  do_templates=1
-fi
-if [ "$1" = "mr" ] || [ "$2" = "mr" ] || [ "$3" = "mr" ]
-then
-  do_mr=1
-fi
-if [ "$1" = "stat" ] || [ "$2" = "stat" ] || [ "$3" = "stat" ]
-then
-  do_stat=1
-fi
-
-language="ru"
-
-#
-# Server for connection depends on the target language
-#
-server=$( ./toolserver.sh "$language" )
-
-#
-# Initialize variables: $dbserver, $dbhost, $usr.
-#
-# Creates sql( $server ) function.
-#
-source ../cgi-bin/ts $server
+source ./isoinv
 
 extminutes ()
 {
@@ -129,7 +100,7 @@ handle ()
               iter=$(($iter+1))
             done
             sync
-          } | perl mr.pl ru $usr | ./handle.sh $cmdl &
+          } | perl mr.pl $language $usr | ./handle.sh $cmdl &
           unset collection
         fi
       fi
@@ -195,7 +166,7 @@ handle ()
                    stats_reply_to=${line:28:1}
                    stats_store=${line:30}
                   # cut 3 very first utf-8 bytes and upload the stats
-                  tail --bytes=+4 ./*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to | ./handle.sh $cmdl
+                  tail --bytes=+4 ./*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
                 fi
               fi
               echo -ne \\0357\\0273\\0277 > stats_done.log
@@ -266,15 +237,15 @@ handle ()
                   done
 
                   # pack templates management info for delivery to AWB host
-                  rm -f today.7z
-                  7z a today.7z ./*.txt >7z.log 2>&1
+                  rm -f $language.today.7z
+                  7z a $language.today.7z ./*.txt >7z.log 2>&1
                   rm -f ./*.txt
 
-                  rm -f info.7z
-                  7z a info.7z ./*.info >>7z.log 2>&1
+                  rm -f $language.info.7z
+                  7z a $language.info.7z ./*.info >>7z.log 2>&1
                   rm -f ./*.info
 
-                  7z a stat.7z ./*.stat >>7z.log 2>&1
+                  7z a $language.stat.7z ./*.stat >>7z.log 2>&1
 
                   todos 7z.log
                 else
