@@ -244,14 +244,14 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     DELETE ruwikir
            FROM orcatr,
                 ruwikir
-           WHERE coolcat NOT RLIKE '(_1){1,}' and
+           WHERE coolcat NOT RLIKE '\_1$' and
                  cat=coolcat;
 
     # Claster _1 is of nothing to do with, regular redirects.
     # Clasters like _X, X>1 are rings and cannot point outside redirects set.
     # Claserts _1_..._1_X, X>1 are like above but with a source chain.
     DELETE FROM orcatr
-           WHERE coolcat NOT RLIKE '(_1){2,}';
+           WHERE coolcat NOT RLIKE '^\_1\_1';
 
     # Clasters like _1_..._1 are all to be thrown
 
