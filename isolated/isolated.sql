@@ -243,9 +243,19 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
 #
 # CORE, DELETION OF HUGE OR LINKED SCC's
 #
+# Output: otl table containing only top-level clusters of allowed size.
+#
 DROP PROCEDURE IF EXISTS filterscc//
 CREATE PROCEDURE filterscc (IN rank INT)
   BEGIN
+    #
+    # Groups receiving new elements during reversed minimums flow should be
+    # marked by nodes, which are out of top level clusters
+    # (there is nothing to spread minimum to at the top level).
+    #
+    # Here we select for group identifiers common for ga and rga but with
+    # new elements in rga compared to ga.
+    #
     DROP TABLE IF EXISTS newparent_grps;
     CREATE TABLE newparent_grps (
       gid int( 8 ) unsigned NOT NULL default '0'
@@ -257,36 +267,67 @@ CREATE PROCEDURE filterscc (IN rank INT)
                  ga.f>rga.f;
 
     DELETE FROM todelete;
+
+    #
+    # Groups marked in direct minimums flow by nodes out of top level clusters
+    # are out of top level clusters and should be marked for deletion.
+    #
     INSERT INTO todelete
-           SELECT id
-                  FROM ga,
-                       newparent_grps
-                  WHERE f=gid;
+    SELECT id
+           FROM ga,
+                newparent_grps
+           WHERE f=gid;
+
+    #
+    # Nodes, whose group id changes during reversed minimums flow are marked
+    # in direct flow by a node, which is upper to them, because there were
+    # no bacward links found during the reversed flow.
+    #
+    # Note: Could contain nodes already marked for deletion.
+    #
     INSERT INTO todelete
-           SELECT ga.id
-                  FROM ga,
-                       rga
-                  WHERE ga.id=rga.id and
-                        ga.f<rga.f;
+    SELECT ga.id
+           FROM ga,
+                rga
+           WHERE ga.id=rga.id and
+                 ga.f<rga.f
+    ON DUPLICATE KEY UPDATE id=ga.id;
+
+    #
+    # Should mark too huge (cnt>rank) closed (stable up to links reversing)
+    # clusters for deletion.
+    #
     INSERT INTO todelete
-           SELECT ga.id
-                  FROM ga,
-                       rga,
-                       grp,
-                       rgrp
-                  WHERE grp.cnt=rgrp.cnt and
-                        grp.id=rgrp.id and
-                        grp.cnt>rank and
-                        grp.id=ga.f and
-                        rgrp.id=rga.f and
-                        ga.f=rga.f and
-                        ga.id=rga.id;
+    SELECT ga.id
+           FROM ga,
+                rga,
+                grp,
+                rgrp
+           WHERE grp.cnt=rgrp.cnt and
+                 grp.id=rgrp.id and
+                 grp.cnt>rank and
+                 grp.id=ga.f and
+                 rgrp.id=rga.f and
+                 ga.f=rga.f and
+                 ga.id=rga.id;
+
+    #
+    # Deletion of links from otl.
+    #
     DELETE FROM otl
            WHERE otl_from IN
                  (
                   SELECT id
                          FROM todelete
                  );
+
+    #
+    # Links were just deleted from otl, it could become an open set again,
+    # thus it is necessary to reduce the nodes set down to the maximal isolated
+    # subgraph of the graph given by otl.
+    #
+    CALL oscchull( @alldeleted );
+
   END;
 //
 
@@ -576,8 +617,6 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
 
     CALL filterscc( maxsize );
 
-    CALL oscchull( @alldeleted );
-
     # Modify group set upon links cleanup
     DELETE FROM ga
            WHERE id NOT IN 
@@ -604,12 +643,14 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
     # New categories added with temporal names in order to give them an id.
     #
     INSERT IGNORE INTO orcat
-    SELECT @freecatid as uid,
+    SELECT @freecatid+cnt as uid,
            CONCAT( @isolated_category_name, '/', upcat, '_', cnt ) as cat,
            CONCAT(upcat,'_',cnt) as coolcat
            FROM grp
            GROUP BY cnt;
-    SET @freecatid=@freecatid+1;
+    # allows unique identifiers for non-existent categories
+    SELECT max(uid)+1 INTO @freecatid
+           FROM orcat;
 
     INSERT INTO isolated
     SELECT ga.id as id,
@@ -710,7 +751,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
           SELECT CONCAT( ':: echo ', tmp, ': ', cnt ) as title;
 
           SELECT CONCAT( ':: out ', @fprefix, targetset, '.stat' );
-          SELECT CONCAT( outprefix, '[[:', getnsprefix(14), cat, '|', tmp, ']]: ', cnt )
+          SELECT CONCAT( outprefix, '[[:', getnsprefix(14,@target_lang), cat, '|', tmp, ']]: ', cnt )
                  FROM orcat
                  WHERE coolcat=tmp;
 
@@ -1033,7 +1074,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
             SELECT CONCAT(':: echo parented isolates: ', cnt ) as title;
             SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
 
-            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace), page_title) as title FROM isolated, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
+            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st; 
             EXECUTE stmt; 
             DEALLOCATE PREPARE stmt; 
