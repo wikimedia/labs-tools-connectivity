@@ -10,20 +10,14 @@
  # <pre>
 
 #
-# This variable here is only for values logging. 
-# Currently all replag measurements are being stored in ru and this behaviour
-# could be changed when more language databases occur or on any other
-# interest.
+# Wikipedia language
 #
-# The language for replag calculation is completely different
-# and being reffered below in code as $1.
-#
-language="ru"
+language="$1"
 
 #
 # Server for connection depends on the target language
 #
-server=$( ./toolserver.sh "$1" )
+server=$( ./toolserver.sh "$language" )
 
 #
 # Initialize variables: $dbserver, $dbhost, $usr.
@@ -51,6 +45,6 @@ rm -f debug.log no_stat.log no_templates.log no_mr.log
 # Time is the measure of change.
 # What time is it? Now you know that, and this is a change for youself.
 #
-echo "CALL replag( '$1' );" | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh
+echo "CALL replag( '$language' );" | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh
 
 # </pre>
