@@ -1,22 +1,26 @@
 #!/bin/bash
 
-language="ru"
 script="suggest"
 source ./common
 
+parse_query language
 parse_query title
 parse_query interface
 parse_query listby
 parse_query shift
 parse_query category
 parse_query suggest
-if [ "$interface" != 'ru' ]
+if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
 then
   interface='en'
 fi
+if [ "$language" = '' ]
+then
+  language='ru'
+fi
 
 source ./common.$interface
-source ./suggest.$interface
+source ./$script.$interface
 source ./common2
 
 handle_isotype ()
@@ -42,7 +46,7 @@ handle_catlist ()
     local cname=${name//\?/\%3F}
     cname=${cname//\&/\%26}
     cname=${cname//\"/\%22}
-    echo "<li><a href=\"./suggest.sh?interface=$interface&category=$name&suggest=$suggest\">$name</a>: $volume</li>"
+    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$name&suggest=$suggest\">$name</a>: $volume</li>"
   fi
 }
 
@@ -61,13 +65,13 @@ handle_dsmbg ()
       local ctest=${test//\?/\%3F}
       ctest=${ctest//\&/\%26}
       ctest=${ctest//\"/\%22}
-      echo "</ol><b><a href=\"http://ru.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b></li><ol>"
+      echo "</ol><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b></li><ol>"
     else
       article=${article//_/ }
       local carticle=${article//\?/\%3F}
       carticle=${carticle//\&/\%26}
       carticle=${carticle//\"/\%22}
-      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://ru.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://$language.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
     fi
   fi
 }
@@ -89,7 +93,7 @@ handle_lnk ()
       local carticle=${article//\?/\%3F}
       carticle=${carticle//\&/\%26}
       carticle=${carticle//\"/\%22}
-      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://ru.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://$language.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
     fi
   fi
 }
@@ -127,7 +131,7 @@ handle_category ()
     local lineurl=${line//\?/\%3F}
     lineurl=${lineurl//\&/\%26}
     lineurl=${lineurl//\"/\%22}
-    echo "<li><a href=\"./suggest.sh?interface=$interface&title=$lineurl\"\>$line</a></li>"
+    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&title=$lineurl\"\>$line</a></li>"
   fi
 }
 
@@ -246,7 +250,16 @@ case $listby in
   ;;
 esac
 
-echo "<h1>$mainh1</h1>"
+#
+# Switching between interface languages at the top right
+#
+if_lang
+
+#
+# The page header at the center
+#
+the_page_header
+
 echo "<table><tr><td width=25% border=10>"
 
 #
@@ -260,6 +273,7 @@ echo "<h1>$thish1</h1>"
 
 echo "<FORM action=\"./suggest.sh\" method=\"get\">"
 echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
 echo "<P><font color=red>$ianamereq: <INPUT name=title type=\"text\"> $ianamedo</font></P>"
 echo "</FORM>"
 
@@ -280,7 +294,7 @@ case $listby in
 
       case $suggest in
       'disambig')
-        echo "<br />$submenu1desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
+        echo "<br />$submenu1desc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
 
         echo "<ol>"
         {
@@ -294,7 +308,7 @@ case $listby in
         echo $listend
         ;;
       'interlink')
-        echo "<br />$submenu2desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
+        echo "<br />$submenu2desc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
 
         echo "<ol>"
         {
@@ -308,7 +322,7 @@ case $listby in
         echo $listend
         ;;
       'translate')
-        echo "<br />$submenu3desc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
+        echo "<br />$submenu3desc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
 
         echo "<ol>"
         {
@@ -331,7 +345,7 @@ case $listby in
 
     convertedtitle=$( echo $titleurl | sed -e 's/?/\%3F/g' )
     convertedtitle=$( echo $convertedtitle | sed -e 's/&/\%26/g' )
-    echo "<h2><a href=\"http://ru.wikipedia.org/wiki/$convertedtitle\">$title</a></h2>"
+    echo "<h2><a href=\"http://$language.wikipedia.org/wiki/$convertedtitle\">$title</a></h2>"
 
     # for orphaned and other isolated articles we use different definitions.
     {
@@ -363,8 +377,8 @@ case $listby in
                     }
                
     echo "<h3>$googleonwikipedia</h3>"
-    echo "<IFRAME src=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
-    echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=ru.wikipedia.org&q=$titleurl&sitesearch=ru.wikipedia.org\">seach with this link</A>."
+    echo "<IFRAME src=\"http://www.google.com/custom?hl=$interface&domains=$language.wikipedia.org&q=$titleurl&sitesearch=$language.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
+    echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=$language.wikipedia.org&q=$titleurl&sitesearch=$language.wikipedia.org\">seach with this link</A>."
     echo "</IFRAME>"
   fi;;
 'disambig')
@@ -391,9 +405,9 @@ case $listby in
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,              \
@@ -411,9 +425,9 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambigcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
 
   ;;
 'interlink')
@@ -441,9 +455,9 @@ case $listby in
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlinkcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,              \
@@ -461,9 +475,9 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlinkcat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
 
   ;;
 'translate')
@@ -491,9 +505,9 @@ case $listby in
   echo "<br />"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=translatecat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
     echo SELECT title,              \
@@ -511,9 +525,9 @@ case $listby in
   echo "</ol>"
   if [ $((shift)) -gt 0 ]
   then
-    echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftprev\">$previous 100</a> "
+    echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=translatecat&shift=$shiftprev\">$previous 100</a> "
   fi
-  echo "<a href=\"./suggest.sh?interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
+  echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
 
   ;;
 *) ;;
