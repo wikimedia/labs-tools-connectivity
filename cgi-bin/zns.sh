@@ -20,7 +20,7 @@ then
 fi
 
 source ./common.$interface
-source ./zns.$interface
+source ./$script.$interface
 source ./common2
 
 articles_flexies ()
@@ -190,43 +190,150 @@ tochrono ()
   fi
 }
 
-echo Content-type: text/html
-echo ""
+resume ()
+{
+  local resume=$1
 
-case $resume in
- 'zns')
-  {
-    echo SELECT \* \
-                FROM zns\;
-  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
-                    while read -r line
-                      do zns $line
-                    done
-                  }
-  ;;
- 'fromchrono')
-  {
-    echo SELECT \* \
-                FROM fch\;
-  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
-                    while read -r line
-                      do fromchrono $line
-                    done
-                  }
-  ;;
- 'tochrono')
-  {
-    echo SELECT \* \
-                FROM tch\;
-  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
-                    while read -r line
-                      do tochrono $line
-                    done
-                  }
-  ;;
- 'timestamp')
-    how_actual isolatedbycategory
-  ;;
- *)
-  ;;
-esac
+  case $resume in
+   'zns')
+    {
+      echo SELECT \* \
+                  FROM zns\;
+    } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                      while read -r line
+                        do zns $line
+                      done
+                    }
+    ;;
+   'fromchrono')
+    {
+      echo SELECT \* \
+                  FROM fch\;
+    } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                      while read -r line
+                        do fromchrono $line
+                      done
+                    }
+    ;;
+   'tochrono')
+    {
+      echo SELECT \* \
+                  FROM tch\;
+    } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                      while read -r line
+                        do tochrono $line
+                      done
+                    }
+    ;;
+   *)
+    ;;
+  esac
+}
+
+if [ "$resume" != '' ]
+then
+  resume $resume
+else
+
+  echo Content-type: text/html
+  echo ""
+
+  cat << EOM
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+ <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+EOM
+
+  echo "<title>$pagetitle</title>"
+
+  cat << EOM
+  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
+ </head>
+ <body>
+<a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
+EOM
+
+  #
+  # Actuality data at the top left of the page
+  #
+  how_actual isolatedbycategory
+
+  #
+  # Switching between interface languages at the top right
+  #
+  if_lang
+
+  #
+  # The page header at the center
+  #
+  the_page_header
+
+  echo "<table><tr><td width=25% border=10>"
+
+  #
+  # The menu
+  #
+  the_menu
+
+  echo "</td><td width=75%>"
+
+  echo "<A name=\"scope\"></A>"
+  echo "<h1>$scope</h1>"
+
+  echo "<p>$par1</p>"
+
+  echo "<p>$par2</p>"
+
+  ####################################################################
+  #                                                                  #
+  #            Main namespace consists of 268267 articles            # 
+  #            (4466 of them are chronological articles),            # 
+  #      21636 disambiguation pages and 1571 collaborative lists.    # 
+  #                                                                  #
+  ####################################################################
+  echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+  resume 'zns'
+  echo '</div></center>'
+
+  echo "<p>$par3</p>"
+
+  ####################################################################
+  #                                                                  #
+  #    Average chronological article links 114 distinct articles.    #
+  #         Other articles link in average just 35 articles.         #
+  #                                                                  #
+  ####################################################################
+  echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+  resume 'fromchrono'
+  echo '</div></center>'
+
+  echo "<p>$par4</p>"
+
+  ####################################################################
+  #                                                                  #
+  #  16.75% of links between articles are links to chrono articles.  #
+  #        Average chrono article is linked from 368 articles.       #
+  #                                                                  #
+  ####################################################################
+  echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+  resume 'tochrono'
+  echo '</div></center>'
+
+  #
+  # Additional static sections for this page
+  #
+  cat zns1.$interface
+
+  cat << EOM
+</td>
+</tr>
+</table>
+
+ </body>
+</html>
+EOM
+
+fi
