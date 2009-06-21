@@ -28,6 +28,24 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
+# This procedure obtains connecitity project root page name from
+# a templated named {{Connectivity project root}} and stores it in
+# @connectivity_project_root variable.
+#
+DROP PROCEDURE IF EXISTS get_connectivity_project_root//
+CREATE PROCEDURE get_connectivity_project_root (targetlang VARCHAR(32))
+  BEGIN
+    DECLARE st VARCHAR(511);
+
+    SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace, "', targetlang, '" ), pl_title ) INTO @connectivity_project_root FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END;
+//
+
+
+#
 # Caches the pages for a namespace given to local tables 
 #   p<namespace>  (for all pages, mostly for pagelinks caching),
 #   nr<namespace> (for non-redirects)
@@ -190,14 +208,14 @@ CREATE PROCEDURE get_chrono ()
 # Substitutes maxsize parameter by actual articles count when maxsize=0.
 #
 DROP PROCEDURE IF EXISTS classify_namespace//
-CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
+CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255), INOUT maxsize INT)
   BEGIN
     DECLARE st VARCHAR(255);
 
     CALL categorylinks( namespace );
 
     #
-    # In order to exclude disambiguations from articles set,
+    # In order to exclude disambiguations from target set,
     # disambiguation pages are being collected here into d table.
     #
     DROP TABLE IF EXISTS d;
@@ -274,7 +292,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, INOUT maxsize INT)
     SELECT count(*) INTO @articles_count
            FROM articles;
 
-    SELECT CONCAT( ':: echo ', @articles_count, ' articles found' );
+    SELECT CONCAT( ':: echo ', @articles_count, ' ', targetset, ' found' );
 
     # No restriction on maximal scc size does not mean infinite
     # computational resources, but it is known for sure that maximal
@@ -429,14 +447,24 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
   END;
 //
 
+#
+# Project root toolserver page provides several figures characterizing
+# the namespace. Here those figures are being stored to tables.
+#
 DROP PROCEDURE IF EXISTS store_paraphrases//
 CREATE PROCEDURE store_paraphrases ()
   BEGIN
-    DECLARE art_lnks_per_ch INT DEFAULT @chrono_to_articles_links_count/@chrono_articles_count;
+    DECLARE art_lnks_per_ch INT DEFAULT '0';
     DECLARE other_lnks_per_other INT DEFAULT (@articles_to_articles_links_count-@chrono_to_articles_links_count)/(@articles_count-@chrono_articles_count);
 
     DECLARE ch_links_prc REAL(5,3) DEFAULT @articles_to_chrono_links_count*100/@articles_to_articles_links_count;
-    DECLARE ch_lnks_per_ch INT DEFAULT @articles_to_chrono_links_count/@chrono_articles_count;
+    DECLARE ch_lnks_per_ch INT DEFAULT '0';
+
+    IF @chrono_articles_count!=0
+      THEN
+        SET art_lnks_per_ch=@chrono_to_articles_links_count/@chrono_articles_count;
+        SET ch_lnks_per_ch=@articles_to_chrono_links_count/@chrono_articles_count;
+    END IF;
 
     #
     # ZNS, zero namespace stat
@@ -485,31 +513,6 @@ CREATE PROCEDURE store_paraphrases ()
 //
 
 #
-# This function obtains page name for statistics upload from templated named
-#  {{Connectivity project root}}
-# and initialte isolated clusters statistics upload to this page. 
-#
-DROP PROCEDURE IF EXISTS initiate_statistics_upload//
-CREATE PROCEDURE initiate_statistics_upload ()
-  BEGIN
-    DECLARE st VARCHAR(511);
-
-    SELECT max(ts) INTO @curts
-           FROM wikistat
-           WHERE valid=0;
-
-    SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace ), pl_title ) INTO @connectivity_project_root FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: stat ', @curts, ' ', @master_server_id, ' ', @connectivity_project_root, '/stat' );
-
-  END;
-//
-
-
-#
 # Do all the zero namespace connectivity analysis assuming maxsize as
 # maximal possible claster size, zero means no limit.
 #
@@ -547,7 +550,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     #
     # Note: Requires @@max_heap_table_size not less than 134217728
     #
-    CALL classify_namespace( 0, maxsize );
+    CALL classify_namespace( 0, 'articles', maxsize );
 
     #
     # For pl - namespace links cached in memory
@@ -617,7 +620,9 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     #
     # Initiate statistics upload on isolated chains
     #
-    call initiate_statistics_upload();
+    SELECT CONCAT( ':: stat ', max(ts), ' ', @master_server_id, ' ', @connectivity_project_root, '/stat' )
+           FROM wikistat
+           WHERE valid=0;
 
     #
     # Pack files for delivery
@@ -700,7 +705,7 @@ CREATE PROCEDURE categorytree_connectivity ( maxsize INT )
     #
     # Modifies maxsize if 0.
     #
-    CALL classify_namespace( 14, maxsize );
+    CALL classify_namespace( 14, 'categories', maxsize );
 
     CALL categorybridge();
 
