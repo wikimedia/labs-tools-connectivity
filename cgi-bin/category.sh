@@ -1,19 +1,23 @@
 #!/bin/bash
 
-language="ru"
 script="category"
 source ./common
 
+parse_query language
 parse_query category
 parse_query interface
 parse_query shift
-if [ "$interface" != 'ru' ]
+if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
 then
   interface='en'
 fi
+if [ "$language" = '' ]
+then
+  language='ru'
+fi
 
 source ./common.$interface
-source ./category.$interface
+source ./$script.$interface
 source ./common2
 
 handle_category ()
@@ -23,7 +27,7 @@ handle_category ()
   if no_sql_error "$line"
   then
     line=${line//_/ }
-    echo "<li><a href=\"http://ru.wikipedia.org/w/index.php?title=$line\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?interface=$interface&title=$line\"><font color=green>[[$suggest]]</font></a></small></li>"
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$line\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?language=$language&interface=$interface&title=$line\"><font color=green>[[$suggest]]</font></a></small></li>"
   fi
 }
 
@@ -37,7 +41,7 @@ handle_catlist ()
     local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
     local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
     name=${name//_/ }
-    echo "<li><a href=\"./category.sh?interface=$interface&category=$name\">$name</a>: $volume ($percent%)</li>"
+    echo "<li><a href=\"./category.sh?language=$language&interface=$interface&category=$name\">$name</a>: $volume ($percent%)</li>"
   fi
 }
 
@@ -64,7 +68,17 @@ cat << EOM
 EOM
 how_actual isolatedbycategory
 
-echo "<h1>$mainh1</h1>"
+#
+# Switching between interface languages at the top right
+#
+if_lang
+
+#
+# The page header at the center
+#
+the_page_header
+
+
 echo "<table><tr><td width=25% border=10>"
 
 #
@@ -79,6 +93,7 @@ echo "$howoften<br><br>"
 echo $example
 echo "<FORM action=\"./category.sh\" method=\"get\">"
 echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
 echo "<P><font color=red>$catnamereq: <INPUT name=category type=\"text\"> $catnamedo</font></P>"
 echo "</FORM>"
 
@@ -87,7 +102,7 @@ categorysql=${category//\"/\"\'\"\'\"}
 
 if [ "$category" != '' ]
 then
-  echo "<br />$submenudesc <a href=\"http://ru.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
+  echo "<br />$submenudesc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
   convertedcat=$( echo $categorysql | sed -e 's/ /_/g' )
 
   echo "<ol>"
