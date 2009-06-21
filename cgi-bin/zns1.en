@@ -1,0 +1,79 @@
+<h2>project status</h2>
+
+The following tasks are now solved:
+
+<ul>
+ <li>Dead-end articles list according to the definition above</li>
+ <li>Orphaned articles list according to the definition above</li>
+ <li>All types of isolated clusters and chains of isolated clusters,
+     which are present and have size less than some threshold</li>
+</ul>
+
+<p>Some of the tasks solved by the way:</p>
+<ul>
+ <li>List multiple redirects, which for unknown reason is more
+     complete than the list MediaWiki produces</li>
+ <li>List of wrong redirects (having uncommented text with links after
+     redirection magic.</li>
+ <li>Statistics on isolated clusters amount for different types of
+     clusters</li>
+ <li>Data for querying isolated articles by authors and categories</li>
+ <li>Suggestions on isolated articles resolving based on resolving
+     links to disambiguations, and interwiki lookup.</li>
+</ul>
+
+<h2>what's wrong with it</h2>
+<p>It is ok for 300 000 articles, but for enwiki it is too slow yet.</p>
+<p>AWB is actually used to apply the data (set/remove some templates).
+Will be solved when my stupid brain overcome the task of templates management in perl, or
+may be when one or more smart brains will come with their help.</p>
+
+<h2>motivation</h2>
+
+<p>
+MediaWiki among other things collects two lists:
+orphaned and deadend pages. Let see how good they are.
+</p>
+<p>
+It is important to understand what the difference between page and article is.
+Page is everything in main namespace, which is not a redirect, including
+disambiguation pages. The page is linked when any link from other page points
+to the page we are considering. Even when this link is from other namespaces
+(page has been considered to be deleted e.g. or just a discussion about this
+page taken place somewhere) or from a disambiguation page (disambiguations are
+not to be linked, so links from disambiguations do not help connecting articles 
+one to another).
+</p>
+
+<p>MediaWiki also does not recognise links from lists or
+chronological articles.
+Such links are rarely relevant and nobody usually came from them. Other rules
+can also be introduced when we need to understand how well connected our
+articles are.</p>
+
+<p>Thinking about connectivity we may need to consider more
+than just orphanes. There may be a group of two, three or more pages connecting
+each other but without any links from outside of the group, 
+i.e. isolated clusters (or strongly connected components).
+One cluster may link other and there may be
+a chain of isolated clusters, which is not linked from the main connected 
+component containing most part of good articles. MediaWiki does not recognize
+isolated articles at all.</p>
+
+<p>When MediaWiki locates dead-end pages it looks if the
+page contain a link. It doesn't matter for the engine if this link is
+set from a template and just talks about some problems in a page or the
+link is to an article. Links to disambiguation pages are also threated
+as valid by the engine.</p>
+
+<p>Connectivity analysis for articles allows to authors
+make their articles better adding them an attention of other people, who
+are authors of other articles or just readers following links.</p>
+
+<p>One more point to begin with connectivity analysis is that
+this task is usually solved with procedural languages analyzing offline
+links bases.
+In order to make the connectivity data more actual it is necessary to
+run the analyzer closer to severs to avoid large data transmittal. So,
+it is required to be written in SQL, and there were no SQL solutions
+for oriented graph connectivity analysis introduced. So, here we go.</p>
