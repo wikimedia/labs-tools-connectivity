@@ -195,7 +195,7 @@ CREATE PROCEDURE deadend (namespace INT)
             SELECT CONCAT(':: echo -: ', cnt ) as title;
             SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
 
-            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace), page_title) as title FROM del, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
+            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM del, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st;
             EXECUTE stmt;
             DEALLOCATE PREPARE stmt;
