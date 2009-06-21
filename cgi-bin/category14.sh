@@ -1,18 +1,22 @@
 #!/bin/bash
 
-language="ru"
 script="category14"
 source ./common
 
+parse_query language
 parse_query networkpath
 parse_query interface
-if [ "$interface" != 'ru' ]
+if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
 then
   interface='en'
 fi
+if [ "$language" = '' ]
+then
+  language='ru'
+fi
 
 source ./common.$interface
-source ./category14.$interface
+source ./$script.$interface
 source ./common2
 
 handle_layer ()
@@ -22,7 +26,7 @@ handle_layer ()
   if no_sql_error "$line"
   then
     line=${line//_/ }
-    echo \<li\>\<a href=\"http://ru.wikipedia.org/w/index.php?title=Категория:$line\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
+    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$line\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
   fi
 }
 
@@ -34,7 +38,7 @@ handle_table ()
   then
     local lname=$( echo $line | sed -e 's/^\(.*\)\s\([1-9][0-9]*\)/\1/g' )
     local amnt=$( echo $line | sed -e 's/^\(.*\)\s\([1-9][0-9]*\)/\2/g' )
-    echo "<a href='./category14.sh?interface=$interface&networkpath=$lname'>$lname</a>:&nbsp;$amnt<br />"
+    echo "<a href='./category14.sh?language=$language&interface=$interface&networkpath=$lname'>$lname</a>:&nbsp;$amnt<br />"
   fi
 }
 
@@ -45,7 +49,7 @@ handle_rlist ()
   if no_sql_error "$line"
   then
     line=${line//_/ }
-    echo \<li\>\<a href=\"http://ru.wikipedia.org/w/index.php?title=Категория:$line\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
+    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$line\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
   fi
 }
 
@@ -71,7 +75,16 @@ cat << EOM
 EOM
 how_actual categoryspruce
 
-echo "<h1>$mainh1</h1>"
+#
+# Switching between interface languages at the top right
+#
+if_lang
+
+#
+# The page header at the center
+#
+the_page_header
+
 echo "<table><tr><td width=25% border=10>"
 
 #
