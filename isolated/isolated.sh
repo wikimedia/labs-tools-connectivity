@@ -19,23 +19,23 @@
  # 
  # Use: Bash command prompt (or better use with screen)
  #
- #      ./isolated.sh           - to run all the analysis supported
- #      ./isolated.sh mr        - to enable multiple redirects resolving
- #      ./isolated.sh stat      - to enable cluster chains statistics upload
- #      ./isolated.sh mr stat   - like we do in Ruwiki
+ # ./isolated.sh <lang> nomr nostat - to run just for analysis
+ # ./isolated.sh <lang> nostat      - to enable multiple redirects resolving
+ # ./isolated.sh <lang> nomr        - to enable cluster chains statistics upload
+ # ./isolated.sh <lang>             - like we do in Ruwiki
  #
  # Default output:
  #
  #      1. Useful informative output on stdout
- #      2. Files archieved to today.7z at some stage:
+ #      2. Files archieved to <lang>.today.7z at some stage:
  #         - Wrong redirects list                        (<ts>.wr.txt)
  #         - Dead end pages not yet templated            (<ts>.deset.txt) 
  #         - Articles with links still marked as deadend (<ts>.derem.txt)
  #         - Isolated articles not yet templated         (<ts>.<chain>.txt)
  #         - Articles still marked as isolated           (<ts>.orem.txt)
- #      3. Files archieved to info.7z at some stage:
+ #      3. Files archieved to <lang>.info.7z at some stage:
  #         - Multiple redirects list                     (<ts>.mr.info)
- #      4. Files archieved to stat.7z at some stage:
+ #      4. Files archieved to <lang>.stat.7z at some stage:
  #         - Claster chains for zero namespace redirects (<ts>.redirects.stat)
  #         - Claster chains for articles                 (<ts>.articles.stat)
  #         - Claster chains for categories               (<ts>.categories.stat)
@@ -47,35 +47,7 @@
  #
  # <pre>
 
-do_templates=0
-do_stat=0
-do_mr=0
-if [ "$1" = "templates" ] || [ "$2" = "templates" ] || [ "$3" = "templates" ]
-then
-  do_templates=1
-fi
-if [ "$1" = "mr" ] || [ "$2" = "mr" ] || [ "$3" = "mr" ]
-then
-  do_mr=1
-fi
-if [ "$1" = "stat" ] || [ "$2" = "stat" ] || [ "$3" = "stat" ]
-then
-  do_stat=1
-fi
-
-language="ru"
-
-#
-# Server for connection depends on the target language
-#
-server=$( ./toolserver.sh "$language" )
-
-#
-# Initialize variables: $dbserver, $dbhost, $usr.
-#
-# Creates sql( $server ) function.
-#
-source ../cgi-bin/ts $server
+source ./isoinv
 
 rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log stats_done.log
 
@@ -85,7 +57,7 @@ rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log
   #
   echo "create database if not exists u_${usr}_golem_${language};"
 
-} | $( sql $server ) 2>&1 | ./handle.sh $1 $2 $3
+} | $( sql $server ) 2>&1 | ./handle.sh $cmdl
 
 time { 
   {
@@ -111,6 +83,7 @@ time {
     #
     echo "set @enable_informative_output=0;"
 
+    cat toolserver.sql
     cat handle.sql
     cat replag.sql
     cat namespacer.sql
@@ -141,7 +114,7 @@ time {
     # and then set it e.g. the maximal clusters chain length doubled.
     #
 
-    echo "SET max_sp_recursion_depth=10;"
+    echo "SET max_sp_recursion_depth=12;"
 
 #    echo "SET @@max_heap_table_size=16777216;"
 #    echo "SET @@max_heap_table_size=33554432;"
@@ -150,6 +123,12 @@ time {
 #    echo "SET @@max_heap_table_size=268435456;"
     echo "SET @@max_heap_table_size=536870912;"
 #     echo "SET @@max_heap_table_size=1073741824;"
+
+    #
+    # Connectivity project root page is used for statistics upload and
+    # could be also accomodated for other purposes.
+    #
+    echo "CALL get_connectivity_project_root( '$language' );"
 
     #
     # Isolated and analysis is being run for different target sets,
@@ -162,7 +141,7 @@ time {
     echo "CALL get_isolated_category_names();"
 
     #
-    # Analyze zero namespace connectivity. Limit claster sizes by 10.
+    # Analyze zero namespace connectivity. Limit claster sizes by 20.
     #
     echo 'CALL zero_namespace_connectivity( 20 );'
 
@@ -197,7 +176,7 @@ time {
     #
     echo "CALL zero_namespace_postponed_tools( $server );"
 
-  } | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh $1 $2 $3
+  } | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh $cmdl
 }
 
 # </pre>
