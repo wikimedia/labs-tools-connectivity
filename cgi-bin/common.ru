@@ -1,4 +1,4 @@
-mainh1="<a href=\"http://ru.wikipedia.org/w/index.php?title=ВП:П:С\">[[Википедия:Проект:Связность]]</a>"
+mainh1="Википедия:Проект:Связность"
 motivation="задача"
 isourl="Категория:Википедия:Изолированные статьи"
 isolatedarticles="изолированные статьи"
