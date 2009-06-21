@@ -10,16 +10,10 @@
  # <pre>
 
 #
-# Later on this will be equal to $1, not for now.
+# Wikipedia language
 #
-# This variable here is just for the most stable of the servers.
-#
+language="$1"
 
-language="ru"
-
-#
-# Indeed, when the language of interest is up, the most stable server is 
-# that one, who runs it up. 
 #
 # Later could be changed to any other constant or chosen
 # among the existent server list.
@@ -46,8 +40,8 @@ rm -f debug.log no_stat.log no_templates.log no_mr.log
 cat toolserver.sql | $( sql $server u_${usr}_golem_${language} ) 2>&1
 
 #
-# Which server language $1 database is located at?
+# Which server the $language database is located at?
 #
-echo "SELECT server_num( '$1' );" | $( sql $server u_${usr}_golem_${language} ) 2>&1
+echo "SELECT server_num( '$language' );" | $( sql $server u_${usr}_golem_${language} ) 2>&1
 
 # </pre>
