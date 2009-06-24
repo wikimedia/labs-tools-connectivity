@@ -100,6 +100,14 @@ time {
 
     echo "CALL actual_replag( '$language' );"
 
+#    echo "SET @@max_heap_table_size=16777216;"
+#    echo "SET @@max_heap_table_size=33554432;"
+#    echo "SET @@max_heap_table_size=67108864;"
+#    echo "SET @@max_heap_table_size=134217728;"
+#    echo "SET @@max_heap_table_size=268435456;"
+    echo "SET @@max_heap_table_size=536870912;"
+#     echo "SET @@max_heap_table_size=1073741824;"
+
     #
     # Categorizer setup, prefetch categories namespace (14)
     # and holds categories list.
@@ -116,14 +124,6 @@ time {
 
     echo "SET max_sp_recursion_depth=12;"
 
-#    echo "SET @@max_heap_table_size=16777216;"
-#    echo "SET @@max_heap_table_size=33554432;"
-#    echo "SET @@max_heap_table_size=67108864;"
-#    echo "SET @@max_heap_table_size=134217728;"
-#    echo "SET @@max_heap_table_size=268435456;"
-    echo "SET @@max_heap_table_size=536870912;"
-#     echo "SET @@max_heap_table_size=1073741824;"
-
     #
     # Connectivity project root page is used for statistics upload and
     # could be also accomodated for other purposes.
@@ -138,7 +138,7 @@ time {
     # are initialized here as defined at
     #   ConnectivityProjectInternationalization/IsolatedArticles
     #
-    echo "CALL get_isolated_category_names();"
+    echo "CALL get_isolated_category_names( '$language' );"
 
     #
     # Analyze zero namespace connectivity. Limit claster sizes by 20.
