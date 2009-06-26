@@ -46,7 +46,7 @@ handle_catlist ()
     local cname=${name//\?/\%3F}
     cname=${cname//\&/\%26}
     cname=${cname//\"/\%22}
-    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$name&suggest=$suggest\">$name</a>: $volume</li>"
+    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$cname&suggest=$suggest\">$name</a>: $volume</li>"
   fi
 }
 
