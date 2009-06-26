@@ -330,11 +330,11 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     #        3) STRAIGHT_JOIN leads to connect first the pagelinks table.
     #           This way we have a straight pass through the pl_namespace
     #           index and then single pass trough a hash join in memory
-    #           (=fast) for p0.
-    #           This is much better than iteration trough p0 with
-    #           later indexed titles matching for all p0 values.
+    #           (=fast) for p<namespace>.
+    #           This is much better than iteration trough p<namespace> with
+    #           later indexed titles matching for all p<namespace> values.
     #
-    SET @st=CONCAT( 'CREATE TABLE pl ( pl_from int(8) unsigned NOT NULL default ', "'0'", ', pl_to int(8) unsigned NOT NULL default ', "'0'", ' ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from, p_id as pl_to FROM ', @target_lang, 'wiki_p.pagelinks, p0 WHERE pl_namespace=', namespace, ' and pl_title=p_title;' );
+    SET @st=CONCAT( 'CREATE TABLE pl ( pl_from int(8) unsigned NOT NULL default ', "'0'", ', pl_to int(8) unsigned NOT NULL default ', "'0'", ' ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from, p_id as pl_to FROM ', @target_lang, 'wiki_p.pagelinks, p', namespace, ' WHERE pl_namespace=', namespace, ' and pl_title=p_title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -349,13 +349,15 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     #       of speedup. However, it also does not look making
     #       the analysis slower. 
     #       Can be helpfull for projects with meta part developed well.
-    DELETE FROM pl
-           WHERE pl_from NOT IN
-                 (
-                  SELECT p_id 
-                         FROM p0
-                 );
-    DROP TABLE p0;
+    SET @st=CONCAT( 'DELETE FROM pl WHERE pl_from NOT IN ( SELECT p_id FROM p', namespace, ' );' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SET @st=CONCAT( 'DROP TABLE p', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     SELECT CONCAT( ':: echo ', count(*), ' namespace ', namespace, ' links point namespace ', namespace )
            FROM pl;
