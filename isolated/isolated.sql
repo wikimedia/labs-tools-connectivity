@@ -110,7 +110,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
 # @old_orphan_category         - optional, just in case it existed
 #
 DROP PROCEDURE IF EXISTS get_isolated_category_names//
-CREATE PROCEDURE get_isolated_category_names ()
+CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
     DECLARE stln INT;
@@ -118,39 +118,39 @@ CREATE PROCEDURE get_isolated_category_names ()
     #
     # Meta-category name for isolated articles.
     #
-    SET @st=CONCAT( 'SELECT pl_title INTO @isolated_category_name FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY pl_title ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT pl_title INTO @isolated_category_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY pl_title ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     #
-    # Meta-category name for isolated articles.
+    # Sub-category prefix for orphaned articles.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     #
-    # Meta-category name for isolated articles.
+    # Sub-category prefix for isolated pair.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     #
-    # Meta-category name for isolated articles.
+    # Sub-category prefix for isolated clusters of size above 2.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     #
-    # Meta-category name for isolated articles.
+    # Old-style category name for orphaned articles.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
