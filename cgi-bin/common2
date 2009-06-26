@@ -1,3 +1,8 @@
+project_page=''
+isolated_category=''
+orphan_param=''
+deadend_category=''
+
 no_sql_error ()
 {
   local line=$1
@@ -87,20 +92,21 @@ handle_dates ()
   fi
 }
 
-handle_h1 ()
+
+
+handle_values ()
 {
-  local line=$1
+  local line="$1 $2 $3 $4"
 
   if no_sql_error "$line"
   then
-    local suggest=$2
-    local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\1/g' )
-    local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\2/g' )
-    name=${name//_/ }
-    local cname=${name//\?/\%3F}
-    cname=${cname//\&/\%26}
-    cname=${cname//\"/\%22}
-    echo "<h1><a href=\"http://$language.wikipedia.org/w/index.php?title=$name\" target=\"blank\">[[$mainh1]] .$language</a></h1>"
+    local mline=${line//\?/\%3F}
+    mline=${mline//\&/\%26}
+    mline=${mline//\"/\%22}
+    mline=${mline// /\"}
+    mline=${mline//_/ }
+
+    echo "$mline"
   fi
 }
 
@@ -122,18 +128,40 @@ how_actual ()
                   }
 }
 
+get_project_page ()
+{
+
+  local string=$(
+                  {
+                    echo "SET @i18n_page='ConnectivityProjectInternationalization';"
+
+                    echo "CALL get_connectivity_project_root ( '$language' );"
+
+                    echo "CALL get_isolated_category_names( '$language' );"
+  
+                    echo "CALL get_deadend_category_name( '$language' );"
+
+                    echo "SET @catnspref=getnsprefix(14, '$language');"
+
+                    echo "SELECT CONCAT( @connectivity_project_root, ' ', @catnspref, @isolated_category_name, ' ', @orphan_param_name, ' ', @catnspref, @deadend_category_name );"
+                  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | {
+                                    while read -r line
+                                      do handle_values $line
+                                    done
+                  }
+                )
+
+  project_page=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)/\1/g' )
+  isolated_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)/\2/g' )
+  orphan_param=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)/\3/g' )
+  deadend_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]\+\)/\4/g' )
+}
 
 the_page_header ()
 {
-  {
-    echo "CALL get_connectivity_project_root ( '$language' );"
+  get_project_page
 
-    echo 'SELECT @connectivity_project_root;'
-  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
-                    while read -r line
-                      do handle_h1 $line
-                    done
-                  }
+  echo "<h1><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">[[$mainh1]] .$language</a></h1>"
 }
 
 #
@@ -253,7 +281,7 @@ the_menu ()
 #
 #  2) isolated articles
 #
-  echo "<b>2) <a href=\"http://$language.wikipedia.org/w/index.php?title=$isourl\">$isolatedarticles</a></b><br />"
+  echo "<b>2) <a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}\">$isolatedarticles</a></b><br />"
   echo "<ul>"
 #
 #   * by category
@@ -408,11 +436,11 @@ the_menu ()
 #
 #   * by claster type
 #
-  echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$prjurl/bytypes\">$byclastertype</a></b></li>"
+  echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}/bytypes\">$byclastertype</a></b></li>"
 #
 #   ** orphaned articles
 #
-  echo "<ul><li><a href=\"http://$language.wikipedia.org/w/index.php?title=$orphurl\">$orphanes</a></li></ul>"
+  echo "<ul><li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}/${orphan_param}0\">$orphanes</a></li></ul>"
 
 #
 #   * by creator
@@ -434,14 +462,14 @@ the_menu ()
 #
 #   * graphs
 #
-  echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$prjurl/cltgdata\">$graphdata</a></b></li>"
+  echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}/cltgdata\">$graphdata</a></b></li>"
   echo "</ul>"
   echo "<br />"
 
 #
 #  3) dead-end articles
 #
-  echo "<b>3) <a href=\"http://$language.wikipedia.org/w/index.php?title=$deadendurl\">$deadend</a></b><br />"
+  echo "<b>3) <a href=\"http://$language.wikipedia.org/w/index.php?title=${deadend_category}\">$deadend</a></b><br />"
   echo "<br />"
 
 #
