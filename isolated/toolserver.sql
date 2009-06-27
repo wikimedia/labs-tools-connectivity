@@ -32,7 +32,9 @@ CREATE FUNCTION server_num ( language VARCHAR(64) )
     #
     SELECT server INTO srv
            FROM toolserver.wiki
-           WHERE domain=CONCAT( language, '.wikipedia.org');
+           WHERE family='wikipedia' and
+                 lang=language and
+                 is_closed=0;
 
     RETURN srv;
   END;
@@ -46,14 +48,14 @@ CREATE FUNCTION largest_neighbour ( language VARCHAR(64) )
     DECLARE srv INT;
     DECLARE res VARCHAR(64);
 
-    SELECT server into srv
-           FROM toolserver.wiki
-           WHERE domain=CONCAT( language, '.wikipedia.org');
-
     SELECT lang INTO res
            FROM toolserver.wiki
-           WHERE server=srv and
-                 family='wikipedia'
+           WHERE server=server_num( language ) and
+                 family='wikipedia' and
+                 #
+                 # just in case, who knows...
+                 #
+                 is_closed=0
            ORDER BY size DESC
            LIMIT 1;
 
