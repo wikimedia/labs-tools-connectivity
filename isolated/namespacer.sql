@@ -429,7 +429,7 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
     #
     # Here we can construct links from articles to articles.
     #
-    INSERT IGNORE INTO l
+    INSERT IGNORE INTO l /* SLOW_OK */
     SELECT id as l_to,
            pl_from as l_from
            FROM pl,
