@@ -1,4 +1,3 @@
-source ./ts 3
 
 # Mashiah Davidson: # Thanks a lot to Chris F.A. Johnson for my time saved.
 # This function copied as is from 
@@ -28,3 +27,24 @@ parse_query() #@ USAGE: parse_query var ...
   done
   set +f
 }
+
+parse_query language
+parse_query interface
+
+if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
+then
+  interface='en'
+fi
+if [ "$language" = '' ]
+then
+  language='ru'
+fi
+
+#
+# Any working server should be queried here
+#
+source ./ts 1
+
+dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 )
+
+source ./ts $dbserver
