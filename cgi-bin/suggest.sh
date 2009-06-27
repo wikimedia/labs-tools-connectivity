@@ -3,21 +3,11 @@
 script="suggest"
 source ./common
 
-parse_query language
 parse_query title
-parse_query interface
 parse_query listby
 parse_query shift
 parse_query category
 parse_query suggest
-if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
-then
-  interface='en'
-fi
-if [ "$language" = '' ]
-then
-  language='ru'
-fi
 
 source ./common.$interface
 source ./$script.$interface
