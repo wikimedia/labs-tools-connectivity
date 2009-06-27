@@ -3,17 +3,6 @@
 script="lists"
 source ./common
 
-parse_query language
-parse_query interface
-if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
-then
-  interface='en'
-fi
-if [ "$language" = '' ]
-then
-  language='ru'
-fi
-
 source ./common.$interface
 source ./$script.$interface
 source ./common2
