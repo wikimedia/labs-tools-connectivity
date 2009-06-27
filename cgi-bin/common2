@@ -9,6 +9,9 @@ no_sql_error ()
   local res=1
 
   case "${line:0:20}" in
+  'ERROR 2005 (HY000): ' )
+    echo $nodata
+    ;;
   'ERROR 2003 (HY000): ' )
     echo $dbhost $nohost
     ;;
