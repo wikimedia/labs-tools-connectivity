@@ -200,8 +200,8 @@ CREATE PROCEDURE inter_langs( srv INT )
     DECLARE cur_sv INT DEFAULT 0;
     DECLARE dsync INT DEFAULT 0;
     DECLARE st VARCHAR(511);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=srv ORDER BY size DESC;
-    DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and server!=srv ORDER BY server ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=srv and is_closed=0 ORDER BY size DESC;
+    DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and server!=srv and is_closed=0 ORDER BY server ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     #
@@ -257,7 +257,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # Prior to any transfer we need to escape quote marks.
     #
-    # Note: master host languages may be left not updated due to no transfer.
+    # Note: master host languages may be left as they are due to no transfer.
     #
     UPDATE iwl 
            SET title=REPLACE (title, '"', '\\"')
@@ -266,7 +266,8 @@ CREATE PROCEDURE inter_langs( srv INT )
                    SELECT lang 
                           FROM toolserver.wiki
                           WHERE family='wikipedia' and
-                                server!=srv
+                                server!=srv and
+                                is_closed=0
                  );
 
     #
@@ -280,7 +281,7 @@ CREATE PROCEDURE inter_langs( srv INT )
       IF NOT done
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' take iwl' );
-          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and iwl.lang=toolserver.wiki.lang\;" );
+          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and is_closed=0 and iwl.lang=toolserver.wiki.lang\;" );
       END IF;
     UNTIL done END REPEAT;
 
@@ -377,7 +378,8 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     SELECT 2*(count(DISTINCT server)-1) INTO dsync
            FROM toolserver.wiki
-           WHERE family='wikipedia';
+           WHERE family='wikipedia' and
+                 is_closed=0;
 
     #
     # Looks like an infinite loop, right?
@@ -470,13 +472,11 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
     DECLARE cur_lang VARCHAR(16);
     DECLARE cur_db VARCHAR(32);
     DECLARE ready INT DEFAULT 0;
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=snum ORDER BY size DESC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=snum and is_closed=0 ORDER BY size DESC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     # Convert master language name to master server number
-    SELECT server INTO mnum
-           FROM toolserver.wiki
-           WHERE domain=CONCAT( mlang, '.wikipedia.org');
+    SELECT server_num( mlang ) INTO mnum;
 
     # Looks like an infinite loop, however, a line is to be modified externally
     # when transfer done.
