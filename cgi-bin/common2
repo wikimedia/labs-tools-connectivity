@@ -509,7 +509,7 @@ the_menu ()
   echo "<li><a href=\"http://ru.wikipedia.org/wiki/User:Mashiah_Davidson\">$mywikipage</a></li>"
   echo "<li><a href=\"http://ru.wikipedia.org/wiki/User:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$botwikipage</a></li>"
   echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
-  echo "<li>mashiah $attext <a href="irc://irc.freenode.net/$ircchan">#$ircchan</a></li>"
+  echo "<li>mashiah $attext <a href="irc://irc.freenode.net/wikipedia-connectivity">#wikipedia-connectivity</a></li>"
   echo "</ul>"
   echo "<p>$srclocation <a href="https://fisheye.toolserver.org/browse/golem">toolserver fisheye</a>.</p>"
 
