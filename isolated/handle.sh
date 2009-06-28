@@ -124,7 +124,7 @@ handle ()
             echo replag of $minutes minutes is to big, must be below $maxlag
             echo perishable data will not be applied
             do_templates=0
-            echo "$do_templates" > no_templates.log
+            echo "$do_templates" > ${language}.no_templates.log
           fi
         fi
         sync
@@ -159,7 +159,7 @@ handle ()
               echo got current upload timestamp as $stat_up_ts
               if [ "$do_stat" = "1" ]
               then
-                if [ -f no_stat.log ]
+                if [ -f ${language}.no_stat.log ]
                 then
                   do_stat=0
                 else
@@ -249,7 +249,7 @@ handle ()
 
                   todos 7z.log
                 else
-                  echo command: $line, not recognized >> debug.log
+                  echo command: $line, not recognized >> ${language}.debug.log
                 fi
               fi
             fi
@@ -269,21 +269,21 @@ handle ()
          else
            if [ "$line" != '' ]
            then
-             echo -ne $line\\r\\n >> debug.log
+             echo -ne $line\\r\\n >> ${language}.debug.log
            fi
          fi
        fi
        do_templates=0
        do_stat=0
-       echo "$do_stat" > no_stat.log
-       echo "$do_templates" > no_templates.log
+       echo "$do_stat" > ${language}.no_stat.log
+       echo "$do_templates" > ${language}.no_templates.log
        ;;
     1) echo -ne $line\\r\\n >> $out
        ;;
     2) echo -ne $line\\r\\n >> $out
        collection[${#collection[*]}]=$line
        ;;
-    *) echo state: $state, $line >> debug.log
+    *) echo state: $state, $line >> ${language}.debug.log
        ;;
     esac
   fi

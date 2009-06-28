@@ -26,7 +26,7 @@ server=$( ./toolserver.sh "$language" )
 #
 source ../cgi-bin/ts $server
 
-rm -f debug.log no_stat.log no_templates.log no_mr.log
+rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log
 
 {
   #

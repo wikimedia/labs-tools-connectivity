@@ -43,13 +43,13 @@
  #
  # Error handling:
  #
- #      See debug.log if created or last file modified.
+ #      See <lang>.debug.log if created or last file modified.
  #
  # <pre>
 
 source ./isoinv
 
-rm -f ./*.info ./*.txt ./*.stat debug.log no_stat.log no_templates.log no_mr.log stats_done.log
+rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log stats_done.log
 
 {
   #
