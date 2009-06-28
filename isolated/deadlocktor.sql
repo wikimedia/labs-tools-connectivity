@@ -37,7 +37,7 @@ CREATE PROCEDURE get_deadend_category_name (targetlang VARCHAR(32))
     #
     # Meta-category name for deadend articles.
     #
-    SET @st=CONCAT( 'SELECT DISTINCT pl_title INTO @deadend_category_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/DeadEndArticles" ORDER BY pl_title ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT DISTINCT pl_title INTO @deadend_category_name FROM ', dbname_for_lang( targetlang ), '.page, ', dbname_for_lang( targetlang ), '.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/DeadEndArticles" ORDER BY pl_title ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -213,7 +213,7 @@ CREATE PROCEDURE deadend (namespace INT)
             SELECT CONCAT(':: echo -: ', cnt ) as title;
             SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
 
-            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM del, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
+            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM del, ', @dbname, '.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st;
             EXECUTE stmt;
             DEALLOCATE PREPARE stmt;

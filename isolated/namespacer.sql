@@ -37,7 +37,7 @@ CREATE PROCEDURE get_connectivity_project_root (targetlang VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
 
-    SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace, "', targetlang, '" ), pl_title ) INTO @connectivity_project_root FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace, "', targetlang, '" ), pl_title ) INTO @connectivity_project_root FROM ', dbname_for_lang( targetlang ), '.page, ', dbname_for_lang( targetlang ), '.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -59,7 +59,7 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
 
     # Requires @@max_heap_table_size not less than 134217728 for zero namespace.
     DROP TABLE IF EXISTS p;
-    SET @st=CONCAT( 'CREATE TABLE p ( p_id int(8) unsigned NOT NULL default ', "'0'", ', p_title varchar(255) binary NOT NULL default ', "''", ', p_is_redirect tinyint(1) unsigned NOT NULL default ', "'0'", ', PRIMARY KEY (p_id), UNIQUE KEY rtitle (p_title) ) ENGINE=MEMORY AS SELECT page_id as p_id, page_title as p_title, page_is_redirect as p_is_redirect FROM ', @target_lang, 'wiki_p.page WHERE page_namespace=', namespace, ';' );
+    SET @st=CONCAT( 'CREATE TABLE p ( p_id int(8) unsigned NOT NULL default ', "'0'", ', p_title varchar(255) binary NOT NULL default ', "''", ', p_is_redirect tinyint(1) unsigned NOT NULL default ', "'0'", ', PRIMARY KEY (p_id), UNIQUE KEY rtitle (p_title) ) ENGINE=MEMORY AS SELECT page_id as p_id, page_title as p_title, page_is_redirect as p_is_redirect FROM ', @dbname, '.page WHERE page_namespace=', namespace, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -143,7 +143,7 @@ CREATE PROCEDURE get_categorized_non_articles (namespace INT)
 
     DROP TABLE IF EXISTS cllt;
 
-    SET @st=CONCAT( 'CREATE TABLE cllt ( cllt_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (cllt_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as cllt_id FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks, ', @target_lang, 'wiki_p.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
+    SET @st=CONCAT( 'CREATE TABLE cllt ( cllt_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (cllt_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as cllt_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -175,7 +175,7 @@ CREATE PROCEDURE get_chrono ()
 
     DROP TABLE IF EXISTS chrono;
 
-    SET @st=CONCAT( 'CREATE TABLE chrono ( chr_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (chr_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as chr_id FROM ', @target_lang, 'wiki_p.page, ', @target_lang, 'wiki_p.pagelinks, ', @target_lang, 'wiki_p.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
+    SET @st=CONCAT( 'CREATE TABLE chrono ( chr_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (chr_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as chr_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -224,7 +224,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
       PRIMARY KEY (d_id)
     ) ENGINE=MEMORY;
 
-    CALL collect_disambig( CONCAT( @target_lang, 'wiki_p' ), namespace, ':: echo ' );
+    CALL collect_disambig( @dbname, namespace, ':: echo ' );
     #
     # One more call to another version of this function allows some languages
     # controlling difference between disambiguation category content and
@@ -334,7 +334,7 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     #           This is much better than iteration trough p<namespace> with
     #           later indexed titles matching for all p<namespace> values.
     #
-    SET @st=CONCAT( 'CREATE TABLE pl ( pl_from int(8) unsigned NOT NULL default ', "'0'", ', pl_to int(8) unsigned NOT NULL default ', "'0'", ' ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from, p_id as pl_to FROM ', @target_lang, 'wiki_p.pagelinks, p', namespace, ' WHERE pl_namespace=', namespace, ' and pl_title=p_title;' );
+    SET @st=CONCAT( 'CREATE TABLE pl ( pl_from int(8) unsigned NOT NULL default ', "'0'", ', pl_to int(8) unsigned NOT NULL default ', "'0'", ' ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from, p_id as pl_to FROM ', @dbname, '.pagelinks, p', namespace, ' WHERE pl_namespace=', namespace, ' and pl_title=p_title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

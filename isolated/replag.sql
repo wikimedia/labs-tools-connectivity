@@ -34,7 +34,7 @@ CREATE PROCEDURE replag ( language VARCHAR(64) )
     SELECT largest_neighbour( language ) INTO nbr;
 
     # when the latest edit in the neighbour has happen?
-    SET @st=CONCAT( 'SELECT max( rc_timestamp ) INTO @rep_time FROM ', nbr, 'wiki_p.recentchanges;' );
+    SET @st=CONCAT( 'SELECT max( rc_timestamp ) INTO @rep_time FROM ', nbr, '.recentchanges;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

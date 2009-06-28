@@ -37,7 +37,7 @@ CREATE PROCEDURE a2a_templating ()
     # Articles encapsulated directly into other articles.
     # Note: Fast when templating is completely unusual for articles.
     #       Than more are templated than slower this selection.
-    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT id as pl_to, tl_from as pl_from FROM ', @target_lang, 'wiki_p.templatelinks, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and title=tl_title;' );
+    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT id as pl_to, tl_from as pl_from FROM ', @dbname, '.templatelinks, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and title=tl_title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -53,7 +53,7 @@ CREATE PROCEDURE a2a_templating ()
     #
     DROP TABLE IF EXISTS nr2r;
 
-    SET @st=CONCAT( 'CREATE TABLE nr2r ( nr2r_to int(8) unsigned NOT NULL default ', "'0'", ', nr2r_from int(8) unsigned NOT NULL default ', "'0'", ', KEY (nr2r_to) ) ENGINE=MEMORY AS SELECT r_id as nr2r_to, tl_from as nr2r_from FROM ', @target_lang, 'wiki_p.templatelinks, r0 WHERE tl_namespace=0 and tl_from in ( SELECT id FROM articles ) and tl_title=r_title;' );
+    SET @st=CONCAT( 'CREATE TABLE nr2r ( nr2r_to int(8) unsigned NOT NULL default ', "'0'", ', nr2r_from int(8) unsigned NOT NULL default ', "'0'", ', KEY (nr2r_to) ) ENGINE=MEMORY AS SELECT r_id as nr2r_to, tl_from as nr2r_from FROM ', @dbname, '.templatelinks, r0 WHERE tl_namespace=0 and tl_from in ( SELECT id FROM articles ) and tl_title=r_title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

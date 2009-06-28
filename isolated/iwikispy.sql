@@ -183,7 +183,7 @@ CREATE PROCEDURE inter_langs_ct()
 //
 
 #
-# This procedure is being run on the master-host (s3). It insects slave-hosts
+# This procedure is being run on the master-host (s3). It infects slave-hosts
 # with its code and tables, initialtes transfer of initial data from master to
 # slaves
 # 
@@ -205,7 +205,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     #
-    # Insect slave servers with this library code 
+    # Infect slave servers with this library code
     # and inform them on who is the master.
     #
     OPEN scur;
@@ -215,6 +215,7 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_sv;
       IF NOT done
         THEN
+          SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql' );
           SELECT CONCAT( ':: s', cur_sv, ' init disambig.sql' );
           SELECT CONCAT( ':: s', cur_sv, ' init iwikispy.sql' );
       END IF;
@@ -223,7 +224,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     CLOSE scur;
 
     #
-    # Insect everyone with necessary communication tables.
+    # Infect everyone with necessary communication tables.
     #
     OPEN scur;
     SET done = 0;
@@ -243,7 +244,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # Prepare interwiki links for isolated articles.
     #
-    SET @st=CONCAT( 'INSERT INTO iwl SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @target_lang, 'wiki_p.langlinks, ruwiki0 WHERE id=ll_from;' );
+    SET @st=CONCAT( 'INSERT INTO iwl SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @dbname, '.langlinks, ruwiki0 WHERE id=ll_from;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

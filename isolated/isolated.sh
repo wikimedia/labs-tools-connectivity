@@ -84,6 +84,9 @@ time {
     echo "set @enable_informative_output=0;"
 
     cat toolserver.sql
+
+    echo "select dbname_for_lang( '$language' ) into @dbname;"
+
     cat handle.sql
     cat replag.sql
     cat namespacer.sql

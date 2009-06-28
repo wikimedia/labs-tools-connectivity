@@ -68,7 +68,7 @@ CREATE FUNCTION getnsprefix ( ns INT, targetlang VARCHAR(32) )
 
     SELECT ns_name INTO wrconstruct
            FROM toolserver.namespace
-           WHERE dbname=CONCAT( targetlang, 'wiki_p' ) AND
+           WHERE dbname=dbname_for_lang(targetlang) and
                  ns_id=ns;
 
     IF wrconstruct != ''
@@ -141,7 +141,7 @@ CREATE PROCEDURE combineandout ()
         SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
         SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
 
-        SET @st=CONCAT( 'SELECT CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, deact, isoact, isocat FROM task, ', @target_lang, 'wiki_p.page WHERE id=page_id ORDER BY deact+deact+isoact DESC, page_title ASC;' );
+        SET @st=CONCAT( 'SELECT CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, deact, isoact, isocat FROM task, ', @dbname, '.page WHERE id=page_id ORDER BY deact+deact+isoact DESC, page_title ASC;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;

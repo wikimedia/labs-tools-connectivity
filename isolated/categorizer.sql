@@ -77,7 +77,7 @@ CREATE PROCEDURE categorylinks (namespace INT)
     DECLARE st VARCHAR(511);
 
     DROP TABLE IF EXISTS nrcatl;
-    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=MEMORY AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @target_lang, 'wiki_p.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
+    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=MEMORY AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @dbname, '.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

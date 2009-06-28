@@ -114,11 +114,14 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
     DECLARE stln INT;
+    DECLARE dbname VARCHAR(32);
+
+    SELECT dbname_for_lang( targetlang ) INTO dbname;
 
     #
     # Meta-category name for isolated articles.
     #
-    SET @st=CONCAT( 'SELECT pl_title INTO @isolated_category_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY pl_title ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT pl_title INTO @isolated_category_name FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY pl_title ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -126,7 +129,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     #
     # Sub-category prefix for orphaned articles.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -134,7 +137,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     #
     # Sub-category prefix for isolated pair.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -142,7 +145,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     #
     # Sub-category prefix for isolated clusters of size above 2.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -150,7 +153,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     #
     # Old-style category name for orphaned articles.
     #
-    SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', targetlang, 'wiki_p.page, ', targetlang, 'wiki_p.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+    SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -658,7 +661,8 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
            1 as act
            FROM ga,
                 grp
-           WHERE grp.id=ga.f
+           WHERE grp.id=ga.f and
+                 grp.cnt<=maxsize
     # this disables any action for articles already registered properly
     ON DUPLICATE KEY UPDATE act=0;
   END;
@@ -978,7 +982,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     #
     IF targetset='articles'
       THEN
-        SET @st=CONCAT( 'INSERT INTO orcat SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @target_lang, 'wiki_p.categorylinks, ', @target_lang, 'wiki_p.page, categories WHERE page_title=categories.title and cl_to=', "'", @isolated_category_name, "'", ' and page_id=cl_from and page_namespace=14;' );
+        SET @st=CONCAT( 'INSERT INTO orcat SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @dbname, '.categorylinks, ', @dbname, '.page, categories WHERE page_title=categories.title and cl_to=', "'", @isolated_category_name, "'", ' and page_id=cl_from and page_namespace=14;' );
         PREPARE stmt FROM @st; 
         EXECUTE stmt; 
         DEALLOCATE PREPARE stmt; 
@@ -1074,7 +1078,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
             SELECT CONCAT(':: echo parented isolates: ', cnt ) as title;
             SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
 
-            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @target_lang, 'wiki_p.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
+            SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @dbname, '.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st; 
             EXECUTE stmt; 
             DEALLOCATE PREPARE stmt; 

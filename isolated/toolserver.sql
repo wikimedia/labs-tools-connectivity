@@ -48,7 +48,7 @@ CREATE FUNCTION largest_neighbour ( language VARCHAR(64) )
     DECLARE srv INT;
     DECLARE res VARCHAR(64);
 
-    SELECT lang INTO res
+    SELECT dbname INTO res
            FROM toolserver.wiki
            WHERE server=server_num( language ) and
                  family='wikipedia' and
@@ -57,6 +57,25 @@ CREATE FUNCTION largest_neighbour ( language VARCHAR(64) )
                  #
                  is_closed=0
            ORDER BY size DESC
+           LIMIT 1;
+
+    RETURN res;
+  END;
+//
+
+DROP FUNCTION IF EXISTS dbname_for_lang//
+CREATE FUNCTION dbname_for_lang ( language VARCHAR(64) )
+  RETURNS VARCHAR(64)
+  DETERMINISTIC
+  BEGIN
+    DECLARE srv INT;
+    DECLARE res VARCHAR(64);
+
+    SELECT dbname INTO res
+           FROM toolserver.wiki
+           WHERE family='wikipedia' and
+                 is_closed=0 and
+                 lang=language
            LIMIT 1;
 
     RETURN res;
