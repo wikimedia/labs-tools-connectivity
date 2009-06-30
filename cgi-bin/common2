@@ -176,9 +176,17 @@ if_lang ()
   local top='..'
   local cgibin='.'
 
+  local caturl=${category//\?/\%3F}
+  caturl=${caturl//\&/\%26}
+  caturl=${caturl//\"/\%22}
+
+  local titleurl=${title//\?/\%3F}
+  titleurl=${titleurl//\&/\%26}
+  titleurl=${titleurl//\"/\%22}
+
   case $script in
    'category')
-    same="language=$language&category=$category"
+    same="language=$language&category=$caturl"
     ;;
    'category14')
     same="language=$language&networkpath=$networkpath"
@@ -193,7 +201,7 @@ if_lang ()
     same="language=$language"
     ;;
    'suggest')
-    same="language=$language&title=$title&listby=$listby&shift=$shift&category=$category&suggest=$suggest"
+    same="language=$language&title=$titleurl&listby=$listby&shift=$shift&category=$caturl&suggest=$suggest"
     ;;
    'zns')
     same="language=$language"
@@ -235,10 +243,18 @@ the_menu ()
   local top='..'
   local cgibin='.'
 
+  local caturl=${category//\?/\%3F}
+  caturl=${caturl//\&/\%26}
+  caturl=${caturl//\"/\%22}
+
+  local titleurl=${title//\?/\%3F}
+  titleurl=${titleurl//\&/\%26}
+  titleurl=${titleurl//\"/\%22}
+
   case $script in
    'category')
-    same="language=$language&category=$category"
-    iwikisame="interface=$interface&category=$category"
+    same="language=$language&category=$caturl"
+    iwikisame="interface=$interface&category=$caturl"
     ;;
    'category14')
     same="language=$language&networkpath=$networkpath"
@@ -257,11 +273,11 @@ the_menu ()
     iwikisame="interface=$interface"
     ;;
    'suggest')
-    same="language=$language&title=$title&listby=$listby&shift=$shift&category=$category&suggest=$suggest"
-    iwikisame="interface=$interface&title=$title&listby=$listby&shift=$shift&category=$category&suggest=$suggest"
+    same="language=$language&title=$titleurl&listby=$listby&shift=$shift&category=$caturl&suggest=$suggest"
+    iwikisame="interface=$interface&title=$titleurl&listby=$listby&shift=$shift&category=$caturl&suggest=$suggest"
     ;;
    'zns')
-    same="language=language"
+    same="language=$language"
     iwikisame="interface=$interface"
     ;;
    *)
@@ -307,7 +323,7 @@ the_menu ()
     else
       if [ "$script" = 'suggest' ] && [ "$listby" = '' ]
       then
-        echo "<li><a id=seealso href=\"$cgibin/category.sh?language=$language&interface=$interface&category=$category\">${catns}:$category</a></li>"
+        echo "<li><a id=seealso href=\"$cgibin/category.sh?language=$language&interface=$interface&category=$caturl\">${catns}:$category</a></li>"
       fi
     fi
   fi
@@ -345,7 +361,7 @@ the_menu ()
 #
   if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'disambig' ]
   then
-    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?language=$language&interface=$interface&category=$category&suggest=disambig\">${catns}:$category</a></li></ul>"
+    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?language=$language&interface=$interface&category=$caturl&suggest=disambig\">${catns}:$category</a></li></ul>"
   else
     if [ "$suggest" = 'disambig' ]
     then
@@ -372,7 +388,7 @@ the_menu ()
 #
   if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'interlink' ]
   then
-    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?language=$language&interface=$interface&category=$category&suggest=interlink\">${catns}:$category</a></li></ul>"
+    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?language=$language&interface=$interface&category=$caturl&suggest=interlink\">${catns}:$category</a></li></ul>"
   else
     if [ "$suggest" = 'interlink' ]
     then
@@ -393,7 +409,7 @@ the_menu ()
 #
   if [ "$category" != '' ] && [ "$listby" = '' ] && [ "$suggest" != 'translate' ]
   then
-    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?language=$language&interface=$interface&category=$category&suggest=translate\">${catns}:$category</a></li></ul>"
+    echo "<ul><li><a id=seealso href=\"$cgibin/suggest.sh?language=$language&interface=$interface&category=$caturl&suggest=translate\">${catns}:$category</a></li></ul>"
   else
     if [ "$suggest" = 'translate' ]
     then

@@ -31,7 +31,8 @@ handle_catlist ()
     local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
     local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
     name=${name//_/ }
-    echo "<li><a href=\"./category.sh?language=$language&interface=$interface&category=$name\">$name</a>: $volume ($percent%)</li>"
+    local nameurl=${name//\"/%22}
+    echo "<li><a href=\"./category.sh?language=$language&interface=$interface&category=$nameurl\">$name</a>: $volume ($percent%)</li>"
   fi
 }
 
@@ -88,13 +89,16 @@ echo "<P><font color=red>$catnamereq: <INPUT name=category type=\"text\"> $catna
 echo "</FORM>"
 
 categoryurl=${category//\"/\%22}
-categorysql=${category//\"/\"\'\"\'\"}
+#
+# this allows the row passing through all the quatermarks and finaly be
+# delivered in sql as \"
+#
+categorysql=${category//\"/\"\'\\\\\"\'\"}
 
 if [ "$category" != '' ]
 then
   echo "<br />$submenudesc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
   convertedcat=$( echo $categorysql | sed -e 's/ /_/g' )
-
   echo "<ol>"
   {
     echo CALL isolated_for_category\(\"${convertedcat}\"\, \'${language}\'\)\;

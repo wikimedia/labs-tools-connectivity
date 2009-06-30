@@ -280,7 +280,13 @@ case $listby in
       echo "<font color=red>$clause2</font><br />"
       echo "<ul><li>$clause3</li><li>$clause4</li></ul>"
     else
-      convertedcat=$( echo $category | sed -e 's/ /_/g' )
+      #
+      # this allows the row passing through all the quatermarks and finaly be
+      # delivered in sql as \"
+      #
+      categorysql=${category//\"/\"\'\\\\\"\'\"}
+
+      convertedcat=$( echo $categorysql | sed -e 's/ /_/g' )
 
       case $suggest in
       'disambig')
@@ -331,6 +337,7 @@ case $listby in
   else
     titleurl=${title//\"/\%22}
     titleurl=${title//\_/\%20}
+    titleurl=${title//\&/\%26}
     titlesql=${title//\"/\"\'\"\'\"}
 
     convertedtitle=$( echo $titleurl | sed -e 's/?/\%3F/g' )
@@ -339,7 +346,7 @@ case $listby in
 
     # for orphaned and other isolated articles we use different definitions.
     {
-      echo "SELECT cat FROM ruwiki0 WHERE title=\"${convertedtitle// /_}\";"
+      echo "SELECT cat FROM ruwiki0 WHERE title=\"${titlesql// /_}\";"
     } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                       isotype=''
 
