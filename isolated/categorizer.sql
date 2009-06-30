@@ -23,7 +23,7 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# Do all the connectivity analysis.
+# Caches pages for ns=14 and prepares the categories table.
 #
 DROP PROCEDURE IF EXISTS categories//
 CREATE PROCEDURE categories ()
