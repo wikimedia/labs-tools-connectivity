@@ -36,8 +36,8 @@ CREATE PROCEDURE a2a_templating ()
     #
     # Articles encapsulated directly into other articles.
     # Note: Fast when templating is completely unusual for articles.
-    #       Than more are templated than slower this selection.
-    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT id as pl_to, tl_from as pl_from FROM ', @dbname, '.templatelinks, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and title=tl_title;' );
+    #       Than more are templated than slower this selection is.
+    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and title=tl_title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

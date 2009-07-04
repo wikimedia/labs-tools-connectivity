@@ -452,6 +452,12 @@ the_menu ()
   *) ;;
   esac
 
+  if [ "$script" = 'creators' ] && [ "$user" = '' ] && [ "$registered" = '0' ]
+  then
+    echo "<ul><li><font color=red>$anonymiso</font></li></ul>"
+  fi
+
+
 #
 #   * by claster type
 #
@@ -464,7 +470,7 @@ the_menu ()
 #
 #   * by creator
 #
-  if [ "$script" = 'creators' ] && [ "$user" = '' ]
+  if [ "$script" = 'creators' ] && [ "$user" = '' ] && [ "$registered" != '0' ]
   then
     echo "<li><b><font color=red>$bycreator</font></b></li>"
   else

@@ -1,5 +1,5 @@
 pagetitle="Suggest a link for isolated articles"
-thish1="suggest a link for isolated articles for ruwiki"
+thish1="suggest a link for isolated articles for ${language}wiki"
 ianamereq="Enter your isolated article name"
 ianamedo="and hit enter"
 clause1="All suggestion types cannot be shown together by categories. Try for particular article name or by a suggestion type."

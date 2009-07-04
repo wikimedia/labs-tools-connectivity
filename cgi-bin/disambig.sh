@@ -22,7 +22,7 @@ handle_dsglist ()
     local cname=${name//\?/\%3F}
     cname=${cname//\&/\%26}
     cname=${cname//\"/\%22}
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume</li>"
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=green>[[${linkshere}]]</font></a></small></li>"
   fi
 }
 

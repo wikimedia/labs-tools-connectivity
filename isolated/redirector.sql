@@ -121,8 +121,10 @@ CREATE PROCEDURE nr2X2nr ()
                   r2nr
              WHERE nr2r_to=r2nr_from;
 
-      SELECT CONCAT( ':: echo . ', count(*), ' links after ', chainlen, '-redirect chains rectification' )
+      SELECT count(*) INTO @pl_count
              FROM pl;
+
+      SELECT CONCAT( ':: echo . ', @pl_count, ' links after ', chainlen, '-redirect chains rectification' );
 
       #
       # One step of new long-redirect driven "links to be added" collection.

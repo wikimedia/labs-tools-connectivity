@@ -55,7 +55,7 @@ handle_dsmbg ()
       local ctest=${test//\?/\%3F}
       ctest=${ctest//\&/\%26}
       ctest=${ctest//\"/\%22}
-      echo "</ol><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b></li><ol>"
+      echo "</ol><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$ctest\"><font color=green>[[${linkshere}]]</font></a></small></li><ol>"
     else
       article=${article//_/ }
       local carticle=${article//\?/\%3F}

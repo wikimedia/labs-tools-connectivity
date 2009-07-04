@@ -1,5 +1,5 @@
-pagetitle="Categorytree connectivity for ruwiki"
-thish1="categorytree connectivity for ruwiki"
+pagetitle="Categorytree connectivity for ${language}wiki"
+thish1="categorytree connectivity for ${language}wiki"
 actualnote1="The categorytree structure collection is run manually and updated daily or close to.<br>"
 actualnote2="So, use once a day before a notification.<br><br>"
 rootcatnote1="The list below normally must contain just one category named <font color=green>Всё</font>.<br />"

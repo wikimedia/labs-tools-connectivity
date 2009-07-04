@@ -56,8 +56,24 @@ DROP PROCEDURE IF EXISTS cache_namespace_pages//
 CREATE PROCEDURE cache_namespace_pages (namespace INT)
   BEGIN
     DECLARE st VARCHAR(511);
+    DECLARE cnt INT;
 
-    # Requires @@max_heap_table_size not less than 134217728 for zero namespace.
+    #
+    # Calculate the amount of rows for pages in the namespace given.
+    #
+    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM ', @dbname, '.page WHERE page_namespace=', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    #
+    # Experimental data: one row of p takes near to 400 bytes on 64-bit system.
+    #
+    CALL allow_allocation( 512*@cnt );
+
+    #
+    # Cache pages.
+    #
     DROP TABLE IF EXISTS p;
     SET @st=CONCAT( 'CREATE TABLE p ( p_id int(8) unsigned NOT NULL default ', "'0'", ', p_title varchar(255) binary NOT NULL default ', "''", ', p_is_redirect tinyint(1) unsigned NOT NULL default ', "'0'", ', PRIMARY KEY (p_id), UNIQUE KEY rtitle (p_title) ) ENGINE=MEMORY AS SELECT page_id as p_id, page_title as p_title, page_is_redirect as p_is_redirect FROM ', @dbname, '.page WHERE page_namespace=', namespace, ';' );
     PREPARE stmt FROM @st;
@@ -67,10 +83,9 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
     SELECT CONCAT( ':: echo ', count(*), ' pages found for namespace ', namespace, ':' )
            FROM p;
 
-    ## requested by qq[IrcCity]
-    #CALL outifexists( 'p', CONCAT( 'namespace ', namespace), 'p.info', 'p_title', 'out' );
-
+    #
     # Non-redirects
+    #
     DROP TABLE IF EXISTS nr;
     CREATE TABLE nr (
       id int(8) unsigned NOT NULL default '0',
@@ -85,7 +100,9 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
     SELECT CONCAT( ':: echo . non-redirects: ', count(*) )
            FROM nr;
 
+    #
     # Redirect pages
+    #
     DROP TABLE IF EXISTS r;
     CREATE TABLE r (
       r_id int(8) unsigned NOT NULL default '0',
@@ -238,7 +255,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
     CALL get_categorized_non_articles( namespace );
 
     #
-    # Categorized and templated non-articles.
+    # Categorized or templated non-articles.
     #
     # With namespace=14 is not used because of the nature of links and pages.
     #
@@ -268,7 +285,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         SELECT cllt_id as cna_id
                FROM cllt;
 
-        SELECT CONCAT( ':: echo ', count(*), ' categorized and templated exclusion names found' )
+        SELECT CONCAT( ':: echo ', count(*), ' categorized or templated exclusion names found' )
                FROM cna;
     END IF;
     DROP TABLE cllt;
@@ -339,8 +356,10 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links point namespace ', namespace )
+    SELECT count(*) INTO @pl_count
            FROM pl;
+
+    SELECT CONCAT( ':: echo ', @pl_count, ' links point namespace ', namespace );
 
     #
     # Delete everything going from other namespaces.
@@ -359,8 +378,10 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SELECT CONCAT( ':: echo ', count(*), ' namespace ', namespace, ' links point namespace ', namespace )
+    SELECT count(*) INTO @pl_count
            FROM pl;
+
+    SELECT CONCAT( ':: echo ', @pl_count, ' namespace ', namespace, ' links point namespace ', namespace );
   END;
 //
 
@@ -406,6 +427,11 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
     # throws redirect chains and adds paths to pl
     CALL throw_multiple_redirects( namespace );
 
+    #
+    # Experimental data: one row of l takes near to 52 bytes on 64-bit system.
+    #
+    CALL allow_allocation( 64*@pl_count );
+
     # Table l is created here for all links, which are to be taken into account.
     DROP TABLE IF EXISTS l;
     CREATE TABLE l (
@@ -420,10 +446,6 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
     #  - direct links from article to article
     #  - links from article to article via a redirect from the namespace given
     #  - links from article to article via a long (double, triple, etc) redirect
-    #
-    # Notes: Now the links table requires @@max_heap_table_size 
-    #        to be equal to 268435456 bytes for main namespace analysis 
-    #        in ruwiki.
     #
 
     #

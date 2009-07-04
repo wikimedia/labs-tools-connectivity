@@ -118,33 +118,60 @@ then
   echo "</ol>"
   echo $listend
 else
-  echo "<h4>$list2name</h4>"
+  if [ "$registered" = '0' ]
+  then
+    echo "<br />$anonymous_s<br />"
 
-  if [ $((shift)) -gt 0 ]
-  then
-    echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftprev\">$previous 100</a> "
+    echo "<ol>"
+    {
+      echo SELECT title          \
+                  FROM creators0 \
+                  WHERE user=0   \
+                  ORDER BY title ASC\;
+    } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                      while read -r line
+                        do handle_isolates "$line"
+                      done
+                    }
+    echo "</ol>"
+    echo "$listend"
+  else
+    if [ "$registered" = '' ]
+    then
+      echo "<h4>$list2name</h4>"
+
+      if [ $((shift)) -gt 0 ]
+      then
+        echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftprev\">$previous 100</a> "
+      fi
+      echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftnext\">$next 100</a>"
+      echo "<ol start=$((shift+1))>"
+      {
+        echo SELECT user_text,         \
+                    user,              \
+                    count\(\*\) as cnt \
+                    FROM creators0     \
+                    GROUP BY user_text \
+                    ORDER BY cnt DESC  \
+                    LIMIT $((shift)),100\;
+      } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                        while read -r line
+                          do handle_userlist "$line"
+                        done
+                      }
+      echo "</ol>"
+      if [ $((shift)) -gt 0 ]
+      then
+        echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftprev\">$previous 100</a> "
+      fi
+      echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftnext\">$next 100</a>"
+#
+#    this could be for the list of all isolated articles
+#    created by registered users
+#
+#    else
+    fi
   fi
-  echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftnext\">$next 100</a>"
-  echo "<ol start=$((shift+1))>"
-  {
-    echo SELECT user_text,         \
-                user,              \
-                count\(\*\) as cnt \
-                FROM creators0     \
-                GROUP BY user_text \
-                ORDER BY cnt DESC  \
-                LIMIT $((shift)),100\;
-  } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
-                    while read -r line
-                      do handle_userlist "$line"
-                    done
-                  }
-  echo "</ol>"
-  if [ $((shift)) -gt 0 ]
-  then
-    echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftprev\">$previous 100</a> "
-  fi
-  echo "<a href=\"./creators.sh?language=$language&interface=$interface&shift=$shiftnext\">$next 100</a>"
 fi
 
 cat << EOM

@@ -87,6 +87,7 @@ time {
 
     echo "select dbname_for_lang( '$language' ) into @dbname;"
 
+    cat memory.sql
     cat handle.sql
     cat replag.sql
     cat namespacer.sql
@@ -102,14 +103,6 @@ time {
     cat cgi.sql
 
     echo "CALL actual_replag( '$language' );"
-
-#    echo "SET @@max_heap_table_size=16777216;"
-#    echo "SET @@max_heap_table_size=33554432;"
-#    echo "SET @@max_heap_table_size=67108864;"
-#    echo "SET @@max_heap_table_size=134217728;"
-#    echo "SET @@max_heap_table_size=268435456;"
-    echo "SET @@max_heap_table_size=536870912;"
-#     echo "SET @@max_heap_table_size=1073741824;"
 
     #
     # Categorizer setup, prefetch categories namespace (14)

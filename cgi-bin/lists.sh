@@ -57,6 +57,8 @@ echo "<h3><a href=\"./suggest.sh?language=$language&interface=$interface&listby=
 
 echo "<h3><a href=\"./suggest.sh?language=$language&interface=$interface&listby=translate\">$fl_translate</a></h3>"
 
+echo "<h3><a href=\"./creators.sh?language=$language&interface=$interface&registered=0\">$fl_anonym</a></h3>"
+
 cat << EOM
 </td>
 </tr>
