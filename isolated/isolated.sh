@@ -2,7 +2,7 @@
  #
  # Works on the Toolserver.
  #
- # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]]
  #
  # Purpose: 
  #

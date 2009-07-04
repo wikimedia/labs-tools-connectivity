@@ -1,6 +1,6 @@
 #!/usr/bin/perl
  #
- # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]]
  #
  # Data uploader for 
  # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.

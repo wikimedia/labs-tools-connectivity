@@ -1,6 +1,6 @@
 #!/bin/bash
  #
- # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]]
  #
  # Launcher for 
  # '''[[:ru:User:Mashiah_Davidson/toolserver/replag.sql|replag.sql]]'''.

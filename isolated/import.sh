@@ -1,6 +1,6 @@
 #!/bin/bash
  #
- # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]]
  #
  # Purpose: Data transmitter between different sql servers.
  #

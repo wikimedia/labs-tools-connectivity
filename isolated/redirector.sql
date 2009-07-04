@@ -1,5 +1,5 @@
  --
- -- Authors: [[:ru:user:Mashiah Davidson]], still alone
+ -- Authors: [[:ru:user:Mashiah Davidson]]
  --
  -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
  --

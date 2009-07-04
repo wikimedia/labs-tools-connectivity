@@ -1,6 +1,6 @@
 #!/bin/bash
  #
- # Authors: [[:ru:user:Mashiah Davidson]], still alone
+ # Authors: [[:ru:user:Mashiah Davidson]]
  #
  # Purpose: Nice handler for all output coming from various modules
  #          written in different languages.
