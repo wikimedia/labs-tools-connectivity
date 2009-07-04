@@ -79,7 +79,10 @@ echo "</td><td width=75%>"
 
 echo "<h1>$thish1</h1>"
 
-echo "$whatisit<br><br>"
+if [ "$user" != '' ] || [ "$registered" != '0' ]
+then
+  echo "$whatisit<br><br>"
+fi
 echo $example
 echo "<FORM action=\"./creators.sh\" method=\"get\">"
 echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
