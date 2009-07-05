@@ -15,7 +15,6 @@ handle_dsglist ()
 
   if no_sql_error "$line"
   then
-    local suggest=$2
     local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\1/g' )
     local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\2/g' )
     name=${name//_/ }

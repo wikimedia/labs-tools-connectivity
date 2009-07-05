@@ -20,8 +20,10 @@ handle_catlist ()
     local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
     local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
     name=${name//_/ }
-    local nameurl=${name//\"/%22}
-    echo "<li><a href=\"./category.sh?language=$language&interface=$interface&category=$nameurl\">$name</a>: $volume ($percent%)</li>"
+    local cname=${name//\?/\%3F}
+    cname=${cname//\&/\%26}
+    cname=${cname//\"/\%22}
+    echo "<li><a href=\"./category.sh?language=$language&interface=$interface&category=$cname\">$name</a>: $volume ($percent%)</li>"
   fi
 }
 

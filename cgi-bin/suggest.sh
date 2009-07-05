@@ -30,13 +30,14 @@ handle_catlist ()
   if no_sql_error "$line"
   then
     local suggest=$2
-    local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\1/g' )
-    local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\2/g' )
+    local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\1/g' )
+    local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
+    local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
     name=${name//_/ }
     local cname=${name//\?/\%3F}
     cname=${cname//\&/\%26}
     cname=${cname//\"/\%22}
-    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$cname&suggest=$suggest\">$name</a>: $volume</li>"
+    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$cname&suggest=$suggest\">$name</a>: $volume ($percent%)</li>"
   fi
 }
 
@@ -393,12 +394,15 @@ case $listby in
   echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT title,              \
-                cnt                 \
-                FROM sgdcatvolume0, \
-                     categories     \
-                WHERE cat=id        \
-                ORDER BY cnt DESC   \
+    echo SELECT title,                                \
+                sgdcatvolume0.cnt,                    \
+                100\*sgdcatvolume0.cnt/catvolume0.cnt \
+                FROM catvolume0,                      \
+                     sgdcatvolume0,                   \
+                     categories                       \
+                WHERE catvolume0.cat=id and           \
+                      sgdcatvolume0.cat=id            \
+                ORDER BY sgdcatvolume0.cnt DESC       \
                 LIMIT $((shift)),100\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
@@ -443,12 +447,15 @@ case $listby in
   echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT title,              \
-                cnt                 \
-                FROM sglcatvolume0, \
-                     categories     \
-                WHERE cat=id        \
-                ORDER BY cnt DESC   \
+    echo SELECT title,                                \
+                sglcatvolume0.cnt,                    \
+                100\*sglcatvolume0.cnt/catvolume0.cnt \
+                FROM catvolume0,                      \
+                     sglcatvolume0,                   \
+                     categories                       \
+                WHERE catvolume0.cat=id and           \
+                      sglcatvolume0.cat=id            \
+                ORDER BY sglcatvolume0.cnt DESC       \
                 LIMIT $((shift)),100\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
@@ -493,12 +500,15 @@ case $listby in
   echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT title,              \
-                cnt                 \
-                FROM sgtcatvolume0, \
-                     categories     \
-                WHERE cat=id        \
-                ORDER BY cnt DESC   \
+    echo SELECT title,                                \
+                sgtcatvolume0.cnt,                    \
+                100\*sgtcatvolume0.cnt/catvolume0.cnt \
+                FROM catvolume0,                      \
+                     sgtcatvolume0,                   \
+                     categories                       \
+                WHERE catvolume0.cat=id and           \
+                      sgtcatvolume0.cat=id            \
+                ORDER BY sgtcatvolume0.cnt DESC       \
                 LIMIT $((shift)),100\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
