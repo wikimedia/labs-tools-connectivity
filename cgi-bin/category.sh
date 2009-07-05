@@ -10,17 +10,6 @@ source ./common.$interface
 source ./$script.$interface
 source ./common2
 
-handle_category ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$line\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?language=$language&interface=$interface&title=$line\"><font color=green>[[$suggest]]</font></a></small></li>"
-  fi
-}
-
 handle_catlist ()
 {
   local line=$1
@@ -104,7 +93,7 @@ then
     echo CALL isolated_for_category\(\"${convertedcat}\"\, \'${language}\'\)\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
-                      do handle_category "$line"
+                      do handle_isolates "$line"
                     done
                   }
   echo "</ol>"

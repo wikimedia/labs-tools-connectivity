@@ -11,17 +11,6 @@ source ./common.$interface
 source ./$script.$interface
 source ./common2
 
-handle_isolates ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$line\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?language=$language&interface=$interface&title=$line\"><font color=green>[[$suggest]]</font></a></small></li>"
-  fi
-}
-
 handle_userlist ()
 {
   local line=$1

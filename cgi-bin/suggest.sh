@@ -111,20 +111,6 @@ handle_trns ()
   fi
 }
 
-handle_category ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    local lineurl=${line//\?/\%3F}
-    lineurl=${lineurl//\&/\%26}
-    lineurl=${lineurl//\"/\%22}
-    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&title=$lineurl\"\>$line</a></li>"
-  fi
-}
-
 suggestions ()
 {
   echo "<h3>$sggclause0</h3>"
@@ -297,7 +283,7 @@ case $listby in
           echo CALL isolated_for_category_dsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
         } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                           while read -r line
-                            do handle_category "$line"
+                            do handle_isolates "$line"
                           done
                         }
         echo "</ol>"
@@ -311,7 +297,7 @@ case $listby in
           echo CALL isolated_for_category_ilsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
         } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                           while read -r line
-                            do handle_category "$line"
+                            do handle_isolates "$line"
                           done
                         }
         echo "</ol>"
@@ -325,7 +311,7 @@ case $listby in
           echo CALL isolated_for_category_itsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
         } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                           while read -r line
-                            do handle_category "$line"
+                            do handle_isolates "$line"
                           done
                         }
         echo "</ol>"
@@ -390,7 +376,7 @@ case $listby in
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
-                      do handle_category "$line"
+                      do handle_isolates "$line"
                     done
                   } 
   echo "</ol>"
@@ -439,7 +425,7 @@ case $listby in
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
-                      do handle_category "$line"
+                      do handle_isolates "$line"
                     done
                   }
   echo "</ol>"
@@ -489,7 +475,7 @@ case $listby in
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
-                      do handle_category "$line"
+                      do handle_isolates "$line"
                     done
                   }
   echo "</ol>"

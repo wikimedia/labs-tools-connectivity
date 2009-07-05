@@ -552,3 +552,18 @@ the_menu ()
   esac
 
 }
+
+handle_isolates ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    local lineurl=${line//\?/\%3F}
+    lineurl=${lineurl//\&/\%26}
+    lineurl=${lineurl//\"/\%22}
+
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$lineurl\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?language=$language&interface=$interface&title=$lineurl\"><font color=green>[[$suggesttext]]</font></a></small></li>"
+  fi
+}
