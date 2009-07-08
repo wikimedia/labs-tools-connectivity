@@ -253,7 +253,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
   BEGIN
     #
     # Groups receiving new elements during reversed minimums flow should be
-    # marked by nodes, which are out of top level clusters
+    # marked by nodes, which are out of top level (not linked) clusters
     # (there is nothing to spread minimum to at the top level).
     #
     # Here we select for group identifiers common for ga and rga but with
@@ -286,7 +286,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
     # in direct flow by a node, which is upper to them, because there were
     # no bacward links found during the reversed flow.
     #
-    # Note: Could contain nodes already marked for deletion.
+    # Note: May contain nodes already marked for deletion.
     #
     INSERT INTO todelete
     SELECT ga.id

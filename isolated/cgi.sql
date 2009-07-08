@@ -28,7 +28,7 @@ CREATE PROCEDURE isolated_for_category (cat_given VARCHAR(255), target_lang VARC
   BEGIN
     DECLARE st VARCHAR(255);
 
-    SET @st=CONCAT( "SELECT title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0 WHERE id=cl_from and cl_to=\"", cat_given, "\" ORDER BY title ASC;" );
+    SET @st=CONCAT( "SELECT cat, title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0 WHERE id=cl_from and cl_to=\"", cat_given, "\" ORDER BY title ASC;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
   END;
@@ -45,7 +45,7 @@ CREATE PROCEDURE isolated_for_category_dsuggestable (cat_given VARCHAR(255), tar
   BEGIN
     DECLARE st VARCHAR(255);
 
-    SET @st=CONCAT( "SELECT DISTINCT title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0, isdis WHERE ruwiki0.id=cl_from and cl_to=\"", cat_given, "\" and isdis.id=ruwiki0.id ORDER BY title ASC;" );
+    SET @st=CONCAT( "SELECT DISTINCT cat, title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0, isdis WHERE ruwiki0.id=cl_from and cl_to=\"", cat_given, "\" and isdis.id=ruwiki0.id ORDER BY title ASC;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
   END;
@@ -62,7 +62,7 @@ CREATE PROCEDURE isolated_for_category_ilsuggestable (cat_given VARCHAR(255), ta
   BEGIN
     DECLARE st VARCHAR(255);
 
-    SET @st=CONCAT( "SELECT DISTINCT title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0, isres WHERE ruwiki0.id=cl_from and cl_to=\"", cat_given, "\" and isres.id=ruwiki0.id ORDER BY title ASC;" );
+    SET @st=CONCAT( "SELECT DISTINCT cat, title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0, isres WHERE ruwiki0.id=cl_from and cl_to=\"", cat_given, "\" and isres.id=ruwiki0.id ORDER BY title ASC;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
   END;
@@ -78,7 +78,7 @@ CREATE PROCEDURE isolated_for_category_itsuggestable (cat_given VARCHAR(255), ta
   BEGIN
     DECLARE st VARCHAR(255);
 
-    SET @st=CONCAT( "SELECT DISTINCT title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0, istres WHERE ruwiki0.id=cl_from and cl_to=\"", cat_given, "\" and istres.id=ruwiki0.id ORDER BY title ASC;" );
+    SET @st=CONCAT( "SELECT DISTINCT cat, title FROM ", dbname_for_lang( target_lang ), ".categorylinks, ruwiki0, istres WHERE ruwiki0.id=cl_from and cl_to=\"", cat_given, "\" and istres.id=ruwiki0.id ORDER BY title ASC;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
   END;
@@ -178,6 +178,17 @@ CREATE PROCEDURE interwiki_suggest_translate (iid VARCHAR(255))
     UNTIL done END REPEAT;
 
     CLOSE cur;
+  END;
+//
+
+DROP PROCEDURE IF EXISTS ordered_cat_list//
+CREATE PROCEDURE ordered_cat_list (tablename VARCHAR(255), shift INT)
+  BEGIN
+    DECLARE st VARCHAR(255);
+
+    SET @st=CONCAT( 'SELECT title, ', tablename, '.cnt, 100*', tablename, '.cnt/catvolume0.cnt FROM catvolume0, ', tablename, ', categories WHERE catvolume0.cat=id and ', tablename, '.cat=id ORDER BY ', tablename, '.cnt DESC LIMIT ', shift, ',100;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
   END;
 //
 

@@ -85,6 +85,11 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
         # they do not supply articles with proper categories
         CALL outifexists( CONCAT( 'r', namespace ), CONCAT( 'redirects for namespace ', namespace), 'r.txt', 'r_title', 'out' );
     END IF;
+
+    IF namespace=0
+      THEN
+        CALL actuality( 'znswrongredirects' );
+    END IF;
   END;
 //
 

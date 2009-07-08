@@ -68,7 +68,7 @@ echo "</td><td width=75%>"
 
 echo "<h1>$thish1</h1>"
 
-if [ "$user" != '' ] || [ "$registered" != '0' ]
+if [ "$user" = '' ] || [ "$registered" = '' ]
 then
   echo "$whatisit<br><br>"
 fi
@@ -96,37 +96,49 @@ then
   else
     echo "<a href=\"http://$language.wikipedia.org/w/index.php?title=User:$userurl\" target=\"_blank\">$user</a>"
   fi
-  echo "<ol>"
+
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
   {
-    echo SELECT title                          \
-                FROM creators0                 \
-                WHERE user_text=\"${usersql}\" \
+    echo SELECT cat,                               \
+                title                              \
+                FROM creators0,                    \
+                     ruwiki0                       \
+                WHERE user_text=\"${usersql}\" and \
+                      iid=id                       \
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                    local count=0
                     while read -r line
-                      do handle_isolates "$line"
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
                     done
                   }
-  echo "</ol>"
-  echo $listend
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
 else
   if [ "$registered" = '0' ]
   then
     echo "<br />$anonymous_s<br />"
-
-    echo "<ol>"
+    echo "<table class=\"sortable infotable\">"
+    echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
     {
-      echo SELECT title          \
-                  FROM creators0 \
-                  WHERE user=0   \
+      echo SELECT cat,             \
+                  title            \
+                  FROM creators0,  \
+                       ruwiki0     \
+                  WHERE user=0 and \
+                        iid=id     \
                   ORDER BY title ASC\;
     } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                      local count=0
                       while read -r line
-                        do handle_isolates "$line"
+                        do handle_isolates_as_table $((count+1)) "$line"
+                        count=$((count+1))
                       done
                     }
-    echo "</ol>"
-    echo "$listend"
+    echo "</table>"
+    echo '<script type="text/javascript" src="../sortable.js"></script>'
   else
     if [ "$registered" = '' ]
     then

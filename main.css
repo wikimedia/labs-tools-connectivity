@@ -8,10 +8,6 @@ body {
   font-family: Arial, Verdana, 'DejaVu Sans', sans-serif;
   font-size: 9pt;
 }
-
-
-
-
 table td, table th {
   vertical-align:top;
   padding:1em;
@@ -164,6 +160,15 @@ ul {
   padding: 0;
   list-style-image: url('http://ru.wikipedia.org/w/skins-1.5/monobook/bullet.gif');
 }
+ul.list {
+  list-style-type: square;
+  margin:0 0 0 1.5em;
+  line-height: 1.4em;
+  padding: 0;
+  list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/QSicon_Formatierung_Grey.svg/10px-QSicon_Formatierung_Grey.svg.png');
+  font-size: 12pt;
+}
+
 input, select, label, a.sm {
   font-size:9pt;
   font-family: Arial, Verdana, 'DejaVu Sans', sans-serif;

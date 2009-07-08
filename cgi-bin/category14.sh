@@ -39,7 +39,10 @@ handle_rlist ()
   if no_sql_error "$line"
   then
     line=${line//_/ }
-    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$line\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
+    local name=${line//\?/\%3F}
+    name=${name//\&/\%26}
+    name=${name//\"/\%22}
+    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$name\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
   fi
 }
 

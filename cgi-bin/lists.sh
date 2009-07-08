@@ -10,6 +10,20 @@ source ./common2
 echo Content-type: text/html
 echo ""
 
+handle_rlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    local name=${line//\?/\%3F}
+    name=${name//\&/\%26}
+    name=${name//\"/\%22}
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name&redirect=no&action=edit\" target=\"_blank\">$line</a></li>"
+  fi
+}
+
 cat << EOM
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -27,7 +41,7 @@ cat << EOM
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
-how_actual categoryspruce
+how_actual znswrongredirects
 
 #
 # Switching between interface languages at the top right
@@ -49,15 +63,32 @@ the_menu
 echo "</td><td width=75%>"
 echo "<h1>$thish1</h1>"
 
-echo "<p>$description</p>"
+echo "<ul class=list>"
+echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambig\">$fl_disambig</a>"
 
-echo "<h3><a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambig\">$fl_disambig</a></h3>"
+echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlink\">$fl_interlink</a>"
 
-echo "<h3><a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlink\">$fl_interlink</a></h3>"
+echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&listby=translate\">$fl_translate</a>"
 
-echo "<h3><a href=\"./suggest.sh?language=$language&interface=$interface&listby=translate\">$fl_translate</a></h3>"
+echo "<li><a href=\"./creators.sh?language=$language&interface=$interface&registered=0\">$fl_anonym</a>"
 
-echo "<h3><a href=\"./creators.sh?language=$language&interface=$interface&registered=0\">$fl_anonym</a></h3>"
+echo "</ul>"
+
+echo "<h3>$fl_wr</h3>"
+
+echo "<br /><font color=red>$fl_wr_desc</font><br />"
+echo "<ol>"
+{
+  echo SELECT wr_title \
+              FROM wr0 \
+              ORDER BY wr_title ASC\;
+} | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                  while read -r line
+                    do handle_rlist "$line"
+                  done
+                }
+echo "</ol>"
+echo $listend
 
 cat << EOM
 </td>

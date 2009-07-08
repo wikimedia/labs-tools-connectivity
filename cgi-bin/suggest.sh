@@ -23,24 +23,6 @@ handle_isotype ()
   fi
 }
 
-handle_catlist ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    local suggest=$2
-    local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\1/g' )
-    local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
-    local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
-    name=${name//_/ }
-    local cname=${name//\?/\%3F}
-    cname=${cname//\&/\%26}
-    cname=${cname//\"/\%22}
-    echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$cname&suggest=$suggest\">$name</a>: $volume ($percent%)</li>"
-  fi
-}
-
 handle_dsmbg ()
 {
   local line=$1
@@ -279,57 +261,65 @@ case $listby in
       'disambig')
         echo "<br />$submenu1desc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
 
-        echo "<ol>"
+        echo "<table class=\"sortable infotable\">"
+        echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
         {
           echo CALL isolated_for_category_dsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
         } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                          local count=0
                           while read -r line
-                            do handle_isolates "$line"
+                            do handle_isolates_as_table $((count+1)) "$line"
+                            count=$((count+1))
                           done
                         }
-        echo "</ol>"
-        echo $listend
+        echo "</table>"
+        echo '<script type="text/javascript" src="../sortable.js"></script>'
         ;;
       'interlink')
         echo "<br />$submenu2desc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
 
-        echo "<ol>"
+        echo "<table class=\"sortable infotable\">"
+        echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
         {
           echo CALL isolated_for_category_ilsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
         } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                          local count=0
                           while read -r line
-                            do handle_isolates "$line"
+                            do handle_isolates_as_table $((count+1)) "$line"
+                            count=$((count+1))
                           done
                         }
-        echo "</ol>"
-        echo $listend
+        echo "</table>"
+        echo '<script type="text/javascript" src="../sortable.js"></script>'
         ;;
       'translate')
         echo "<br />$submenu3desc <a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$categoryurl\">$category</a>"
 
-        echo "<ol>"
+        echo "<table class=\"sortable infotable\">"
+        echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
         {
           echo CALL isolated_for_category_itsuggestable\(\"$convertedcat\"\, \'${language}\'\)\;
         } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                          local count=0
                           while read -r line
-                            do handle_isolates "$line"
+                            do handle_isolates_as_table $((count+1)) "$line"
+                            count=$((count+1))
                           done
                         }
-        echo "</ol>"
-        echo $listend
+        echo "</table>"
+        echo '<script type="text/javascript" src="../sortable.js"></script>'
         ;;
       *) ;;
       esac
     fi
   else
-    titleurl=${title//\"/\%22}
-    titleurl=${title//\_/\%20}
-    titleurl=${title//\&/\%26}
+    titleurl=${title//\?/\%3F}
+    titleurl=${titleurl//\&/\%26}
+    titleurl=${titleurl//\"/\%22}
+    titleurl=${titleurl//\_/\%20}
     titlesql=${title//\"/\"\'\"\'\"}
 
-    convertedtitle=$( echo $titleurl | sed -e 's/?/\%3F/g' )
-    convertedtitle=$( echo $convertedtitle | sed -e 's/&/\%26/g' )
-    echo "<h2><a href=\"http://$language.wikipedia.org/wiki/$convertedtitle\">$title</a></h2>"
+    echo "<h2><a href=\"http://$language.wikipedia.org/wiki/$titleurl\">$title</a></h2>"
 
     # for orphaned and other isolated articles we use different definitions.
     {
@@ -368,20 +358,23 @@ case $listby in
 'disambig')
   echo "<br />$subclause1<br />"
 
-  echo "<ol>"
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
   {
-    echo SELECT DISTINCT title            \
+    echo SELECT DISTINCT cat, title       \
                 FROM isdis,               \
                      ruwiki0              \
                 WHERE ruwiki0.id=isdis.id \
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                    local count=0
                     while read -r line
-                      do handle_isolates "$line"
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
                     done
                   } 
-  echo "</ol>"
-  echo $listend
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
   ;;
 'disambigcat')
   echo "<br />$subclause2<br />"
@@ -394,16 +387,7 @@ case $listby in
   echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=disambigcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT title,                                \
-                sgdcatvolume0.cnt,                    \
-                100\*sgdcatvolume0.cnt/catvolume0.cnt \
-                FROM catvolume0,                      \
-                     sgdcatvolume0,                   \
-                     categories                       \
-                WHERE catvolume0.cat=id and           \
-                      sgdcatvolume0.cat=id            \
-                ORDER BY sgdcatvolume0.cnt DESC       \
-                LIMIT $((shift)),100\;
+    echo CALL ordered_cat_list\( \"sgdcatvolume0\", $((shift)) \)\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line" 'disambig'
@@ -420,20 +404,23 @@ case $listby in
 'interlink')
   echo "<br />$subclause3<br />"
 
-  echo "<ol>"
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
   {
-    echo SELECT DISTINCT title            \
+    echo SELECT DISTINCT cat, title       \
                 FROM isres,               \
                      ruwiki0              \
                 WHERE ruwiki0.id=isres.id \
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                    local count=0
                     while read -r line
-                      do handle_isolates "$line"
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
                     done
                   }
-  echo "</ol>"
-  echo $listend
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
 
   ;;
 'interlinkcat')
@@ -447,16 +434,7 @@ case $listby in
   echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=interlinkcat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT title,                                \
-                sglcatvolume0.cnt,                    \
-                100\*sglcatvolume0.cnt/catvolume0.cnt \
-                FROM catvolume0,                      \
-                     sglcatvolume0,                   \
-                     categories                       \
-                WHERE catvolume0.cat=id and           \
-                      sglcatvolume0.cat=id            \
-                ORDER BY sglcatvolume0.cnt DESC       \
-                LIMIT $((shift)),100\;
+    echo CALL ordered_cat_list\( \"sglcatvolume0\", $((shift)) \)\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line" 'interlink'
@@ -473,20 +451,23 @@ case $listby in
 'translate')
   echo "<br />$subclause5<br />"
 
-  echo "<ol>"
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
   {
-    echo SELECT DISTINCT title             \
+    echo SELECT DISTINCT cat, title        \
                 FROM istres,               \
                      ruwiki0               \
                 WHERE ruwiki0.id=istres.id \
                 ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
+                    local count=0
                     while read -r line
-                      do handle_isolates "$line"
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
                     done
                   }
-  echo "</ol>"
-  echo $listend
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
 
   ;;
 'translatecat')
@@ -500,16 +481,7 @@ case $listby in
   echo "<a href=\"./suggest.sh?language=$language&interface=$interface&listby=translatecat&shift=$shiftnext\">$next 100</a>"
   echo "<ol start=$((shift+1))>"
   {
-    echo SELECT title,                                \
-                sgtcatvolume0.cnt,                    \
-                100\*sgtcatvolume0.cnt/catvolume0.cnt \
-                FROM catvolume0,                      \
-                     sgtcatvolume0,                   \
-                     categories                       \
-                WHERE catvolume0.cat=id and           \
-                      sgtcatvolume0.cat=id            \
-                ORDER BY sgtcatvolume0.cnt DESC       \
-                LIMIT $((shift)),100\;
+    echo CALL ordered_cat_list\( \"sgtcatvolume0\", $((shift)) \)\;
   } | $( sql ${dbserver} u_${usr}_golem_${language} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line" 'translate'

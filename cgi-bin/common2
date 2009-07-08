@@ -553,17 +553,43 @@ the_menu ()
 
 }
 
-handle_isolates ()
+handle_isolates_as_table ()
 {
-  local line=$1
+  local count=$1
 
   if no_sql_error "$line"
   then
+    local type=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\1/g' )
+    local line=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\)/\2/g' )
+
     line=${line//_/ }
     local lineurl=${line//\?/\%3F}
     lineurl=${lineurl//\&/\%26}
     lineurl=${lineurl//\"/\%22}
 
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$lineurl\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?language=$language&interface=$interface&title=$lineurl\"><font color=green>[[$suggesttext]]</font></a></small></li>"
+    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=$lineurl\" target=\"_blank\">$line</a> <small><a href=\"./suggest.sh?language=$language&interface=$interface&title=$lineurl\"><font color=green>[[$suggesttext]]</font></a></small></td><td>$type</td></tr>"
+  fi
+}
+
+handle_catlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local suggest=$2
+    local name=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\1/g' )
+    local volume=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\2/g' )
+    local percent=$( echo $line | sed -e 's/^\([^ ]\+\) \([^ ]\+\) \([^ ]\+\)/\3/g' )
+    name=${name//_/ }
+    local cname=${name//\?/\%3F}
+    cname=${cname//\&/\%26}
+    cname=${cname//\"/\%22}
+    if [ "$suggest" != '' ]
+    then
+      echo "<li><a href=\"./suggest.sh?language=$language&interface=$interface&category=$cname&suggest=$suggest\">$name</a>: $volume ($percent%)</li>"
+    else
+      echo "<li><a href=\"./category.sh?language=$language&interface=$interface&category=$cname\">$name</a>: $volume ($percent%)</li>"
+    fi
   fi
 }
