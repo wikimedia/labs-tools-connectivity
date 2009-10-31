@@ -1,29 +1,3 @@
-#!/bin/bash
-
-script="lists"
-source ./common
-
-handle_rlist ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    local name=$( url "$line" )
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name&redirect=no&action=edit\" target=\"_blank\">$line</a></li>"
-  fi
-}
-
-how_actual znswrongredirects
-
-#
-# Standard page header
-#
-the_header
-
-echo "<h1>$thish1</h1>"
-
 echo "<ul class=list>"
 echo "<li><a href=\"./suggest.sh?$stdurl&listby=suggest&suggest=disambig\">$fl_disambig</a>"
 
@@ -50,8 +24,3 @@ echo "<ol>"
                 }
 echo "</ol>"
 echo $listend
-
-#
-# Standard page footer
-#
-the_footer

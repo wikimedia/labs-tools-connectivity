@@ -1,8 +1,3 @@
-#!/bin/bash
-
-script="disambig"
-source ./common
-
 handle_dsglist ()
 {
   local line=$1
@@ -15,6 +10,22 @@ handle_dsglist ()
     name=${name//_/ }
     local cname=$( url "$name" )
     echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=green>[[${linkshere}]]</font></a></small></li>"
+  fi
+}
+
+handle_adlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local name=${line[0]}
+    local volume=${line[1]}
+    name=${name//_/ }
+    local cname=$( url "$name" )
+#    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume</li>"
+    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,title&title=$cname\">$name</a>: $volume</li>"
   fi
 }
 
@@ -31,15 +42,6 @@ paraphrase ()
     echo "$drdi_text: $drdi %.<br />"
   fi
 }
-
-how_actual disambiguator
-
-#
-# Standard page header
-#
-the_header
-
-echo "<h1>$thish1</h1>"
 
 {
   echo SELECT \* \
@@ -83,13 +85,8 @@ echo "<ol start=$((shift+1))>"
               LIMIT $((shift)),100\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
                   while read -r line
-                    do handle_alist "$line"
+                    do handle_adlist "$line"
                   done
                 }
 echo "</ol>"
 shifter
-
-#
-# Standard page footer
-#
-the_footer

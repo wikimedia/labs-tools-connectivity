@@ -1,0 +1,4 @@
+pagetitle="Suggest a link for isolated articles"
+thish1="suggest a link for isolated articles for ${language}wiki"
+subclause1name="categories for links copying from ${foreignname}"
+subclause1="This is the list of categories of articles, which could be wikified spying links to isolated articles from ${foreignname} wikipedia."

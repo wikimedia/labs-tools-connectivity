@@ -82,12 +82,22 @@ optional_parameters=${optional_parameters//\,/ }
 
 if [ "${optional_parameters}" != '' ]
 then
+  #
+  # dangerous!!! 
+  # filtering should be applied in order to exclude undesired names
+  #
   parse_query ${optional_parameters}
 fi
 
 if [ "$category" != '' ]
 then
   wiki_link_to_category="<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:${category_url}\">$category</a>"
+  #
+  # this allows the row passing through all the quatermarks and finaly be
+  # delivered in sql as \"
+  #
+  categorysql=${category//\"/\"\'\\\\\"\'\"}
+  convertedcat=${categorysql// /_}
 fi
 
 if [ "$foreign" != '' ]
@@ -102,8 +112,25 @@ then
                  }
                )
   foreignname=${foreignname//_/ }
+  if [ "$foreignname" = '' ]
+  then
+    foreignname="$foreign.wikipedia.org"
+  fi
 fi
 
-source ./common.$interface
-source ./$script.$interface
-source ./common2
+if [ "$title" != '' ]
+then
+  titlesql=${title//\"/\"\'\\\\\"\'\"}
+  title=${title//_/ }
+
+  # for orphaned and other isolated articles we use different definitions.
+  isotype=$(
+             {
+               echo "SELECT cat FROM ruwiki0 WHERE title=\"${titlesql// /_}\";"
+             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                                 while read -r line
+                                   do echo $line
+                                 done
+             }
+           )
+fi

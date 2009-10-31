@@ -1,0 +1,231 @@
+
+handle_isolates_as_table ()
+{
+  local count=$1
+  local str=$2
+
+  if no_sql_error "$str"
+  then
+    str=( $str )
+    local type=${str[0]}
+    local line=${str[1]}
+
+    line=${line//_/ }
+    local lineurl=$( url "$line" )
+
+    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=$lineurl\" target=\"_blank\">$line</a> <small><a href=\"./go.sh?$stdurl&listby=suggest,title&title=$lineurl\"><font color=green>[[$suggesttext]]</font></a></small></td><td>$type</td></tr>"
+  fi
+}
+
+handle_catlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local suggest=$2
+    line=( $line )
+    local name=${line[0]}
+    local volume=${line[1]}
+    local percent=${line[2]}
+    name=${name//_/ }
+    local cname=$( url "$name" )
+    case "$suggest" in
+    'disambig')
+      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>: $volume ($percent%)</li>"
+      ;;
+    'interlink' | 'translate')
+      if [ "$foreign" = '' ]
+      then
+        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>: $volume ($percent%) <small><a href=\"./go.sh?$stdurl&listby=$listby,foreign&suggest=$suggest&category=$cname\"><font color=green>[[$byforeignlang]]</font></a></small></li>"
+      else
+        echo "<li><a href=\"./go.sh?$stdurl&listby=$listby&suggest=$suggest&foreign=$foreign&category=$cname\">$name</a>: $volume ($percent%)</li>"
+      fi
+      ;;
+    '')
+      echo "<li><a href=\"./go.sh?$stdurl&listby=category&category=$cname\">$name</a>: $volume ($percent%)</li>"
+      ;;
+    *) ;;
+    esac
+  fi
+}
+
+handle_langlist ()
+{
+  local count=$1
+  local line=$2
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local code=${line[0]}
+    local ename=${line[1]}
+    local nname=${line[2]}
+    local aamount=${line[3]}
+    local iamount=${line[4]}
+    ename=${ename//_/ }
+    nname=${nname//_/ }
+    local bywhat=''
+    if [ "$suggest" = 'interlink' ]
+    then
+      bywhat=" <small><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=$suggest&foreign=$code\"><font color=green>[[$bycategory]]</font></a></small>"
+    fi
+    local langtext="$code.wikipedia.org"
+    if [ "$ename / $nname" != 'NULL / NULL' ]
+    then
+      langtext="$ename / $nname"
+    fi
+    if [ "$category" = '' ]
+    then
+      echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td><td><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=$suggest&foreign=$code\">$aamount</a>$bywhat</td><td>$iamount <small><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=$suggest&foreign=$code\"><font color=green>[[$bycategory]]</font></a></small></td></tr>"
+    else
+      echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td><td>$aamount</td><td><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=$suggest&category=$category&foreign=$code\">$iamount</a></td></tr>"
+    fi
+  fi
+}
+
+handle_langoptions ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local code=${line[0]}
+    local ename=${line[1]}
+    local nname=${line[2]}
+    ename=${ename//_/ }
+    nname=${nname//_/ }
+    local langtext="$code.wikipedia.org"
+    if [ "$ename / $nname" != 'NULL / NULL' ]
+    then
+      langtext="$ename / $nname"
+    fi
+    if [ "$foreign" = "$code" ]
+    then
+      echo "<OPTION value=\"$code\" SELECTED>$langtext"
+    else
+      echo "<OPTION value=\"$code\">$langtext"
+    fi
+  fi
+}
+
+handle_langlist2 ()
+{
+  local count=$1
+  local line=$2
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local code=${line[0]}
+    local ename=${line[1]}
+    local nname=${line[2]}
+    local aamount=${line[3]}
+    local iamount=${line[4]}
+    local aamount2=${line[5]}
+    local iamount2=${line[6]}
+    ename=${ename//_/ }
+    nname=${nname//_/ }
+    local langtext="$code.wikipedia.org"
+    if [ "$ename / $nname" != 'NULL / NULL' ]
+    then
+      langtext="$ename / $nname"
+    fi
+    local twocolumn="<td>0</td><td>0</td>"
+    if [  $iamount != 'NULL' ]
+    then
+     twocolumn="<td>$aamount <small><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$code\"><font color=green>[[$bycategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=interlink&foreign=$code\">$iamount</a></td>"
+    fi
+    local twocolumn2="<td>0</td><td>0</td>"
+    if [  $iamount2 != 'NULL' ]
+    then
+      twocolumn2="<td>$aamount2 <small><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=translate&foreign=$code\"><font color=green>[[$byisocategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=translate&foreign=$code\">$iamount2</a></td>"
+    fi
+    echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td>${twocolumn}${twocolumn2}</tr>"
+  fi
+}
+
+handle_layer ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$line\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
+  fi
+}
+
+handle_table ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local lname=${line[0]}
+    local amnt=${line[1]}
+
+    echo "<a href='./go.sh?$stdurl&listby=categoryspruce&networkpath=$lname'>$lname</a>:&nbsp;$amnt<br />"
+  fi
+}
+
+handle_crlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    local name=$( url "$line" )
+    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$name\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
+  fi
+}
+
+handle_rlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    local name=$( url "$line" )
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name&redirect=no&action=edit\" target=\"_blank\">$line</a></li>"
+  fi
+}
+
+handle_alist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=${line//_/ }
+    local name=$( url "$line" )
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name\" target=\"_blank\">$line</a></li>"
+  fi
+}
+
+handle_totranslate ()
+{
+  local count=$1
+  local line=$2
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local sgg=${line[0]}
+    local cnt=${line[1]}
+    sgg=${sgg//_/ }
+    sgg_url=$( url "$sgg" )
+    case $suggest in
+     'interlink')
+      echo "<tr><td>$count</td><td><a href=\"./go.sh?$stdurl&listby=suggest,title&title=${sgg_url}\">$sgg</a></td><td>$cnt</td></tr>"
+      ;;
+     'translate')
+      echo "<tr><td>$count</td><td><a href=\"http://$foreign.wikipedia.org/w/index.php?title=${sgg_url}\" target=\"_blank\">$sgg</a></td><td>$cnt</td></tr>"
+      ;;
+    esac
+  fi
+}

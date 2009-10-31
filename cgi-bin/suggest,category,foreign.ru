@@ -1,0 +1,8 @@
+pagetitle="Подсказка ссылок на изолированные статьи"
+thish1="подсказка ссылок на изолированные статьи"
+subclause1name="articles in category $wiki_link_to_category with linking suggestions spied from ${foreignname}"
+subclause2name="articles in category $wiki_link_to_category with suggestions for translation from ${foreignname}"
+subclause3name="languages to copy links from for isolates in category $wiki_link_to_category"
+subclause3="This is the list of languages to spy links from for isolated articles in category $wiki_link_to_category. For each language the amount of articles suggested for translation improvement and the amount of isolated articles, which could be linked, are provided."
+subclause4name="languages to translate from for isolates in category $wiki_link_to_category"
+subclause4="This is the list of languages to translate and spy links from for isolated articles in category $wiki_link_to_category. For each language the amount of articles suggested for translation and the amount of isolated articles, which could be linked, are provided."

@@ -1,0 +1,71 @@
+case $suggest in
+ '')
+  echo "<br />$clause1<br /><br />"
+  echo "<font color=red>$clause2</font><br />"
+  echo "<ul><li>$clause3</li><li>$clause4</li></ul>"
+  ;;
+ 'disambig')
+  echo "<br />$subclause1<br />"
+
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
+  {
+    echo SELECT DISTINCT cat, title       \
+                FROM isdis,               \
+                     ruwiki0              \
+                WHERE ruwiki0.id=isdis.id \
+                ORDER BY title ASC\;
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                    count=0
+                    while read -r line
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
+                    done
+                  } 
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
+  ;;
+ 'interlink')
+  echo "<br />$subclause2<br />"
+
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
+  {
+    echo SELECT DISTINCT cat, title       \
+                FROM isres,               \
+                     ruwiki0              \
+                WHERE ruwiki0.id=isres.id \
+                ORDER BY title ASC\;
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                    count=0
+                    while read -r line
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
+                    done
+                  }
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
+  ;;
+ 'translate')
+  echo "<br />$subclause3<br />"
+
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
+  {
+    echo SELECT DISTINCT cat, title        \
+                FROM istres,               \
+                     ruwiki0               \
+                WHERE ruwiki0.id=istres.id \
+                ORDER BY title ASC\;
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                    count=0
+                    while read -r line
+                      do handle_isolates_as_table $((count+1)) "$line"
+                      count=$((count+1))
+                    done
+                  }
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
+  ;;
+ *) ;;
+esac

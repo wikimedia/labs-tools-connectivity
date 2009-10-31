@@ -1,12 +1,3 @@
-#!/bin/bash
- #
- # Authors: [[:ru:user:Mashiah Davidson]]
- #          [[:ru:user:Lvova]]
- #
-
-script="zns"
-source ./common
-
 articles_flexies ()
 {
   local articles=$1
@@ -214,19 +205,6 @@ resume ()
   esac
 }
 
-#
-# Actuality data at the top left of the page
-#
-how_actual isolatedbycategory
-
-#
-# Standard page header
-#
-the_header
-
-echo "<A name=\"scope\"></A>"
-echo "<h1>$thish1</h1>"
-
 echo "<p>$par1</p>"
 
 echo "<p>$par2</p>"
@@ -270,8 +248,3 @@ echo '</div></center>'
 # Additional static sections for this page
 #
 cat zns1.$interface
-
-#
-# Standard page footer
-#
-the_footer

@@ -1,0 +1,91 @@
+case $suggest in
+ 'interlink')
+  towhat=$articlestoimprove
+  tablename='isres'
+  ntablename='nisres'
+  ;;
+ 'translate')
+  towhat=$articlestotranslate
+  tablename='istres'
+  ntablename='nistres'
+  ;;
+esac
+
+if [ "$foreign" = '' ]
+then
+  case "$suggest" in
+   'interlink')
+    echo "<h3>$subclause1name</h3>"
+    echo "$subclause1<br /><br />"
+    ;;
+   'translate')
+    echo "<h3>$subclause2name</h3>"
+    echo "$subclause2<br /><br />"
+    ;;
+  *) ;;
+  esac
+
+  if [ "$suggest" != '' ]
+  then
+    echo "<table class=\"sortable infotable\">"
+    echo "<tr><th>&#8470;</th><th>$languagename</th><th>$towhat</th><th>$linkableisolates</th></tr>"
+    {
+      echo SELECT DISTINCT wiki.lang,                          \
+                  REPLACE\(english_name,\' \',\'_\'\),         \
+                  REPLACE\(native_name,\' \',\'_\'\),          \
+                  a_amnt,                                      \
+                  i_amnt                                       \
+                  FROM toolserver.wiki                         \
+                       LEFT JOIN toolserver.language           \
+                                 ON wiki.lang=language.lang    \
+                       LEFT JOIN $ntablename                   \
+                                 ON wiki.lang=$ntablename.lang \
+                  WHERE family=\'wikipedia\' AND               \
+                        is_closed=0 AND                        \
+                        a_amnt\>0                              \
+                  ORDER BY size DESC\;
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                      count=0
+                      while read -r line
+                        do handle_langlist $((count+1)) "$line"
+                        count=$((count+1))
+                      done
+                    }
+    echo "</table>"
+    echo '<script type="text/javascript" src="../sortable.js"></script>'
+  fi
+else
+  case "$suggest" in
+   'interlink')
+    echo "<h3>$subclause3name</h3>"
+    echo "$subclause3<br /><br />"
+    ;;
+   'translate')
+    echo "<h3>$subclause4name</h3>"
+    echo "$subclause4<br /><br />"
+    ;;
+  *) ;;
+  esac
+  shifter
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th><th>$towhat</th><th>$linkableisolates</th></tr>"
+  {
+#    echo SELECT suggestn,                       \
+#                count\(id\) as cnt              \
+#                FROM $tablename                 \
+#                WHERE lang=\'$foreign\'         \
+#                GROUP BY suggestn               \
+#                ORDER BY cnt DESC, suggestn ASC \
+#                LIMIT $((shift)),100\;
+    echo CALL wikifies_for_category_and_foreign\(\"\", \"$language\", \"$foreign\", $((shift)) \)\;
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                    count=$((shift))
+                    while read -r line
+                      do handle_totranslate $((count+1)) "$line"
+                      count=$((count+1))
+                    done
+                  }
+  echo "</table>"
+  echo '<script type="text/javascript" src="../sortable.js"></script>'
+  shifter
+fi

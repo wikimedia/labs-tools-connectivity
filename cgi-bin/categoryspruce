@@ -1,57 +1,3 @@
-#!/bin/bash
-
-script="category14"
-source ./common
-
-handle_layer ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$line\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
-  fi
-}
-
-handle_table ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=( $line )
-    local lname=${line[0]}
-    local amnt=${line[1]}
-
-    echo "<a href='./category14.sh?$stdurl&listby=categoryspruce&networkpath=$lname'>$lname</a>:&nbsp;$amnt<br />"
-  fi
-}
-
-handle_rlist ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    local name=$( url "$line" )
-    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$name\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
-  fi
-}
-
-how_actual categoryspruce
-
-#
-# Standard page header
-#
-the_header
-
-echo "<h1>$thish1</h1>"
-
-echo $actualnote1
-echo $actualnote2
-
 if [ "$networkpath" != '' ]
 then
   echo "<h4>$networkpath</h4>"
@@ -123,7 +69,7 @@ then
                 ORDER BY r_title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
                     while read -r line
-                      do handle_rlist "$line"
+                      do handle_crlist "$line"
                     done
                   }
   echo "</ol>"
@@ -145,14 +91,9 @@ then
                 ORDER BY wr_title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
                     while read -r line
-                      do handle_rlist "$line"
+                      do handle_crlist "$line"
                     done
                   }
   echo "</ol>"
   echo $listend
 fi
-
-#
-# Standard page footer
-#
-the_footer

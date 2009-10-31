@@ -1,0 +1,36 @@
+
+#
+# initializes the following list of cgi variables and their representations:
+# - $language
+#   - $language_url
+# - $interface
+#   - $interface_url
+# - $listby
+#   - $listby_url
+# - $shift
+#   - $shift_url
+# - others as per $listby content
+#
+# connects creates database handle to $language database calling to ts
+#
+source ./params
+
+#
+# translations for widely used data
+#
+source ./common.$interface
+
+#
+# translations for the requested content
+#
+source ./$listby.$interface
+
+#
+# matters depending on translation
+#
+source ./handlers
+
+#
+# page rendering starts here with menu other navigation and headings
+#
+source ./navigation

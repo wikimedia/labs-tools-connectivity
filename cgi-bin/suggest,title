@@ -1,0 +1,210 @@
+handle_dsmbg ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${test:0:2}" != '::' ]
+    then
+      test=${test//_/ }
+      local ctest=$( url "$test" )
+      echo "</ol><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$ctest\"><font color=green>[[${linkshere}]]</font></a></small></li><ol>"
+    else
+      article=${article//_/ }
+      local carticle=$( url "$article" )
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://$language.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    fi
+  fi
+}
+
+handle_dlist ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local name=${line//_/ }
+    local cname=$( url "$name" )
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=green>[[${linkshere}]]</font></a></small></li>"
+  fi
+}
+
+handle_lnk ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${test:0:2}" != '::' ]
+    then
+      echo "</ol><b><a href=\"http://$test.wikipedia.org\" target=\"_blank\">$test</a></b><ol>"
+    else
+      article=${article//_/ }
+      local carticle=$( url "$article" )
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://$language.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    fi
+  fi
+}
+
+handle_trns ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local test=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local article=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${test:0:2}" != '::' ]
+    then
+      lang=$test;
+      echo "</ol><b><a href=\"http://${lang}.wikipedia.org\" target=\"_blank\">$lang</a></b><ol>"
+    else
+      article=${article//_/ }
+      local carticle=$( url "$article" )
+      echo "<li>&nbsp;&nbsp;&nbsp;<a href=\"http://${lang}.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></li>"
+    fi
+  fi
+}
+
+handle_wikify ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    local article=$( echo $line | sed -e 's/^\:\:\([^\:].*\)$/\1/' )
+    local test=$( echo $line | sed -e 's/^\:\:\:\(.*\)$/\1/' )
+
+    if [ "${article:0:2}" != '::' ]
+    then
+      article=${article//_/ }
+      local carticle=$( url "$article" )
+      echo "<br /><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$carticle\" target=\"_blank\">$article</a></b><br />&nbsp;&nbsp;&nbsp;"
+    else
+      echo " <a href=\"http://$test.wikipedia.org\" target=\"_blank\">$test</a></li>"
+    fi
+  fi
+}
+
+suggestions ()
+{
+  local isotype=$1
+
+  convertedtitle=${titlesql// /_}
+
+  echo "<h3>$sggclause8</h3>"
+  echo "$sggclause9<br />"
+
+  echo "<ul class=disambig>"
+  {
+    echo CALL suggestd\(\"$convertedtitle\"\, \'${language}\'\)\;
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                    while read -r line
+                      do handle_dlist "$line"
+                    done
+                  }
+  echo "</ul><br />"
+  echo $listend
+
+  if [ "$isotype" != '' ]
+  then
+    echo "<h3>$sggclause0</h3>"
+    echo "$sggclause1<br />"
+    echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
+
+    echo "<ol>"
+    {
+      echo CALL dsuggest\(\"$convertedtitle\"\, \'${language}\'\)\;
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                      while read -r line
+                        do handle_dsmbg "$line"
+                      done
+                    }
+    echo "</ol>"
+    echo $listend
+
+    echo "<h3>$sggclause4</h3>"
+    echo "$sggclause5<br />"
+
+    echo "<ol>"
+    {
+      echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                      while read -r line
+                        do handle_lnk "$line"
+                      done
+                    }
+    echo "</ol>"
+    echo $listend
+
+    echo "<h3>$sggclause6</h3>"
+    echo "$sggclause7<br />"
+
+    echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
+
+    echo "<ol>"
+    {
+      echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                      lang=''
+                      while read -r line
+                        do handle_trns "$line"
+                      done
+                    }
+    echo "</ol>"
+    echo $listend
+  else
+    echo "<h3>$sggclause10</h3>"
+    echo "$sggclause11<br />"
+
+    {
+      echo CALL interwiki_suggest_wikify\(\"$convertedtitle\"\)\;
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                      while read -r line
+                        do handle_wikify "$line"
+                      done
+                    }
+    echo "<br />"
+    echo $listend
+  fi
+}
+
+echo "<h2><a href=\"http://$language.wikipedia.org/wiki/${title_url}\">$title</a></h2>"
+
+## for orphaned and other isolated articles we use different definitions.
+#{
+#  echo "SELECT cat FROM ruwiki0 WHERE title=\"${titlesql// /_}\";"
+#} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+#                  isotype=''
+#
+#                  while read -r line
+#                    do handle_isotype $line
+#                  done
+
+case "$isotype" in
+ '')
+  echo $r_notrecognized
+  ;;
+ '_1')
+  echo $r_orphaned
+  ;;
+ *)
+  echo "<h4>$isotype</h4>"
+  echo $r_isolated
+  ;;
+esac
+
+suggestions $isotype
+#                }
+               
+echo "<h3>$googleonwikipedia</h3>"
+echo "<IFRAME src=\"http://www.google.com/custom?hl=$interface&domains=$language.wikipedia.org&q=${title_url}&sitesearch=$language.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
+echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=$language.wikipedia.org&q=${title_url}&sitesearch=$language.wikipedia.org\">seach with this link</A>."
+echo "</IFRAME>"
