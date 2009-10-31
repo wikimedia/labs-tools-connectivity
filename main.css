@@ -30,8 +30,11 @@ a:hover {
 a:active {
   color: #FAA700;
 }
-a#seealso {
+a#seealsocat {
   color: brown;
+}
+a#seealsolang {
+  color: darkgoldenrod;
 }
 p {
   margin:0.5em 0;
@@ -169,6 +172,14 @@ ul.list {
   font-size: 12pt;
 }
 
+ul.disambig {
+  list-style-type: square;
+  margin:0 0 0 1.5em;
+  line-height: 1.4em;
+  padding: 0;
+  list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/10px-Disambig.svg.png');
+}
+
 input, select, label, a.sm {
   font-size:9pt;
   font-family: Arial, Verdana, 'DejaVu Sans', sans-serif;
@@ -192,6 +203,12 @@ table.infotable th {
 }
 table.infotable .bright {
   background-color: #fff9e6;
+}
+table.infotable .linkexistent {
+  background-color: burlywood;
+}
+table.infotable .translateandlink {
+  background-color: aqua;
 }
 table.infotable tr:hover td {
   background-color: #fff9e6;
