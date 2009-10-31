@@ -18,7 +18,7 @@ language="$1"
 # Later could be changed to any other constant or chosen
 # among the existent server list.
 #
-server=1
+server=3
 
 #
 # Initialize variables: $dbserver, $dbhost, $usr.
@@ -33,15 +33,15 @@ rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log
   #
   # New language database might have to be created.
   #
-  echo "create database if not exists u_${usr}_golem_${language};"
+  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language};"
 
 } | $( sql $server ) 2>&1
 
-cat toolserver.sql | $( sql $server u_${usr}_golem_${language} ) 2>&1
+cat toolserver.sql | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1
 
 #
 # Which server the $language database is located at?
 #
-echo "SELECT server_num( '$language' );" | $( sql $server u_${usr}_golem_${language} ) 2>&1
+echo "SELECT server_num( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1
 
 # </pre>
