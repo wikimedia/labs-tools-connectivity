@@ -302,6 +302,51 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
+    IF namespace=0
+      THEN
+        #
+        # Redirects to pages not forming valid links.
+        #
+        DROP TABLE IF EXISTS cnar;
+        CREATE TABLE cnar (
+          cnar_id int(8) unsigned NOT NULL default '0',
+          KEY (cnar_id)
+        ) ENGINE=MEMORY AS
+        SELECT DISTINCT r2nr_from as cnar_id
+               FROM r2nr,
+                    cna
+               WHERE r2nr_to=cna_id;
+
+        #
+        # For redundant titles filtering in iwikispy.
+        #
+        DROP TABLE IF EXISTS iw_filter;
+        CREATE TABLE iw_filter (
+          name varchar(255) binary NOT NULL default '',
+          PRIMARY KEY (name)
+        ) ENGINE=MEMORY;
+
+        INSERT INTO iw_filter
+        SELECT title as name
+               FROM nr0,
+                    cna
+               WHERE cna_id=id;
+
+        #
+        # Note: Redirects are being merged to articles,
+        #       so key violation impossible.
+        #
+        INSERT INTO iw_filter
+        SELECT r_title as name
+               FROM r0,
+                    cnar
+               WHERE cnar_id=r_id;
+
+        SELECT CONCAT( ':: echo ', count(*), ' distinct page titles correspond to pages not forming valid links' )
+               FROM iw_filter;
+
+    END IF;
+
     CALL nr2X2nr();
 
     DROP TABLE nr2r;

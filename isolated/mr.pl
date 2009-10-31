@@ -68,7 +68,7 @@ $editor->set_wiki($wikilang.'.wikipedia.org','w');
 my $loginstatus=$editor->login($user, $pass);
 
 if ( $loginstatus eq '1' ) {
-  die ':: echo invalid login; possibly ~/.'.$wikilang.'.cnf contains wrong data';
+  die 'invalid login; possibly ~/.'.$wikilang.'.cnf contains wrong data'.". the error returned: ".$editor->{errstr};
 }
 
 my $success_count=0;

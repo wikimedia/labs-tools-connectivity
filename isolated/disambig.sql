@@ -195,7 +195,29 @@ CREATE PROCEDURE disambiguator (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
+    DELETE FROM dsstat;
+
+    # statistics on amount of links to disambigs for each article having such
+    INSERT INTO dsstat
+    SELECT dl_from as dss_id,
+           count(*) as dss_cnt
+           FROM dl
+           GROUP BY dl_from;
+
+    DROP TABLE IF EXISTS disambigtop;
+    CREATE TABLE disambigtop (
+      d_title varchar(255) binary NOT NULL default '',
+      d_cnt int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM AS
+    SELECT articles.title as d_title,
+           dss_cnt as d_cnt
+           FROM dsstat,
+                articles
+           WHERE articles.id=dss_id
+           ORDER BY dss_cnt DESC;
+
     DROP TABLE dsstat;
+
   END;
 //
 
@@ -203,7 +225,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
 # Copies disambiguate table into a table with a name given for cgi tools
 #
 DROP PROCEDURE IF EXISTS disambiguator_refresh//
-CREATE PROCEDURE disambiguator_refresh ( dsname VARCHAR(255) )
+CREATE PROCEDURE disambiguator_refresh ( dsname VARCHAR(255), oldname VARCHAR(255) )
   BEGIN
     DECLARE st VARCHAR(255);
 
@@ -212,7 +234,7 @@ CREATE PROCEDURE disambiguator_refresh ( dsname VARCHAR(255) )
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SET @st=CONCAT( 'RENAME TABLE disambiguate TO ', dsname, ';' );
+    SET @st=CONCAT( 'RENAME TABLE ', oldname, ' TO ', dsname, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -275,7 +297,7 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
     SELECT CONCAT( ':: echo ', count(*), ' links from articles to articles through disambiguation pages linking isolates' )
            FROM a2i;
 
-    SELECT CONCAT( ':: echo ', count(DISTINCT id), ' isolated articles may become linked' )
+    SELECT CONCAT( ':: echo ', count(DISTINCT id), ' isolated articles might become linked' )
            FROM a2i;
 
     #
@@ -297,6 +319,10 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
     DROP TABLE IF EXISTS sgdcatvolume0;
     RENAME TABLE sgdcatvolume TO sgdcatvolume0;
 
+    ALTER TABLE dl ENGINE=MyISAM;
+    DROP TABLE IF EXISTS dl0;
+    RENAME TABLE dl TO dl0;
+
     CALL actuality( 'dsuggestor' );
   END;
 //
@@ -304,7 +330,6 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
 DROP PROCEDURE IF EXISTS disambiguator_unload//
 CREATE PROCEDURE disambiguator_unload ()
   BEGIN
-    DROP TABLE IF EXISTS dl;
     DROP TABLE IF EXISTS ld;
   END;
 //
@@ -333,7 +358,9 @@ CREATE PROCEDURE constructNdisambiguate ()
     #
     CALL disambiguator( 0 );
 
-    CALL disambiguator_refresh( 'disambiguate0' );
+    CALL disambiguator_refresh( 'disambiguate0', 'disambiguate' );
+
+    CALL disambiguator_refresh( 'disambigtop0', 'disambigtop' );
 
     CALL actuality( 'disambiguator' );
 
@@ -355,6 +382,7 @@ CREATE PROCEDURE store_drdi ()
     # permanent storage for inter-run data created here if not exists
     CREATE TABLE IF NOT EXISTS drdi (
       l_ratio REAL(5,3) NOT NULL,
+      lamnt INT(8) NOT NULL DEFAULT '0',
       d_ratio REAL(5,3) NOT NULL,
       DRDI REAL(5,3) NOT NULL
     ) ENGINE=MyISAM;
@@ -362,9 +390,8 @@ CREATE PROCEDURE store_drdi ()
     # no need to keep old data because the action has performed
     DELETE FROM drdi;
 
-    # just in case of stats uploaded during this run
     INSERT INTO drdi
-    VALUES ( _l_ratio, _d_ratio, _drdi );
+    VALUES ( _l_ratio, @aricles_to_disambiguations_links_count, _d_ratio, _drdi );
   END;
 //
 

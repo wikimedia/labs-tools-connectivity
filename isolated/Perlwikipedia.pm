@@ -50,7 +50,7 @@ sub new {
     $self->{mech}->agent("$agent/$VERSION");
     $self->{host}   = 'en.wikipedia.org';
     $self->{path}   = 'w';
-    $self->{debug}  = 0;
+    $self->{debug}  = 1;
     $self->{errstr} = '';
     return $self;
 }
@@ -175,7 +175,7 @@ sub login {
     unless ($res) { return 1; }
     my $content = $res->decoded_content();
     # '= "' means there is a name, no matter which one if not just '= null'.
-    if ( $content =~ m/wgUserName = "/ ) {
+    if ( $content =~ m/wgUserName\s*=\s*"/ ) {
         if ( $content =~ m/There is no user by the name/ ) {
             $self->{errstr} = qq/Login as "$editor" failed: User "$editor" does not exist/;
             return 1;
@@ -190,6 +190,8 @@ sub login {
         }
     } else {
         $self->{errstr} = qq/Login as "$editor" failed: Name is not recognized/;
+# debug output
+#        $self->{errstr} = qq/Login as "$editor" failed: Name is not recognized, $content/;
         return 1;
     }
 }

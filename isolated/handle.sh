@@ -173,7 +173,7 @@ handle ()
             else
               if [ "${line:3:1}" = 's' ]
               then
-                 params="${line:4:1} u_${usr}_golem_${language}"
+                params="${line:4:1} u_${usr}_golem_s${line:4:1}_${language}"
                 outcommand=${line:6:4}
                 case $outcommand in
                 'call')
@@ -216,7 +216,7 @@ handle ()
                      #
                      # New language database might have to be created.
                      #
-                     echo "create database if not exists u_${usr}_golem_${language};"
+                     echo "create database if not exists u_${usr}_golem_s${line:4:1}_${language};"
                    } | $( sql ${line:4:1} ) 2>&1
                    {
                      #

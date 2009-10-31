@@ -81,13 +81,24 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
         #
         DELETE liwl 
                FROM liwl,
-                    d 
+                    d
                WHERE fr=d_id;
     
         SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after disambiguations cleanup" )
                FROM liwl;
 
         DELETE FROM d;
+
+        #
+        # Discard all suggestions on linking from non-zero namespace.
+        #
+        SET @st=CONCAT( 'DELETE liwl FROM liwl, ', dbname, '.page WHERE page_id=fr AND page_namespace!=0;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SELECT CONCAT( prefix, count(*), " links to isolate's interwikis from zero namespace" )
+               FROM liwl;
 
         SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
         PREPARE stmt FROM @st;
@@ -199,6 +210,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     DECLARE ready INT DEFAULT 0;
     DECLARE cur_sv INT DEFAULT 0;
     DECLARE dsync INT DEFAULT 0;
+    DECLARE dcnt INT DEFAULT 0;
     DECLARE st VARCHAR(511);
     DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=srv and is_closed=0 ORDER BY size DESC;
     DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and server!=srv and is_closed=0 ORDER BY server ASC;
@@ -427,6 +439,42 @@ CREATE PROCEDURE inter_langs( srv INT )
 
     CLOSE scur;
 
+    SELECT count(*) INTO dcnt
+           FROM res;
+
+    #
+    # Discard all suggestions on linking from templated non-articles.
+    #
+    DELETE res
+           FROM res,
+                iw_filter
+           WHERE name=suggestn;
+    DROP TABLE iw_filter;
+
+    #
+    # Discard all suggestions on linking from non-zero namespace.
+    #
+    # Note: Non-ucfirst'ed prefixes in interwiki-links are not recognized yet.
+    #
+    DELETE res
+           FROM res,
+                toolserver.namespace
+           WHERE dbname=CONCAT( @target_lang, 'wiki_p') AND
+                 ns_id!=0 AND
+                 suggestn like CONCAT( ns_name , ':%' );
+
+    #
+    # Exclude self-links from suggestions. May be there for various reasons.
+    #
+    DELETE res
+           FROM res,
+                ruwiki0
+           WHERE res.id=ruwiki0.id and
+                 suggestn=title;
+
+    SELECT CONCAT( ':: echo ', dcnt-count(*), ' linking suggestions discarded as not forming valid links' )
+           FROM res;
+
     #
     # Report and refresh the web
     #
@@ -436,9 +484,49 @@ CREATE PROCEDURE inter_langs( srv INT )
     SELECT CONCAT( ':: echo Totally, ', count(DISTINCT id), ' isolates could be linked with translation' )
            FROM tres;
 
+    #
+    # Languages by articles to improve and isolates those articles could link.
+    #
+    DROP TABLE IF EXISTS nres;
+    CREATE TABLE nres (
+      lang varchar(10) not null default '',
+      a_amnt int(8) unsigned not null default '0',
+      i_amnt int(8) unsigned not null default '0'
+    ) ENGINE=MEMORY AS
+    SELECT lang,
+           count(distinct suggestn) as a_amnt,
+           count(distinct id) as i_amnt
+           FROM res
+           GROUP BY lang;
+
+    SELECT CONCAT( ':: echo Totally, ', count(*), ' languages suggest on linking of isolates' )
+           FROM nres;
+
+    #
+    # Languages by articles to translate and isolates those articles could link.
+    #
+    DROP TABLE IF EXISTS ntres;
+    CREATE TABLE ntres (
+      lang varchar(10) not null default '',
+      a_amnt int(8) unsigned not null default '0',
+      i_amnt int(8) unsigned not null default '0'
+    ) ENGINE=MEMORY AS
+    SELECT lang,
+           count(distinct suggestn) as a_amnt,
+           count(distinct id) as i_amnt
+           FROM tres
+           GROUP BY lang;
+
+    SELECT CONCAT( ':: echo Totally, ', count(*), ' languages suggest on articles translation for isolates linking' )
+           FROM ntres;
+
     CALL categorystats( 'res', 'sglcatvolume' );
 
     CALL categorystats( 'tres', 'sgtcatvolume' );
+
+    CALL langcategorystats( 'res', 'sglflcatvolume' );
+
+    CALL langcategorystats( 'tres', 'sgtflcatvolume' );
 
     DROP TABLE nrcatl0;
 
@@ -446,15 +534,28 @@ CREATE PROCEDURE inter_langs( srv INT )
     ALTER TABLE res ENGINE=MyISAM;
     DROP TABLE IF EXISTS isres;
     RENAME TABLE res TO isres;
+
     ALTER TABLE tres ENGINE=MyISAM;
     DROP TABLE IF EXISTS istres;
     RENAME TABLE tres TO istres;
+
+    ALTER TABLE nres ENGINE=MyiSAM;
+    DROP TABLE IF EXISTS nisres;
+    RENAME TABLE nres TO nisres;
+
+    ALTER TABLE ntres ENGINE=MyiSAM;
+    DROP TABLE IF EXISTS nistres;
+    RENAME TABLE ntres TO nistres;
 
     # categorizer refresh
     DROP TABLE IF EXISTS sglcatvolume0;
     RENAME TABLE sglcatvolume TO sglcatvolume0;
     DROP TABLE IF EXISTS sgtcatvolume0;
     RENAME TABLE sgtcatvolume TO sgtcatvolume0;
+    DROP TABLE IF EXISTS sglflcatvolume0;
+    RENAME TABLE sglflcatvolume TO sglflcatvolume0;
+    DROP TABLE IF EXISTS sgtflcatvolume0;
+    RENAME TABLE sgtflcatvolume TO sgtflcatvolume0;
 
     CALL actuality( 'lsuggestor' );
     CALL actuality( 'tsuggestor' );

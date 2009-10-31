@@ -262,7 +262,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
     DROP TABLE IF EXISTS cna;
     CREATE TABLE cna (
       cna_id int(8) unsigned NOT NULL default '0',
-      KEY  (cna_id)
+      PRIMARY KEY (cna_id)
     ) ENGINE=MEMORY;
  
     #
@@ -283,7 +283,12 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         #
         INSERT INTO cna
         SELECT cllt_id as cna_id
-               FROM cllt;
+               FROM cllt
+        #
+        # Disambiguation pages may sometimes be collaborative lists at the
+        # same time. Icon at the top right looks nice in this case =)
+        #
+        ON DUPLICATE KEY UPDATE cna_id=cllt_id;
 
         SELECT CONCAT( ':: echo ', count(*), ' categorized or templated exclusion names found' )
                FROM cna;
@@ -304,8 +309,6 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    DROP TABLE cna;
-
     SELECT count(*) INTO @articles_count
            FROM articles;
 
@@ -321,10 +324,29 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
 
     IF namespace=0
       THEN
-
         CALL get_chrono();
 
+        #
+        # cna now collects all pages not forming valid links.
+        #
+        # Note: Articles are being merged to non-articles,
+        #       thus key violations impossible.
+        #
+        INSERT INTO cna
+        SELECT chr_id as cna_id
+               FROM chrono;
+
+        SELECT CONCAT( ':: echo ', count(*), ' pages not forming valid links' )
+               FROM cna;
+
+        #
+        # Articles with no visible categories.
+        #
+        CALL notcategorized();
+      ELSE
+        DROP TABLE cna;
     END IF;
+
   END;
 //
 

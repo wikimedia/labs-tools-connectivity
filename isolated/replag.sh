@@ -32,19 +32,19 @@ rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log
   #
   # New language database might have to be created.
   #
-  echo "create database if not exists u_${usr}_golem_${language};"
+  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language};"
 
 } | $( sql $server ) 2>&1 | ./handle.sh
 
 {
   cat toolserver.sql
   cat replag.sql
-} | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh
+} | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh
 
 #
 # Time is the measure of change.
 # What time is it? Now you know that, and this is a change for youself.
 #
-echo "CALL replag( '$language' );" | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh
+echo "CALL replag( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh
 
 # </pre>

@@ -55,7 +55,7 @@ rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${
   #
   # New language database might have to be created.
   #
-  echo "create database if not exists u_${usr}_golem_${language};"
+  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language};"
 
 } | $( sql $server ) 2>&1 | ./handle.sh $cmdl
 
@@ -172,7 +172,7 @@ time {
     #
     echo "CALL zero_namespace_postponed_tools( $server );"
 
-  } | $( sql $server u_${usr}_golem_${language} ) 2>&1 | ./handle.sh $cmdl
+  } | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh $cmdl
 }
 
 # </pre>
