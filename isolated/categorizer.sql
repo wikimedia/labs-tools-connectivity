@@ -127,7 +127,7 @@ CREATE PROCEDURE notcategorized ()
     DECLARE cnt INT;
 
     DROP TABLE IF EXISTS nocat;
-    SET @st=CONCAT( "CREATE TABLE nocat ( nc_title varchar(255) binary NOT NULL default '', act INT(8) unsigned NOT NULL default '0', PRIMARY KEY (nc_title) ) ENGINE=MEMORY AS SELECT title AS nc_title, 1 as act FROM articles WHERE id NOT IN ( SELECT cl_from FROM visible_categories, ", @dbname, ".categorylinks WHERE cl_to=title );" );
+    SET @st=CONCAT( "CREATE TABLE nocat ( nc_title varchar(255) binary NOT NULL default '', act INT(8) signed NOT NULL default '0', PRIMARY KEY (nc_title) ) ENGINE=MEMORY AS SELECT title AS nc_title, 1 as act FROM articles WHERE id NOT IN ( SELECT cl_from FROM visible_categories, ", @dbname, ".categorylinks WHERE cl_to=title );" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
