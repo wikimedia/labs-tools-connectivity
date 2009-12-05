@@ -282,6 +282,27 @@ CREATE PROCEDURE filterscc (IN rank INT)
            WHERE f=gid;
 
     #
+    # Repetition but with maximums instead of minimums.
+    #
+    DROP TABLE IF EXISTS newparent_grps;
+    CREATE TABLE newparent_grps (
+      gid int( 8 ) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY AS
+    SELECT DISTINCT rga.g as gid
+           FROM ga,
+                rga
+           WHERE ga.id=rga.id AND
+                 ga.g<rga.g;
+
+    INSERT INTO todelete
+    SELECT id
+           FROM ga,
+                newparent_grps
+           WHERE g=gid
+    ON DUPLICATE KEY UPDATE id=ga.id;
+
+
+    #
     # Nodes, whose group id changes during reversed minimums flow are marked
     # in direct flow by a node, which is upper to them, because there were
     # no bacward links found during the reversed flow.
@@ -294,6 +315,17 @@ CREATE PROCEDURE filterscc (IN rank INT)
                 rga
            WHERE ga.id=rga.id and
                  ga.f<rga.f
+    ON DUPLICATE KEY UPDATE id=ga.id;
+
+    #
+    # Repetition but with maximums instead of minimums.
+    #
+    INSERT INTO todelete
+    SELECT ga.id
+           FROM ga,
+                rga
+           WHERE ga.id=rga.id and
+                 ga.g>rga.g
     ON DUPLICATE KEY UPDATE id=ga.id;
 
     #
@@ -364,10 +396,12 @@ CREATE PROCEDURE grpsplitga ()
     DROP TABLE IF EXISTS ga;
     CREATE TABLE ga (
       f int(8) unsigned NOT NULL default '0',
+      g int(8) unsigned NOT NULL default '0',
       id int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (id)
     ) ENGINE=MEMORY AS
     SELECT min(eotl_from) as f,
+           max(eotl_from) as g,
            eotl_to as id
            FROM eotl
            GROUP BY eotl_to;
@@ -378,10 +412,12 @@ CREATE PROCEDURE grpsplitga ()
       DROP TABLE IF EXISTS mftmp;
       CREATE TABLE mftmp (
         f int(8) unsigned NOT NULL default '0',
+        g int(8) unsigned NOT NULL default '0',
         id int(8) unsigned NOT NULL default '0',
         PRIMARY KEY (id)
       ) ENGINE=MEMORY AS
       SELECT f,
+             g,
              id
              FROM ga;
 
@@ -389,10 +425,12 @@ CREATE PROCEDURE grpsplitga ()
       DROP TABLE IF EXISTS ga;
       CREATE TABLE ga (
         f int(8) unsigned NOT NULL default '0',
+        g int(8) unsigned NOT NULL default '0',
         id int(8) unsigned NOT NULL default '0',
         PRIMARY KEY (id)
       ) ENGINE=MEMORY AS
       SELECT min(f) as f,
+             max(g) as g,
              eotl_to as id
              FROM eotl,
                   mftmp
@@ -404,7 +442,7 @@ CREATE PROCEDURE grpsplitga ()
              FROM ga,
                   mftmp
              WHERE mftmp.id=ga.id and
-                   mftmp.f!=ga.f;
+                   mftmp.g-mftmp.f!=ga.g-ga.f;
 
     UNTIL changescount=0
     END REPEAT;
@@ -454,10 +492,12 @@ CREATE PROCEDURE grpsplitrga ()
     DROP TABLE IF EXISTS rga;
     CREATE TABLE rga (
       f int(8) unsigned NOT NULL default '0',
+      g int(8) unsigned NOT NULL default '0',
       id int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (id)
     ) ENGINE=MEMORY AS
     SELECT min(eotl_from) as f,
+           max(eotl_from) as g,
            eotl_to as id
            FROM eotl
            GROUP BY eotl_to;
@@ -468,10 +508,12 @@ CREATE PROCEDURE grpsplitrga ()
       DROP TABLE IF EXISTS mftmp;
       CREATE TABLE mftmp (
         f int(8) unsigned NOT NULL default '0',
+        g int(8) unsigned NOT NULL default '0',
         id int(8) unsigned NOT NULL default '0',
         PRIMARY KEY (id)
       ) ENGINE=MEMORY AS
       SELECT f,
+             g,
              id
              FROM rga;
 
@@ -479,10 +521,12 @@ CREATE PROCEDURE grpsplitrga ()
       DROP TABLE IF EXISTS rga;
       CREATE TABLE rga (
         f int(8) unsigned NOT NULL default '0',
+        g int(8) unsigned NOT NULL default '0',
         id int(8) unsigned NOT NULL default '0',
         PRIMARY KEY (id)
       ) ENGINE=MEMORY AS
       SELECT min(f) as f,
+             max(g) as g,
              eotl_to as id
              FROM eotl,
                   mftmp
@@ -494,7 +538,7 @@ CREATE PROCEDURE grpsplitrga ()
              FROM rga,
                   mftmp
              WHERE mftmp.id=rga.id and
-                   mftmp.f!=rga.f;
+                   mftmp.g-mftmp.f!=rga.g-rga.f;
 
     UNTIL changescount=0
     END REPEAT;
