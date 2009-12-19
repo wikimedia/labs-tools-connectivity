@@ -244,7 +244,3 @@ echo '<center><div style="align: center; border: 1px solid black; padding: 3px;"
 resume 'tochrono'
 echo '</div></center>'
 
-#
-# Additional static sections for this page
-#
-cat zns1.$interface

@@ -1,11 +1,11 @@
 echo "<ul class=list>"
-echo "<li><a href=\"./suggest.sh?$stdurl&listby=suggest&suggest=disambig\">$fl_disambig</a>"
+echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=disambig\">$fl_disambig</a>"
 
-echo "<li><a href=\"./suggest.sh?$stdurl&listby=suggest&suggest=interlink\">$fl_interlink</a>"
+echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=interlink\">$fl_interlink</a>"
 
-echo "<li><a href=\"./suggest.sh?$stdurl&listby=suggest&suggest=translate\">$fl_translate</a>"
+echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=translate\">$fl_translate</a>"
 
-echo "<li><a href=\"./creators.sh?$stdurl&listby=creator&registered=0\">$fl_anonym</a>"
+echo "<li><a href=\"./go.sh?$stdurl&listby=creator&registered=0\">$fl_anonym</a>"
 
 echo "</ul>"
 
