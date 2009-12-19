@@ -137,9 +137,9 @@ time {
     echo "CALL get_isolated_category_names( '$language' );"
 
     #
-    # Analyze zero namespace connectivity. Limit claster sizes by 20.
+    # Analyze zero namespace connectivity.
     #
-    echo 'CALL zero_namespace_connectivity( 20 );'
+    echo "CALL zero_namespace_connectivity( ${claster_limit} );"
 
 
     echo "CALL replag( '$language' );"

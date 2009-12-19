@@ -251,6 +251,9 @@ CREATE PROCEDURE inter_langs( srv INT )
 
     CLOSE scur;
 
+    #
+    # Self-infection.
+    #
     CALL inter_langs_ct();
 
     #

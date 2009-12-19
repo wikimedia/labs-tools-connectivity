@@ -195,6 +195,10 @@ handle ()
                 'valu')
                    # get a value for transmission as prlc parameter
                    outvariable=${line:11}
+                   if [ "$outvariable" = '' ]
+                   then
+                     echo "empty outvariable transmission, params: ${params}"
+                   fi
                    ;;
                 'prlc')
                    # call in a parallel thread 

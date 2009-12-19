@@ -622,6 +622,25 @@ CREATE PROCEDURE _1 (category VARCHAR(255))
   END;
 //
 
+DROP FUNCTION IF EXISTS smart_action//
+CREATE FUNCTION smart_action(claster_size INT, acnt INT)
+  RETURNS INT
+  DETERMINISTIC
+  BEGIN
+    DECLARE result INT;
+
+    IF acnt<2*claster_size
+      THEN
+        SET result=0;
+        SET @principle_component_size=claster_size;
+      ELSE
+        SET result=1;
+    END IF;
+
+    RETURN result;
+  END;
+//
+
 #
 # Orphaned strongly connected components (oscc) with 1 < size <= maxsize.
 #
@@ -702,7 +721,7 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
     INSERT INTO isolated
     SELECT ga.id as id,
            catuid(CONCAT(upcat,'_',grp.cnt)) as cat,
-           1 as act
+           smart_action(grp.cnt, @articles_count) as act
            FROM ga,
                 grp
            WHERE grp.id=ga.f and
@@ -816,12 +835,23 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
                    ORDER BY title ASC; 
           END IF;
 
+          #
           # If the orphaned category is changed for some of articles,
           # there will be two rows in the table representing each of them,
-          # one for old category removal and other is a new category.
+          # one for the old category removal and the other one for a new
+          # category.
           # Let's save our edits combining remove and put operations.
           #
-          # who is duped (changed category)
+          # Who is duped (got its category changed)?
+          #
+          # Note: Once the principle component is found, it and its 
+          #       "children" categories mark up parented articles as isolates.
+          #
+          #       Let's keep duplicated items for such articles in the list;
+          #       later the duplication will be removed, and this way
+          #       all parented articles previously registered as isolates
+          #       could still become unmarked.
+          #
           DROP TABLE IF EXISTS ttt;
           CREATE TABLE ttt(
             id int(8) unsigned NOT NULL default '0'
@@ -830,7 +860,19 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
                  FROM isolated
                  GROUP BY id 
                  HAVING count(*)>1;
-          # remove operation is not required, remove during replace
+          DELETE ttt
+                 FROM ttt,
+                      isolated
+                 WHERE ttt.id=isolated.id AND
+                       cat IN (
+                               SELECT uid
+                                      FROM orcat
+                                      WHERE coolcat LIKE CONCAT( '%_', @principle_component_size, '%' )
+                              );
+
+          #
+          # Remove operation is not required.
+          #
           DELETE isolated
                  FROM isolated,
                       ttt
@@ -870,7 +912,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
               END IF;
           END IF;
 
-          # prepare deep into the scc forest
+          # prepare dip into the scc forest
           DELETE FROM l
                  WHERE l_from IN
                        (
@@ -1084,8 +1126,21 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
         DEALLOCATE PREPARE stmt;
     END IF;
 
+    SET @principle_component_size=0;
+
     # choose right limit for recursion depth allowed
     CALL forest_walk( targetset, maxsize, '', '*' );
+
+    #
+    # Once the principle component is detected it doesn't allow functions
+    # performed for proper isolates (like suggestions search) work fast enough.
+    #
+    DELETE FROM isolated
+           WHERE cat IN (
+                   SELECT uid
+                          FROM orcat
+                          WHERE coolcat LIKE CONCAT( '%_', @principle_component_size, '%' )
+                 );
 
     # from oscchull
     DROP TABLE IF EXISTS otllc;

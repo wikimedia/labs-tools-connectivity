@@ -10,17 +10,37 @@ fi
 do_templates=0
 do_stat=1
 do_mr=1
-if [ "$2" = "templates" ] || [ "$3" = "templates" ] || [ "$4" = "templates" ]
+claster_limit=20
+if [ "$2" = "templates" ] || [ "$3" = "templates" ] || [ "$4" = "templates" ] || [ "$5" = "templates" ]
 then
   do_templates=1
 fi
-if [ "$2" = "nomr" ] || [ "$3" = "nomr" ] || [ "$4" = "nomr" ]
+if [ "$2" = "nomr" ] || [ "$3" = "nomr" ] || [ "$4" = "nomr" ] || [ "$5" = "nomr" ]
 then
   do_mr=0
 fi
-if [ "$2" = "nostat" ] || [ "$3" = "nostat" ] || [ "$4" = "nostat" ]
+if [ "$2" = "nostat" ] || [ "$3" = "nostat" ] || [ "$4" = "nostat" ] || [ "$5" = "nostat" ]
 then
   do_stat=0
+fi
+if [ "${2:0:6}" = 'limit=' ] || [ "${3:0:6}" = 'limit=' ] || [ "${4:0:6}" = 'limit=' ] || [ "${5:0:6}" = 'limit=' ]
+then
+  if [ "${2:0:6}" = 'limit=' ]
+  then
+    claster_limit=${2:6}
+  fi
+  if [ "${3:0:6}" = 'limit=' ]
+  then
+    claster_limit=${3:6}
+  fi
+  if [ "${4:0:6}" = 'limit=' ]
+  then
+    claster_limit=${4:6}
+  fi
+  if [ "${5:0:6}" = 'limit=' ]
+  then
+    claster_limit=${5:6}
+  fi
 fi
 
 #

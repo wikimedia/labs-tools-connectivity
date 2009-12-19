@@ -365,7 +365,7 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     #
     # Notes: 1) Links to existent pages cached only, i.e. no "red links".
     #        2) One of the key points here is that we didn't try
-    #           saving pl_title, the table this way might be too large.
+    #           saving pl_title, the table this way might be too huge.
     #        3) STRAIGHT_JOIN leads to connect first the pagelinks table.
     #           This way we have a straight pass through the pl_namespace
     #           index and then single pass trough a hash join in memory
