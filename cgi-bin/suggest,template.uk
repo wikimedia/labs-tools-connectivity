@@ -1,0 +1,4 @@
+pagetitle="Disambiguation of template links"
+thish1="disambiguation of template links for ${language}wiki"
+sggclause1="Disambiguation pages linked"
+sggclause2="Disambiguation pages listed below are linked from the template page. Links from the template documentation are excluded from the list unless the documentation is templated from non-standard location."
