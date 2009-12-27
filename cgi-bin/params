@@ -134,3 +134,9 @@ then
              }
            )
 fi
+
+if [ "$template" != '' ]
+then
+  templatesql=${template//\"/\"\'\\\\\"\'\"}
+  template=${template//_/ }
+fi

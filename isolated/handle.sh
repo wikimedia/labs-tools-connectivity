@@ -221,7 +221,7 @@ handle ()
                      # New language database might have to be created.
                      #
                      echo "create database if not exists u_${usr}_golem_s${line:4:1}_${language};"
-                   } | $( sql ${line:4:1} ) 2>&1
+                   } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
                    {
                      #
                      # Infecting the database with a script

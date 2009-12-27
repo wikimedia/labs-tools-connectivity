@@ -13,22 +13,6 @@ handle_dsglist ()
   fi
 }
 
-handle_adlist ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=( $line )
-    local name=${line[0]}
-    local volume=${line[1]}
-    name=${name//_/ }
-    local cname=$( url "$name" )
-#    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume</li>"
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,title&title=$cname\">$name</a>: $volume</li>"
-  fi
-}
-
 paraphrase ()
 {
   local l_rate=$1
@@ -39,7 +23,7 @@ paraphrase ()
   if no_sql_error "$l_rate $d_rate $drdi"
   then
     echo "$l_rate % ($lamnt) $_of_X_does_ $d_rate % $_of_X.<br /><br />"
-    echo "$drdi_text: $drdi %.<br />"
+    echo "<h3>$drdi_text: $drdi %.</h3><br />"
   fi
 }
 
@@ -66,26 +50,6 @@ echo "<ol start=$((shift+1))>"
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
                   while read -r line
                     do handle_dsglist "$line"
-                  done
-                }
-echo "</ol>"
-shifter
-
-echo "<br />"
-echo "<h3>$top2name</h3>"
-echo "$whatisit2<br><br>"
-
-shifter
-echo "<ol start=$((shift+1))>"
-{
-  echo SELECT d_title,            \
-              d_cnt               \
-              FROM disambigtop0   \
-              ORDER BY d_cnt DESC \
-              LIMIT $((shift)),100\;
-} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
-                  while read -r line
-                    do handle_adlist "$line"
                   done
                 }
 echo "</ol>"

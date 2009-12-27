@@ -108,6 +108,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
 # @isolated_ring_param_name    - prefix for clusters of size 2
 # @isolated_cluster_param_name - prefix for clusters of size larger than 2
 # @old_orphan_category         - optional, just in case it existed
+# @template_documentation_subpage_name
 #
 DROP PROCEDURE IF EXISTS get_isolated_category_names//
 CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
@@ -158,12 +159,21 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
+    #
+    # Template documentation sub-page name.
+    #
+    SET @st=CONCAT( 'SELECT cl_to INTO @template_documentation_subpage_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/TemplateDocumentation" ORDER BY cl_to ASC LIMIT 1;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
     SET stln=2+LENGTH( @isolated_category_name );
 
     SET @orphan_param_name=SUBSTRING( @orphan_param_name FROM stln );
     SET @isolated_ring_param_name=SUBSTRING( @isolated_ring_param_name FROM stln );
     SET @isolated_cluster_param_name=SUBSTRING( @isolated_cluster_param_name FROM stln );
     SET @old_orphan_category=SUBSTRING( @old_orphan_category FROM stln );
+    SET @template_documentation_subpage_name=SUBSTRING( @template_documentation_subpage_name FROM stln );
   END;
 //
 

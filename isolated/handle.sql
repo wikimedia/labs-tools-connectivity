@@ -47,6 +47,9 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
       SELECT CONCAT(':: echo ', outt, ': ', @cnt ) as title;
       SELECT CONCAT(':: ', rule, ' ', @fprefix, outf ) as title;
 
+      #
+      # Note: no way to prepend rows with a namespace prefix here
+      #
       SET @st2=CONCAT( 'SELECT * FROM ', tablename, ' ORDER BY ', ordercol, ' ASC' );
       PREPARE stmt FROM @st2;
       EXECUTE stmt;

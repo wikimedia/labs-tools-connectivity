@@ -134,7 +134,7 @@ CREATE PROCEDURE nr2X2nr ()
       #
       # One step of new long-redirect driven "links to be added" collection.
       #
-      # Notes: After the redirects throwing nr2r table is deleted, 
+      # Notes: After the redirects seaming nr2r table is deleted, 
       #        so we can change its contents easily. Table r2nr cannot
       #        be used this way because it is involved in articles templating.
       #        Wrong thing: Rings make the loop always running.
@@ -173,7 +173,7 @@ CREATE PROCEDURE nr2X2nr ()
 #
 # Constructs all links from redirects to redirects.
 #
-# Inputs: pl, r, nr.
+# Inputs: pl, r<ns>, nr<ns>.
 #
 # Outputs: pl modified, mr output into a file, ruwikir, orcatr, r2nr, r2r.
 #
@@ -216,7 +216,12 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       mr_title varchar(255) binary NOT NULL default ''
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO mr SELECT r_title as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
+    IF namespace!=0
+      THEN
+        SET @st=CONCAT( 'INSERT INTO mr SELECT CONCAT( getnsprefix( ', namespace, ', "', @target_lang, '" ), r_title ) as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
+      ELSE
+        SET @st=CONCAT( 'INSERT INTO mr SELECT r_title as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
+    END IF;
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -246,7 +251,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     #
     # Prevent redirect rings in r2r table for normal function of other
-    # chains throwing.
+    # chains seaming.
     #
     DELETE ruwikir
            FROM orcatr,
@@ -307,6 +312,27 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
         #
         # Redirects to pages not forming valid links.
         #
+        DROP TABLE IF EXISTS cnad;
+        CREATE TABLE cnad (
+          cnad_id int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (cnad_id)
+        ) ENGINE=MEMORY AS
+        SELECT DISTINCT r2nr_from as cnad_id
+               FROM r2nr,
+                    d
+               WHERE r2nr_to=d_id;
+
+        #
+        # Note: Redirects are being merged to disambiguation pages,
+        #       so key violation impossible.
+        #
+        INSERT INTO cnad
+        SELECT d_id as cnad_id
+               FROM d;
+
+        #
+        # Redirects to pages not forming valid links.
+        #
         DROP TABLE IF EXISTS cnar;
         CREATE TABLE cnar (
           cnar_id int(8) unsigned NOT NULL default '0',
@@ -363,7 +389,13 @@ CREATE PROCEDURE redirector_unload (namespace INT)
       ELSE
         ALTER TABLE r14 ENGINE=MyISAM;
     END IF;
-    DROP TABLE IF EXISTS r2nr;
+    IF namespace!=10
+      THEN
+        DROP TABLE IF EXISTS r2nr;
+      ELSE
+        DROP TABLE IF EXISTS r2nr10;
+        RENAME TABLE r2nr TO r2nr10;
+    END IF;
   END;
 //
 

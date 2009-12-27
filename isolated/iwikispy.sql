@@ -69,7 +69,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
  
-        SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after redirects throwing" )
+        SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after redirects seaming" )
                FROM liwl;
 
         DELETE FROM rinfo;

@@ -1,0 +1,45 @@
+handle_tmpllist ()
+{
+  local count=$1
+  local line=$2
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local name=${line[0]}
+    local adlink=${line[1]}
+    local alink=${line[2]}
+    local dlink=${line[3]}
+    name=${name//_/ }
+    local cname=$( url "$name" )
+
+    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=Template:$cname\" target=\"blank\">$name</a> <small><a href=\"./go.sh?$stdurl&listby=suggest,template&template=$cname\"><font color=green>[[$dlink <img src='http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/10px-Disambig.svg.png'>]]</font></a></small></td><td>$adlink</td><td>$alink</td></tr>"
+  fi
+}
+
+echo "<h3>$top1name</h3>"
+echo "$whatisit1<br><br>"
+
+shifter
+echo "<table class=\"sortable infotable\">"
+echo "<tr><th>&#8470;</th><th>${template_title}</th><th>${ambiguous_links}</th><th>${a_cnt}</th></tr>"
+{
+  echo SELECT title,                 \
+              ad_cnt,                \
+              a_cnt,                 \
+              d_cnt                  \
+              FROM tmpldisambig0,    \
+                   regular_templates \
+              WHERE id=td_id         \
+              ORDER BY ad_cnt desc   \
+              limit $((shift)),100\;
+} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+                    count=$((shift))
+                    while read -r line
+                      do handle_tmpllist $((count+1)) "$line"
+                      count=$((count+1))
+                    done
+                  }
+echo "</table>"
+echo '<script type="text/javascript" src="../sortable.js"></script>'
+shifter

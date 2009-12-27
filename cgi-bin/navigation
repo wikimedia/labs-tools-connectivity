@@ -650,6 +650,37 @@ the_menu ()
   else
     echo "<b>6) <a href=\"./go.sh?$stdurl&listby=disambig\">$disambig</a></b><br />"
   fi
+  echo "<ul>"
+#
+#  ** for articles
+#
+  if [ "$listby" = 'disambig,title' ]
+  then
+    echo "<li><b><font color=red>$for_articles</font></b></li>"
+  else
+    echo "<li><b><a href=\"./go.sh?$stdurl&listby=disambig,title\">$for_articles</a></b></li>"
+  fi
+#
+#  ** for templates
+#
+  echo "<ul>"
+  if [ "$listby" = 'disambig,template' ]
+  then
+    echo "<li><font color=red>$for_templates</font></li>"
+  else
+    echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,template\">$for_templates</a></li>"
+  fi
+
+  if [ "$listby" = 'suggest,template' ]
+  then
+    echo "<ul>"
+    echo "<li><font color=red>$template</font></li>"
+    echo "</ul>"
+  fi
+
+  echo "</ul>"
+  echo "</ul>"
+
   echo "<br />"
 
 #
@@ -744,7 +775,7 @@ EOM
    'creator')
      how_actual creatorizer
      ;;
-   'disambig')
+   'disambig' | 'disambig,title' | 'disambig,template' )
      how_actual disambiguator
      ;;
    'lists')

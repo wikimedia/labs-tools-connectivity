@@ -344,7 +344,13 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         #
         CALL notcategorized();
       ELSE
-        DROP TABLE cna;
+        IF namespace=10
+          THEN
+            DROP TABLE IF EXISTS cna10;
+            RENAME TABLE cna TO cna10;
+          ELSE
+            DROP TABLE cna;
+        END IF;
     END IF;
 
   END;
@@ -383,6 +389,27 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
 
     SELECT CONCAT( ':: echo ', @pl_count, ' links point namespace ', namespace );
 
+    IF namespace=0
+      THEN
+        DROP TABLE IF EXISTS t2p;
+        CREATE TABLE t2p ( 
+          t2p_from int(8) unsigned NOT NULL default '0',
+          t2p_to int(8) unsigned NOT NULL default '0',
+          KEY (t2p_from),
+          KEY (t2p_to)
+        ) ENGINE=MEMORY AS /* SLOW_OK */ 
+        SELECT pl_from as t2p_from,
+               pl_to as t2p_to
+               FROM pl
+               WHERE pl_from IN (
+                                  SELECT id
+                                         FROM regular_templates
+                                );
+
+        SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to main namespace ' )
+               FROM t2p;
+    END IF;
+
     #
     # Delete everything going from other namespaces.
     #
@@ -395,10 +422,13 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SET @st=CONCAT( 'DROP TABLE p', namespace, ';' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    IF namespace!=10
+      THEN
+        SET @st=CONCAT( 'DROP TABLE p', namespace, ';' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
 
     SELECT count(*) INTO @pl_count
            FROM pl;
@@ -430,20 +460,20 @@ CREATE PROCEDURE categorybridge ()
 //
 
 #
-# Inputs: r, nr, pl, articles, d.
+# Inputs: r<ns>, nr<ns>, pl, articles, d.
 #
 # Main output for connectivity analysis - table l
 # (links from articles to articles).
 #
-# Side output: wr, r filtered, r2nr, mr output into a file
+# Side output: wr<ns>, r<ns> filtered, r2nr, mr output into a file
 #
 # Notes: Now requires @@max_heap_table_size to be equal to 268435456 bytes
 #        for main namespace analysis in ruwiki.
 #
 DROP PROCEDURE IF EXISTS throwNhull4subsets//
-CREATE PROCEDURE throwNhull4subsets (namespace INT)
+CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255))
   BEGIN
-    # collects wrong redirects and excludes them from pl
+    # collects wrong redirects and excludes them from r<ns>
     CALL cleanup_wrong_redirects( namespace );
 
     # throws redirect chains and adds paths to pl
@@ -489,7 +519,7 @@ CREATE PROCEDURE throwNhull4subsets (namespace INT)
     SELECT count(*) INTO @articles_to_articles_links_count
            FROM l;
 
-    SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' links from articles to articles' );
+    SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' links from ', targetset, ' to ', targetset );
   END;
 //
 
@@ -558,6 +588,41 @@ CREATE PROCEDURE store_paraphrases ()
   END;
 //
 
+# Do all the zero namespace connectivity analysis assuming maxsize as
+# maximal possible claster size, zero means no limit.
+#
+DROP PROCEDURE IF EXISTS collect_template_pages//
+CREATE PROCEDURE collect_template_pages ( maxsize INT )
+  BEGIN
+    SELECT ':: echo TEMPLATE PAGES';
+
+    # pre-loads p10, r10 and nr10 tables for fast access
+    CALL cache_namespace_pages( 10 );
+
+    CALL classify_namespace( 10, 'templates', maxsize );
+
+    #
+    # For pl - namespace links cached in memory
+    #
+    CALL cache_namespace_links( 10 );
+
+    CALL throwNhull4subsets( 10, 'templates' );
+
+    DROP TABLE IF EXISTS regular_templates;
+    RENAME TABLE articles TO regular_templates;
+
+    # partial namespacer unload
+    DROP TABLE nr10;
+
+    #
+    # nr2r10 will be very helpfull for redirects seaming
+    #
+    CALL redirector_unload( 10 );
+
+  END;
+//
+
+
 #
 # Do all the zero namespace connectivity analysis assuming maxsize as
 # maximal possible claster size, zero means no limit.
@@ -604,6 +669,24 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL cache_namespace_links( 0 );
 
     #
+    # Template usage statistics
+    #
+    DROP TABLE IF EXISTS templatetop;
+    CREATE TABLE templatetop (
+      t_id int(8) unsigned NOT NULL default '0',
+      a_cnt int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (t_id)
+    ) ENGINE=MEMORY;
+
+    SET @st=CONCAT( 'INSERT INTO templatetop SELECT p_id as t_id, count(DISTINCT id) as a_cnt FROM ', @dbname, '.templatelinks, articles, p10 WHERE tl_namespace=10 and tl_from=id and tl_title=p_title GROUP BY t_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo ', count(*), ' distinct templating names found' )
+           FROM templatetop;
+
+    #
     # FCH, from chrono articles
     #
 
@@ -616,7 +699,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     #
     # Gives us l and some others: wr, mr, r filtered, r2nr.
     #
-    CALL throwNhull4subsets( 0 );
+    CALL throwNhull4subsets( 0, 'articles' );
 
     SELECT CONCAT( ':: echo zero namespace time: ', timediff(now(), @initstarttime));
 
@@ -631,9 +714,18 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL store_drdi();
 
     DROP TABLE pl;
-    # this table now will be used for web queries
-    DROP TABLE IF EXISTS d0;
-    RENAME TABLE d TO d0;
+
+    #
+    # Named disambiguations list for use in web tools.
+    #
+    DROP TABLE IF EXISTS d0site;
+    SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT d_id as id, page_title as name FROM d, ', @dbname, '.page WHERE page_id=d_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    DROP TABLE d;
+
     # partial namespacer unload
     DROP TABLE nr0;
 
@@ -758,7 +850,7 @@ CREATE PROCEDURE categorytree_connectivity ( maxsize INT )
     #
     # Gives us l and some others: wr, mr, r filtered, r2nr.
     #
-    CALL throwNhull4subsets( 14 );
+    CALL throwNhull4subsets( 14, 'categories' );
 
     DROP TABLE pl;
     # partial disambiguator unload

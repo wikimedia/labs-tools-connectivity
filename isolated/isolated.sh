@@ -23,6 +23,9 @@
  # ./isolated.sh <lang> nostat      - to enable multiple redirects resolving
  # ./isolated.sh <lang> nomr        - to enable cluster chains statistics upload
  # ./isolated.sh <lang>             - like we do in Ruwiki
+ # ./isolated.sh <lang> ... limit=3 - reduces largest allowed claster size down
+ #                                    from 20 (default) to 3,
+ #                                    zero states for no limit
  #
  # Default output:
  #
@@ -127,14 +130,25 @@ time {
     echo "CALL get_connectivity_project_root( '$language' );"
 
     #
-    # Isolated and analysis is being run for different target sets,
+    # Isolated analysis is being run for different target sets,
     # so we have to initialize it once before any processing
     #
     # Localized isolated category name and subcategories naming rules
     # are initialized here as defined at
     #   ConnectivityProjectInternationalization/IsolatedArticles
     #
+    # Includes initialization of default template documentation sub-page name.
+    # 
     echo "CALL get_isolated_category_names( '$language' );"
+
+    #
+    # From now on the templates are the subject of our interest.
+    #
+    # We gonna use them for massive cleanup of links to disambiguation pages
+    # as well as for collaborative lists determining (excluding links from
+    # templates for more valid computation of links per bytes ratio).
+    #
+    echo "CALL collect_template_pages( 0 );"
 
     #
     # Analyze zero namespace connectivity.

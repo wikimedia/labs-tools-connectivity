@@ -218,6 +218,135 @@ CREATE PROCEDURE disambiguator (namespace INT)
 
     DROP TABLE dsstat;
 
+    #
+    # Correspondence between template pages and their documentation pages.
+    #
+    DROP TABLE IF EXISTS doct;
+    CREATE TABLE doct (
+      doc int(8) unsigned NOT NULL default '0',
+      t int(8) unsigned NOT NULL default '0' 
+    ) ENGINE=MEMORY AS
+    SELECT docsrc.id AS doc,
+           docdst.id AS t
+           FROM regular_templates as docsrc,
+                regular_templates as docdst
+           WHERE docsrc.title LIKE CONCAT( '%/', @template_documentation_subpage_name ) AND
+                 docdst.title=substr(docsrc.title FROM 1 FOR length(docsrc.title)-1-length(@template_documentation_subpage_name));
+
+    SELECT CONCAT( ':: echo ', count(*), ' templates with documentation page found' )
+           FROM doct;
+
+    #
+    # Template documentation pages sometimes are redirects to other documents.
+    #
+    INSERT INTO doct
+    SELECT r2nr_to AS doc,
+           id AS t
+           FROM r10,
+                regular_templates,
+                r2nr10
+           WHERE r_title LIKE CONCAT( '%/', @template_documentation_subpage_name) AND
+                 title=substr(r_title FROM 1 FOR length(r_title)-1-length(@template_documentation_subpage_name)) AND
+                 r_id=r2nr_from;
+
+    SELECT CONCAT( ':: echo ', count(*), ' templates with documentation found' )
+           FROM doct;
+
+    #
+    # Links present on template pages due to documentation included.
+    #
+    DROP TABLE IF EXISTS r_t2p;
+    CREATE TABLE r_t2p (
+      r_t2p_from int(8) unsigned NOT NULL default '0',
+      r_t2p_to int(8) unsigned NOT NULL default '0' 
+    ) ENGINE=MEMORY AS
+    SELECT DISTINCT templ.t2p_from as r_t2p_from,
+                    docum.t2p_to as r_t2p_to
+           FROM t2p as docum,
+                t2p as templ,
+                doct
+           WHERE docum.t2p_from=doc AND
+                 templ.t2p_from=t;
+
+    #
+    # Links from documentation page a being removed here from templates as
+    # not occuring in articles with templating.
+    #
+    DELETE t2p
+           FROM t2p,
+                r_t2p
+           WHERE t2p_from=r_t2p_from AND
+                 t2p_to=r_t2p_to;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from templates to main namespace pages after documentation links removal' )
+           FROM t2p;
+
+    DROP TABLE IF EXISTS tdl;
+    CREATE TABLE tdl (
+      dl_to int(8) unsigned NOT NULL default '0',
+      dl_from int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM AS
+    SELECT id as dl_from,
+           t2p_to as dl_to
+           FROM t2p,
+                regular_templates
+           WHERE t2p_to in (
+                             SELECT cnad_id
+                                    FROM cnad
+                           ) AND
+                 t2p_from=id;
+
+    DROP TABLE IF EXISTS t2d;
+    CREATE TABLE t2d (
+      td_id int(8) unsigned NOT NULL default '0',
+      t_title varchar(255) binary NOT NULL default '',
+      d_cnt int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (td_id)
+    ) ENGINE=MEMORY AS
+    SELECT id as td_id,
+           title as t_title,
+           count(t2p_to) as d_cnt
+           FROM t2p,
+                regular_templates
+           WHERE t2p_to in (
+                             SELECT cnad_id
+                                    FROM cnad
+                           ) AND
+                 t2p_from=id
+           GROUP BY t2p_from;
+
+    SELECT CONCAT( ':: echo ', sum(d_cnt), ' links from templates to disambiguation pages' )
+           FROM t2d;
+
+    #
+    # Redirected vs non-redirected combining.
+    #
+    # First create an imagination of self-redirects from/to every template.
+    #
+    INSERT INTO r2nr10
+    SELECT id as r2nr_to,
+           id as r2nr_from
+           FROM regular_templates;
+
+    DROP TABLE IF EXISTS tmpldisambig;
+    CREATE TABLE tmpldisambig (
+      td_id int(8) unsigned NOT NULL default '0',
+      d_cnt int(8) unsigned NOT NULL default '0',
+      a_cnt int(8) unsigned NOT NULL default '0',
+      ad_cnt int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM AS
+    SELECT r2nr_to as td_id,
+           t_title,
+           sum(a_cnt) as a_cnt,
+           d_cnt,
+           sum(a_cnt)*d_cnt as ad_cnt
+           FROM templatetop,
+                r2nr10,
+                t2d
+           WHERE t_id=r2nr_from AND
+                 r2nr_to=td_id
+           GROUP BY r2nr_to;
+
   END;
 //
 
@@ -300,17 +429,6 @@ CREATE PROCEDURE disambigs_as_fusy_redirects ()
     SELECT CONCAT( ':: echo ', count(DISTINCT id), ' isolated articles might become linked' )
            FROM a2i;
 
-    #
-    # Named disambiguations list for use in web tools.
-    #
-    DROP TABLE IF EXISTS d0site;
-    SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT d_id as id, page_title as name FROM d0, ', @dbname, '.page WHERE page_id=d_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-    
-    DROP TABLE d0;
-
     CALL categorystats( 'a2i', 'sgdcatvolume' );
 
     DROP TABLE IF EXISTS isdis;
@@ -361,6 +479,10 @@ CREATE PROCEDURE constructNdisambiguate ()
     CALL disambiguator_refresh( 'disambiguate0', 'disambiguate' );
 
     CALL disambiguator_refresh( 'disambigtop0', 'disambigtop' );
+
+    CALL disambiguator_refresh( 'tmpldisambig0', 'tmpldisambig' );
+
+    CALL disambiguator_refresh( 'dl10', 'tdl' );
 
     CALL actuality( 'disambiguator' );
 
