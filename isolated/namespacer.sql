@@ -683,7 +683,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SELECT CONCAT( ':: echo ', count(*), ' distinct templating names found' )
+    SELECT CONCAT( ':: echo ', count(*), ' distinct templating names used in articles' )
            FROM templatetop;
 
     #
@@ -714,18 +714,17 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL store_drdi();
 
     DROP TABLE pl;
+    DROP TABLE d;
 
     #
     # Named disambiguations list for use in web tools.
     #
     DROP TABLE IF EXISTS d0site;
-    SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT d_id as id, page_title as name FROM d, ', @dbname, '.page WHERE page_id=d_id;' );
+    SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT cnad_id as id, page_title as name FROM cnad, ', @dbname, '.page WHERE page_id=cnad_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
     
-    DROP TABLE d;
-
     # partial namespacer unload
     DROP TABLE nr0;
 

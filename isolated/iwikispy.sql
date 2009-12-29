@@ -227,9 +227,8 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_sv;
       IF NOT done
         THEN
-          SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql' );
-          SELECT CONCAT( ':: s', cur_sv, ' init disambig.sql' );
-          SELECT CONCAT( ':: s', cur_sv, ' init iwikispy.sql' );
+          # hope this reduces the amount of mysql connections created
+          SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql disambig.sql iwikispy.sql' );
       END IF;
     UNTIL done END REPEAT;
 

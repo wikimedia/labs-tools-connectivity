@@ -134,11 +134,12 @@ CREATE PROCEDURE nr2X2nr ()
       #
       # One step of new long-redirect driven "links to be added" collection.
       #
-      # Notes: After the redirects seaming nr2r table is deleted, 
+      # Notes: After the redirects seaming nr2r table is being deleted, 
       #        so we can change its contents easily. Table r2nr cannot
-      #        be used this way because it is involved in articles templating.
+      #        be used this way because it is good to keep it for other tools.
+      #
       #        Wrong thing: Rings make the loop always running.
-      #        On the other hand, this works just when redirect rings are
+      #        On the other hand, this just works provided redirect rings are
       #        prevented in r2r.
       #
       DROP TABLE IF EXISTS nr2X2r;
@@ -310,7 +311,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     IF namespace=0
       THEN
         #
-        # Redirects to pages not forming valid links.
+        # Redirects to disambiguation pages.
         #
         DROP TABLE IF EXISTS cnad;
         CREATE TABLE cnad (
@@ -322,6 +323,8 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
                     d
                WHERE r2nr_to=d_id;
 
+        #
+        # Now disambiguation pages and redirects to.
         #
         # Note: Redirects are being merged to disambiguation pages,
         #       so key violation impossible.

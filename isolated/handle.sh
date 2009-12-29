@@ -224,9 +224,9 @@ handle ()
                    } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
                    {
                      #
-                     # Infecting the database with a script
+                     # Infecting the database with a script or a set of scripts
                      #
-                     cat "${line:11}"
+                     cat ${line:11}
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 *) ;;
