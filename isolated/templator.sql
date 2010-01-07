@@ -70,6 +70,193 @@ CREATE PROCEDURE a2a_templating ()
   END;
 //
 
+#
+# Filters table t2p removing links occuring from template docuemntation.
+#
+DROP PROCEDURE IF EXISTS template_documentation_link_cleanup//
+CREATE PROCEDURE template_documentation_link_cleanup ()
+  BEGIN
+
+    #
+    # Correspondence between template pages and their documentation pages.
+    #
+    DROP TABLE IF EXISTS doct;
+    CREATE TABLE doct (
+      doc int(8) unsigned NOT NULL default '0',
+      t int(8) unsigned NOT NULL default '0' 
+    ) ENGINE=MEMORY AS
+    SELECT docsrc.id AS doc,
+           docdst.id AS t
+           FROM regular_templates as docsrc,
+                regular_templates as docdst
+           WHERE docsrc.title LIKE CONCAT( '%/', @template_documentation_subpage_name ) AND
+                 docdst.title=substr(docsrc.title FROM 1 FOR length(docsrc.title)-1-length(@template_documentation_subpage_name));
+
+    SELECT CONCAT( ':: echo ', count(*), ' templates with documentation page found' )
+           FROM doct;
+
+    #
+    # Template documentation pages sometimes are redirects to other documents.
+    #
+    INSERT INTO doct
+    SELECT r2nr_to AS doc,
+           id AS t
+           FROM r10,
+                regular_templates,
+                r2nr10
+           WHERE r_title LIKE CONCAT( '%/', @template_documentation_subpage_name) AND
+                 title=substr(r_title FROM 1 FOR length(r_title)-1-length(@template_documentation_subpage_name)) AND
+                 r_id=r2nr_from;
+
+    SELECT CONCAT( ':: echo ', count(*), ' templates with documentation found' )
+           FROM doct;
+
+    #
+    # Links present on template pages due to the documentation included.
+    #
+    DROP TABLE IF EXISTS r_t2p;
+    CREATE TABLE r_t2p (
+      r_t2p_from int(8) unsigned NOT NULL default '0',
+      r_t2p_to int(8) unsigned NOT NULL default '0' 
+    ) ENGINE=MEMORY AS
+    SELECT DISTINCT templ.t2p_from as r_t2p_from,
+                    docum.t2p_to as r_t2p_to
+           FROM t2p as docum,
+                t2p as templ,
+                doct
+           WHERE docum.t2p_from=doc AND
+                 templ.t2p_from=t;
+
+    #
+    # Links from the documentation page are being removed here from templates
+    # as not occuring in articles with templating.
+    #
+    DELETE t2p
+           FROM t2p,
+                r_t2p
+           WHERE t2p_from=r_t2p_from AND
+                 t2p_to=r_t2p_to;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from templates to main namespace pages after documentation links removal' )
+           FROM t2p;
+  END;
+//
+
+DROP PROCEDURE IF EXISTS recognizable_template_links//
+CREATE PROCEDURE recognizable_template_links ()
+  BEGIN
+    DECLARE st VARCHAR(511);
+
+    SET @starttime1=now();
+
+    DROP TABLE IF EXISTS tcp;
+    SET @st=CONCAT( 'CREATE TABLE tcp ( uid int(8) unsigned NOT NULL AUTO_INCREMENT, tcp_name varchar (255) binary NOT NULL default ', "''", ', PRIMARY KEY (uid), UNIQUE KEY (tcp_name) ) ENGINE=MEMORY AS SELECT DISTINCT pl_title as tcp_name FROM ', @dbname, '.pagelinks WHERE pl_namespace=0;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo ', count(*), ' distinct main namespace names used in links' )
+           FROM tcp;
+
+    SELECT CONCAT( ':: echo tcp processing time: ', timediff(now(), @starttime1));
+
+    SET @starttime1=now();
+
+    DROP TABLE IF EXISTS t20;
+    SET @st=CONCAT( 'CREATE TABLE t20 ( t20_from int(8) unsigned NOT NULL default ', "'0'", ', t20_to int(8) unsigned NOT NULL default ', "'0'", ', KEY (t20_from), KEY (t20_to) ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from as t20_from, uid as t20_to FROM ', @dbname, '.pagelinks, tcp WHERE pl_namespace=0 and pl_from IN ( SELECT id FROM regular_templates ) and pl_title=tcp_name;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to main namespace' )
+           FROM t20;
+
+    SELECT CONCAT( ':: echo t20 processing time: ', timediff(now(), @starttime1));
+
+    SET @starttime1=now();
+
+    DROP TABLE IF EXISTS a20;
+    SET @st=CONCAT( 'CREATE TABLE a20 ( a20_from int(8) unsigned NOT NULL default ', "'0'", ', a20_to int(8) unsigned NOT NULL default ', "'0'", ' ) ENGINE=MEMORY AS /* SLOW_OK */ SELECT STRAIGHT_JOIN pl_from as a20_from, uid as a20_to FROM ', @dbname, '.pagelinks, tcp WHERE pl_namespace=0 and pl_from IN ( SELECT id FROM articles ) and pl_title=tcp_name;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from articles to main namespace' )
+           FROM a20;
+
+    SELECT CONCAT( ':: echo a20 processing time: ', timediff(now(), @starttime1));
+
+    SET @starttime1=now();
+
+    DELETE a20
+           FROM ti,
+                t20,
+                a20
+           WHERE ti_to=t20_from and
+                 ti_from=a20_from and
+                 t20_to=a20_to;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links mentioned in article texts and linking main namespace' )
+           FROM a20;
+
+    SELECT CONCAT( ':: echo template links deletion time: ', timediff(now(), @starttime1));
+
+    SET @starttime1=now();
+
+    DROP TABLE IF EXISTS tcl;
+    CREATE TABLE tcl (
+      lid int(8) unsigned NOT NULL default '0',
+      llen int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (lid)
+    ) ENGINE=MEMORY AS
+    SELECT uid as lid,
+           length(tcp_name) as llen
+           FROM tcp;
+
+    ALTER TABLE a20 ADD KEY (a20_to);
+
+    SELECT CONCAT( ':: echo tcl and a20 altering time: ', timediff(now(), @starttime1));
+
+    SET @starttime1=now();
+
+    #
+    # Articles by their length.
+    #
+    DROP TABLE IF EXISTS text_len;
+    CREATE TABLE text_len (
+      id INT(8) unsigned NOT NULL default '0',
+      page_len INT(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (id)
+    ) ENGINE=MyISAM;
+    SET @st=CONCAT( 'INSERT INTO text_len SELECT id, page_len FROM ', @dbname, '.page, articles WHERE id=page_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo overal articles length is ', sum(page_len), ' bytes' )
+           FROM text_len;
+
+    SELECT CONCAT( ':: echo articles overal length computation time: ', timediff(now(), @starttime1));
+
+#
+#    This should output the amount of massive link lists.
+#
+#    But it doesn't due to unrecognized links from templates doing ## on them.
+#
+#    SELECT id, 
+#           # 4 here states for '[[' and ']]'
+#           (page_len-sum(llen))/count(*)-4 as criterion
+#           FROM a20, 
+#                tcl,
+#                text_len
+#           WHERE id=a20_from and
+#                 a20_to=lid
+#           GROUP by id 
+#           ORDER by criterion asc 
+#           LIMIT 10;
+  END;
+//
+
 delimiter ;
 ############################################################
 

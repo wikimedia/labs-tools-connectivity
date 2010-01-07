@@ -219,67 +219,9 @@ CREATE PROCEDURE disambiguator (namespace INT)
     DROP TABLE dsstat;
 
     #
-    # Correspondence between template pages and their documentation pages.
+    # Filters table t2p removing links occuring from template docuemntation.
     #
-    DROP TABLE IF EXISTS doct;
-    CREATE TABLE doct (
-      doc int(8) unsigned NOT NULL default '0',
-      t int(8) unsigned NOT NULL default '0' 
-    ) ENGINE=MEMORY AS
-    SELECT docsrc.id AS doc,
-           docdst.id AS t
-           FROM regular_templates as docsrc,
-                regular_templates as docdst
-           WHERE docsrc.title LIKE CONCAT( '%/', @template_documentation_subpage_name ) AND
-                 docdst.title=substr(docsrc.title FROM 1 FOR length(docsrc.title)-1-length(@template_documentation_subpage_name));
-
-    SELECT CONCAT( ':: echo ', count(*), ' templates with documentation page found' )
-           FROM doct;
-
-    #
-    # Template documentation pages sometimes are redirects to other documents.
-    #
-    INSERT INTO doct
-    SELECT r2nr_to AS doc,
-           id AS t
-           FROM r10,
-                regular_templates,
-                r2nr10
-           WHERE r_title LIKE CONCAT( '%/', @template_documentation_subpage_name) AND
-                 title=substr(r_title FROM 1 FOR length(r_title)-1-length(@template_documentation_subpage_name)) AND
-                 r_id=r2nr_from;
-
-    SELECT CONCAT( ':: echo ', count(*), ' templates with documentation found' )
-           FROM doct;
-
-    #
-    # Links present on template pages due to documentation included.
-    #
-    DROP TABLE IF EXISTS r_t2p;
-    CREATE TABLE r_t2p (
-      r_t2p_from int(8) unsigned NOT NULL default '0',
-      r_t2p_to int(8) unsigned NOT NULL default '0' 
-    ) ENGINE=MEMORY AS
-    SELECT DISTINCT templ.t2p_from as r_t2p_from,
-                    docum.t2p_to as r_t2p_to
-           FROM t2p as docum,
-                t2p as templ,
-                doct
-           WHERE docum.t2p_from=doc AND
-                 templ.t2p_from=t;
-
-    #
-    # Links from documentation page a being removed here from templates as
-    # not occuring in articles with templating.
-    #
-    DELETE t2p
-           FROM t2p,
-                r_t2p
-           WHERE t2p_from=r_t2p_from AND
-                 t2p_to=r_t2p_to;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from templates to main namespace pages after documentation links removal' )
-           FROM t2p;
+    CALL template_documentation_link_cleanup();
 
     DROP TABLE IF EXISTS tdl;
     CREATE TABLE tdl (
@@ -295,6 +237,10 @@ CREATE PROCEDURE disambiguator (namespace INT)
                                     FROM cnad
                            ) AND
                  t2p_from=id;
+
+    SELECT CONCAT( ':: echo ', count(*), ' links from templates to disambiguation pages' )
+           FROM tdl;
+
 
     DROP TABLE IF EXISTS t2d;
     CREATE TABLE t2d (
@@ -315,7 +261,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
                  t2p_from=id
            GROUP BY t2p_from;
 
-    SELECT CONCAT( ':: echo ', sum(d_cnt), ' links from templates to disambiguation pages' )
+    SELECT CONCAT( ':: echo ', count(*), ' templates linking main namespace disambiguation pages' )
            FROM t2d;
 
     #
@@ -461,9 +407,6 @@ CREATE PROCEDURE disambiguator_unload ()
 DROP PROCEDURE IF EXISTS constructNdisambiguate//
 CREATE PROCEDURE constructNdisambiguate ()
   BEGIN
-    SELECT ':: echo LINKS DISAMBIGUATOR';
-
-    SET @starttime=now();
 
     # Constructs two tables of links:
     #  - a2d named dl;
@@ -485,8 +428,6 @@ CREATE PROCEDURE constructNdisambiguate ()
     CALL disambiguator_refresh( 'dl10', 'tdl' );
 
     CALL actuality( 'disambiguator' );
-
-    SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
   END;
 //
 

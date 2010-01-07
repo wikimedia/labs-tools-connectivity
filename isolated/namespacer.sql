@@ -391,6 +391,14 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
 
     IF namespace=0
       THEN
+        #
+        # The function is commented due to lost hope. 
+        # The list of links occured due to templates is most likely unreachable.
+        #
+        # CALL recognizable_template_links();
+
+        SET @starttime1=now();
+
         DROP TABLE IF EXISTS t2p;
         CREATE TABLE t2p ( 
           t2p_from int(8) unsigned NOT NULL default '0',
@@ -406,8 +414,10 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
                                          FROM regular_templates
                                 );
 
-        SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to main namespace ' )
+        SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to existent main namespace pages' )
                FROM t2p;
+
+        SELECT CONCAT( ':: echo t2p processing time: ', timediff(now(), @starttime1));
     END IF;
 
     #
@@ -609,6 +619,7 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
     CALL throwNhull4subsets( 10, 'templates' );
 
     DROP TABLE IF EXISTS regular_templates;
+    ALTER TABLE articles ENGINE=MyISAM;
     RENAME TABLE articles TO regular_templates;
 
     # partial namespacer unload
@@ -619,6 +630,38 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
     #
     CALL redirector_unload( 10 );
 
+    SET @st=CONCAT( 'SELECT count(*) INTO @tl_count FROM ', @dbname, '.templatelinks;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SET @st=CONCAT( 'CALL allow_allocation( ', 32*@tl_count, ' );' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    #
+    # Templating links storage with info on template name length for each link.
+    #
+    # Notes: Lots of templates are not used in articles directly and came 
+    #        with templating, so should be excluded.
+    #
+    #        Links to non-existent templates are not there.
+    #
+    DROP TABLE IF EXISTS ti;
+    CREATE TABLE ti (
+      ti_from int(8) unsigned NOT NULL default '0',
+      ti_to int(8) unsigned NOT NULL default '0',
+      KEY (ti_from)
+    ) ENGINE=MEMORY;
+
+    SET @st=CONCAT( 'INSERT INTO ti /* SLOW_OK */ SELECT STRAIGHT_JOIN tl_from as ti_from, p_id as ti_to FROM ', @dbname, '.templatelinks, p10 WHERE tl_namespace=10 and tl_title=p_title;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo ', count(*), ' template occurences found' )
+           FROM ti;
   END;
 //
 
@@ -676,12 +719,13 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
       t_id int(8) unsigned NOT NULL default '0',
       a_cnt int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (t_id)
-    ) ENGINE=MEMORY;
-
-    SET @st=CONCAT( 'INSERT INTO templatetop SELECT p_id as t_id, count(DISTINCT id) as a_cnt FROM ', @dbname, '.templatelinks, articles, p10 WHERE tl_namespace=10 and tl_from=id and tl_title=p_title GROUP BY t_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    ) ENGINE=MEMORY AS
+    SELECT ti_to as t_id,
+           count(DISTINCT id) as a_cnt
+           FROM ti,
+                articles
+           WHERE ti_from=id
+           GROUP BY t_id;
 
     SELECT CONCAT( ':: echo ', count(*), ' distinct templating names used in articles' )
            FROM templatetop;
@@ -702,6 +746,10 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     CALL throwNhull4subsets( 0, 'articles' );
 
     SELECT CONCAT( ':: echo zero namespace time: ', timediff(now(), @initstarttime));
+
+    SELECT ':: echo LINKS DISAMBIGUATOR';
+
+    SET @starttime=now();
 
     #
     # Collects ld, dl and disambiguate0.
@@ -727,6 +775,8 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
     
     # partial namespacer unload
     DROP TABLE nr0;
+
+    SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
 
     #
     # DEAD-END ARTICLES PROCESSING

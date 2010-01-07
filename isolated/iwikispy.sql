@@ -229,6 +229,9 @@ CREATE PROCEDURE inter_langs( srv INT )
         THEN
           # hope this reduces the amount of mysql connections created
           SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql disambig.sql iwikispy.sql' );
+          # hope this reduces the density of sql connection requests,
+          # which is limited
+          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -245,6 +248,9 @@ CREATE PROCEDURE inter_langs( srv INT )
       IF NOT done
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' call inter_langs_ct' );
+          # hope this reduces the density of sql connection requests,
+          # which is limited
+          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -297,6 +303,9 @@ CREATE PROCEDURE inter_langs( srv INT )
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' take iwl' );
           SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and is_closed=0 and iwl.lang=toolserver.wiki.lang\;" );
+          # hope this reduces the density of sql connection requests,
+          # which is limited
+          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -350,6 +359,9 @@ CREATE PROCEDURE inter_langs( srv INT )
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' valu ', @target_lang );
           SELECT CONCAT( ':: s', cur_sv, ' prlc inter_langs_slave' );
+          # hope this reduces the density of sql connection requests,
+          # which is limited
+          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -585,6 +597,8 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
     # Looks like an infinite loop, however, a line is to be modified externally
     # when transfer done.
     REPEAT
+      # no more than once per second
+      SELECT sleep( 1 ) INTO ready;
       SELECT count(*) INTO ready
              FROM communication_exchange;
     UNTIL ready=1 END REPEAT;
