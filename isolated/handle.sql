@@ -105,6 +105,7 @@ CREATE PROCEDURE combineandout ()
     DROP TABLE IF EXISTS task;
     CREATE TABLE task(
       id int(8) unsigned NOT NULL default '0',
+      ncaact int(8) signed NOT NULL default '0',
       deact int(8) signed NOT NULL default '0',
       isoact int(8) signed NOT NULL default '0',
       isocat varchar(255) binary NOT NULL default '',
@@ -114,6 +115,7 @@ CREATE PROCEDURE combineandout ()
     # Initialize with isolated articles to be edited.
     #
     SELECT id,
+           0 as ncaact,
            0 as deact,
            act as isoact,
            coolcat as isocat
@@ -126,12 +128,28 @@ CREATE PROCEDURE combineandout ()
     #
     INSERT INTO task
     SELECT id,
+           0 as ncaact,
            act as deact,
            0 as isoact,
            '' as isocat
            FROM del
            WHERE act!=0
     ON DUPLICATE KEY UPDATE deact=del.act;
+
+    #
+    # Add non-categorized articles to be edited updating existent rows.
+    #
+    INSERT INTO task
+    SELECT id,
+           act as ncaact,
+           0 as deact,
+           0 as isoact,
+           '' as isocat
+           FROM nocat,
+                articles
+           WHERE act!=0 and
+                 nc_title=title
+    ON DUPLICATE KEY UPDATE ncaact=nocat.act;
 
     SELECT count( * ) INTO cnt
            FROM task; 
@@ -144,7 +162,7 @@ CREATE PROCEDURE combineandout ()
         SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
         SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
 
-        SET @st=CONCAT( 'SELECT CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, deact, isoact, isocat FROM task, ', @dbname, '.page WHERE id=page_id ORDER BY deact+deact+isoact DESC, page_title ASC;' );
+        SET @st=CONCAT( 'SELECT CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, ncaact, deact, isoact, isocat FROM task, ', @dbname, '.page WHERE id=page_id ORDER BY ncaact+deact+deact+isoact DESC, page_title ASC;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -152,7 +170,7 @@ CREATE PROCEDURE combineandout ()
 
     DROP TABLE task;
 
-    SELECT CONCAT( ':: echo isolated & deadend combining time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo nocat, isolated & deadend combining time: ', timediff(now(), @starttime));
   END;
 //
 

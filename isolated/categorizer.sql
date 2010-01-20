@@ -23,6 +23,35 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
+# This function reads content of the language configuration page and
+# intializes the following global variables:
+#
+# @non_categorized_articles_category - category containing all articles with no
+#                                      regular categories
+#
+DROP PROCEDURE IF EXISTS get_nca_category_name//
+CREATE PROCEDURE get_nca_category_name (targetlang VARCHAR(32))
+  BEGIN
+    DECLARE st VARCHAR(511);
+
+    SET @non_categorized_articles_category='';
+
+    #
+    # Meta-category name for deadend articles.
+    #
+    SET @st=CONCAT( 'SELECT pl_title INTO @non_categorized_articles_category FROM ', dbname_for_lang(targetlang), '.page, ', dbname_for_lang(targetlang), '.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/NonCategorizedArticles" LIMIT 1;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    IF @non_categorized_articles_category='NULL'
+      THEN
+        SET @non_categorized_articles_category='';
+    END IF;
+  END;
+//
+
+#
 # Caches pages for ns=14 and prepares the categories table.
 #
 DROP PROCEDURE IF EXISTS categories//
@@ -57,7 +86,6 @@ CREATE PROCEDURE categories ()
       UNIQUE KEY title (title)
     ) ENGINE=MEMORY;
 
-    DROP TABLE IF EXISTS nrcatl;
     SET @st=CONCAT( 'INSERT INTO visible_categories SELECT id, title FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
@@ -137,13 +165,13 @@ CREATE PROCEDURE notcategorized ()
 
     SELECT CONCAT( ':: echo ', cnt, ' articles with no regular categories' );
 
-    SET @st=CONCAT( 'SELECT pl_title INTO @non_categorized_articles_category FROM ', @dbname, '.page, ', @dbname, '.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/NonCategorizedArticles" LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    DROP TABLE visible_categories;
 
-    IF @non_categorized_articles_category!='NULL'
+    IF @non_categorized_articles_category!=''
       THEN
+        #
+        # Already registered non-categorized articles.
+        #
         SET @st=CONCAT( 'INSERT INTO nocat SELECT title as nc_title, -1 as act FROM articles, ', @dbname, '.categorylinks WHERE id=cl_from and cl_to="', @non_categorized_articles_category, '" ON DUPLICATE KEY UPDATE act=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -151,14 +179,6 @@ CREATE PROCEDURE notcategorized ()
 
         IF cnt>0
           THEN
-            IF @enable_informative_output>0
-              THEN
-                SELECT CONCAT(':: out ', @fprefix, 'nca.info' ) as title;
-                SELECT nc_title
-                       FROM nocat
-                       ORDER BY nc_title ASC;
-            END IF;
-
             SELECT count( * ) INTO cnt
                FROM nocat
                WHERE act=1;

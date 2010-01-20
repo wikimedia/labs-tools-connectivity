@@ -38,7 +38,22 @@ CREATE PROCEDURE allow_allocation ( size VARCHAR(64) )
             WHILE @@max_heap_table_size<size DO
               SET @@max_heap_table_size=2*@@max_heap_table_size;
             END WHILE;
-            SELECT CONCAT( ':: echo ... memory table size limit set to ', @@max_heap_table_size, ' bytes' );
+            IF @@max_heap_table_size<1024
+              THEN
+                SELECT CONCAT( ':: echo ... memory table size limit set to ', @@max_heap_table_size, ' bytes' );
+              ELSE
+                IF @@max_heap_table_size<1048576
+                  THEN
+                    SELECT CONCAT( ':: echo ... memory table size limit set to ', CEIL(@@max_heap_table_size/1024), ' kB' );
+                  ELSE
+                    IF @@max_heap_table_size<1073741824
+                      THEN
+                        SELECT CONCAT( ':: echo ... memory table size limit set to ', CEIL(@@max_heap_table_size/1048576), ' MB' );
+                      ELSE
+                        SELECT CONCAT( ':: echo ... memory table size limit set to ', CEIL(@@max_heap_table_size/1073741824), ' GB' );
+                    END IF;
+                END IF;
+            END IF;
         END IF;
       ELSE
         SELECT CONCAT( ':: echo ... memory table size limit does not allow size of ', size, ' bytes' );

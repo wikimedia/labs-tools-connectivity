@@ -37,10 +37,17 @@ CREATE PROCEDURE get_connectivity_project_root (targetlang VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
 
+    SET @connectivity_project_root='';
+
     SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace, "', targetlang, '" ), pl_title ) INTO @connectivity_project_root FROM ', dbname_for_lang( targetlang ), '.page, ', dbname_for_lang( targetlang ), '.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
+
+    IF @connectivity_project_root='NULL'
+      THEN
+        SET @connectivity_project_root='';
+    END IF;
   END;
 //
 
@@ -159,8 +166,12 @@ CREATE PROCEDURE get_categorized_non_articles (namespace INT)
     DECLARE st VARCHAR(511);
 
     DROP TABLE IF EXISTS cllt;
+    CREATE TABLE cllt (
+      cllt_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY  (cllt_id)
+    ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'CREATE TABLE cllt ( cllt_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (cllt_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as cllt_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
+    SET @st=CONCAT( 'INSERT INTO cllt SELECT DISTINCT cl_from as cllt_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -191,8 +202,12 @@ CREATE PROCEDURE get_chrono ()
     DECLARE st VARCHAR(511);
 
     DROP TABLE IF EXISTS chrono;
+    CREATE TABLE chrono (
+      chr_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY  (chr_id)
+    ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'CREATE TABLE chrono ( chr_id int(8) unsigned NOT NULL default "0", PRIMARY KEY  (chr_id) ) ENGINE=MEMORY AS SELECT DISTINCT cl_from as chr_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
+    SET @st=CONCAT( 'INSERT INTO chrono SELECT DISTINCT cl_from as chr_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -364,6 +379,8 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
   BEGIN
     DECLARE st VARCHAR(511);
 
+    SET @starttime1=now();
+
     DROP TABLE IF EXISTS pl;
 
     #
@@ -389,35 +406,43 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
 
     SELECT CONCAT( ':: echo ', @pl_count, ' links point namespace ', namespace );
 
+    SELECT CONCAT( ':: echo links to namespace ', namespace, ' caching time: ', timediff(now(), @starttime1));
+
     IF namespace=0
       THEN
         #
-        # The function is commented due to lost hope. 
-        # The list of links occured due to templates is most likely unreachable.
+        # Note: The list of links occured in articles due to templates used,
+        #       most likely can not be constructed, therefore the variable
+        #       tested here is never initialized.
         #
-        # CALL recognizable_template_links();
+        IF @massive_lists_recognition_alive!=''
+          THEN
+            CALL recognizable_template_links();
+        END IF;
 
-        SET @starttime1=now();
+        IF @template_documentation_subpage_name!=''
+          THEN
+            #
+            # All links from regular templates to zero namespace pages.
+            #
+            DROP TABLE IF EXISTS t2p;
+            CREATE TABLE t2p ( 
+              t2p_from int(8) unsigned NOT NULL default '0',
+              t2p_to int(8) unsigned NOT NULL default '0',
+              KEY (t2p_from),
+              KEY (t2p_to)
+            ) ENGINE=MEMORY AS /* SLOW_OK */ 
+            SELECT pl_from as t2p_from,
+                   pl_to as t2p_to
+                   FROM pl
+                   WHERE pl_from IN (
+                                      SELECT id
+                                             FROM regular_templates
+                                    );
 
-        DROP TABLE IF EXISTS t2p;
-        CREATE TABLE t2p ( 
-          t2p_from int(8) unsigned NOT NULL default '0',
-          t2p_to int(8) unsigned NOT NULL default '0',
-          KEY (t2p_from),
-          KEY (t2p_to)
-        ) ENGINE=MEMORY AS /* SLOW_OK */ 
-        SELECT pl_from as t2p_from,
-               pl_to as t2p_to
-               FROM pl
-               WHERE pl_from IN (
-                                  SELECT id
-                                         FROM regular_templates
-                                );
-
-        SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to existent main namespace pages' )
-               FROM t2p;
-
-        SELECT CONCAT( ':: echo t2p processing time: ', timediff(now(), @starttime1));
+            SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to existent main namespace pages' )
+                   FROM t2p;
+        END IF;
     END IF;
 
     #
@@ -510,6 +535,8 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
     #  - links from article to article via a long (double, triple, etc) redirect
     #
 
+    SET @starttime1=now();
+
     #
     # Here we can construct links from articles to articles.
     #
@@ -530,6 +557,9 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
            FROM l;
 
     SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' links from ', targetset, ' to ', targetset );
+
+    SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' caching time: ', timediff(now(), @starttime1));
+
   END;
 //
 
@@ -604,64 +634,116 @@ CREATE PROCEDURE store_paraphrases ()
 DROP PROCEDURE IF EXISTS collect_template_pages//
 CREATE PROCEDURE collect_template_pages ( maxsize INT )
   BEGIN
-    SELECT ':: echo TEMPLATE PAGES';
-
-    # pre-loads p10, r10 and nr10 tables for fast access
-    CALL cache_namespace_pages( 10 );
-
-    CALL classify_namespace( 10, 'templates', maxsize );
+    DECLARE templator_needed INT DEFAULT '0';
 
     #
-    # For pl - namespace links cached in memory
+    # Lost hope
     #
-    CALL cache_namespace_links( 10 );
+    IF @massive_links_recognition_alive='NULL'
+      THEN
+        SET @massive_links_recognition_alive='';
+    END IF;
 
-    CALL throwNhull4subsets( 10, 'templates' );
+    IF @massive_links_recognition_alive!=''
+      THEN
+        SET @templator_needed=1;
+    END IF;
+    IF @template_documentation_subpage_name!=''
+      THEN
+        SET @templator_needed=1;
+    END IF;
 
-    DROP TABLE IF EXISTS regular_templates;
-    ALTER TABLE articles ENGINE=MyISAM;
-    RENAME TABLE articles TO regular_templates;
+    IF @disambiguation_templates_initialized=0
+      THEN
+        SET @templator_needed=0;
+    END IF;
 
-    # partial namespacer unload
-    DROP TABLE nr10;
+    IF @templator_needed=1
+      THEN
+        SELECT ':: echo TEMPLATE PAGES';
 
-    #
-    # nr2r10 will be very helpfull for redirects seaming
-    #
-    CALL redirector_unload( 10 );
+        # the name-prefix for all output files, distinct for each function call
+        SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
 
-    SET @st=CONCAT( 'SELECT count(*) INTO @tl_count FROM ', @dbname, '.templatelinks;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        # pre-loads p10, r10 and nr10 tables for fast access
+        CALL cache_namespace_pages( 10 );
 
-    SET @st=CONCAT( 'CALL allow_allocation( ', 32*@tl_count, ' );' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        CALL classify_namespace( 10, 'templates', maxsize );
 
-    #
-    # Templating links storage with info on template name length for each link.
-    #
-    # Notes: Lots of templates are not used in articles directly and came 
-    #        with templating, so should be excluded.
-    #
-    #        Links to non-existent templates are not there.
-    #
-    DROP TABLE IF EXISTS ti;
-    CREATE TABLE ti (
-      ti_from int(8) unsigned NOT NULL default '0',
-      ti_to int(8) unsigned NOT NULL default '0',
-      KEY (ti_from)
-    ) ENGINE=MEMORY;
+        #
+        # For pl - namespace links cached in memory
+        #
+        CALL cache_namespace_links( 10 );
 
-    SET @st=CONCAT( 'INSERT INTO ti /* SLOW_OK */ SELECT STRAIGHT_JOIN tl_from as ti_from, p_id as ti_to FROM ', @dbname, '.templatelinks, p10 WHERE tl_namespace=10 and tl_title=p_title;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        CALL throwNhull4subsets( 10, 'templates' );
 
-    SELECT CONCAT( ':: echo ', count(*), ' template occurences found' )
-           FROM ti;
+        DROP TABLE IF EXISTS regular_templates;
+        ALTER TABLE articles ENGINE=MyISAM;
+        RENAME TABLE articles TO regular_templates;
+
+        # partial namespacer unload
+        DROP TABLE nr10;
+
+        #
+        # nr2r10 will be very helpfull for redirects seaming
+        #
+        CALL redirector_unload( 10 );
+
+        SET @st=CONCAT( 'SELECT count(*) INTO @tl_count FROM ', @dbname, '.templatelinks;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SET @st=CONCAT( 'CALL allow_allocation( ', 32*@tl_count, ' );' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        #
+        # Templating links storage with info on template name length for
+        # each link.
+        #
+        # Notes: Lots of templates are not used in articles directly and came 
+        #        with templating, so should be excluded.
+        #
+        #        Links to non-existent templates are not there.
+        #
+        DROP TABLE IF EXISTS ti;
+        CREATE TABLE ti (
+          ti_from int(8) unsigned NOT NULL default '0',
+          ti_to int(8) unsigned NOT NULL default '0',
+          KEY (ti_from)
+        ) ENGINE=MEMORY;
+
+        SET @st=CONCAT( 'INSERT INTO ti /* SLOW_OK */ SELECT STRAIGHT_JOIN tl_from as ti_from, p_id as ti_to FROM ', @dbname, '.templatelinks, p10 WHERE tl_namespace=10 and tl_title=p_title;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SELECT CONCAT( ':: echo ', count(*), ' template occurrences found' )
+               FROM ti;
+
+        DROP TABLE p10;
+
+        #
+        # Templates categorization links could be useful, so it can be enabled here.
+        #
+        # categorizer: bless nrcatl, sorry for naming...
+        # DROP TABLE IF EXISTS nrcatl10;
+        # RENAME TABLE nrcatl TO nrcatl10;
+        #
+        # Currently disabled.
+        #
+        DROP TABLE nrcatl;
+
+        IF @template_documentation_subpage_name=''
+          THEN
+            DROP TABLE r2nr10;
+            DROP TABLE r10;
+        END IF;
+      ELSE
+        SELECT ':: echo TEMPLATOR IS NOT REQUIRED';
+    END IF;
   END;
 //
 
@@ -673,178 +755,203 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
 DROP PROCEDURE IF EXISTS zero_namespace_connectivity//
 CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
   BEGIN
-    SELECT ':: echo ZERO NAMESPACE';
+    IF @disambiguation_templates_initialized>0
+      THEN
+        SELECT ':: echo ZERO NAMESPACE';
 
-    # the name-prefix for all output files, distinct for each function call
-    SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
+        # the name-prefix for all output files, distinct for each function call
+        SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
 
-    #
-    # Let wikistat table be a permanent storage 
-    #     for inter-run data on statistics upload
-    #
-    # aka WikiMirrorTime al CurrentRunTime
-    #
-    CALL pretend( 'wikistat' );
+        #
+        # Let wikistat table be a permanent storage 
+        #     for inter-run data on statistics upload
+        #
+        # aka WikiMirrorTime al CurrentRunTime
+        #
+        CALL pretend( 'wikistat' );
 
-    SET @initstarttime=now();
+        SET @initstarttime=now();
 
-    # pre-loads p0, r0 and nr0 tables for fast access
-    CALL cache_namespace_pages( 0 );
+        # pre-loads p0, r0 and nr0 tables for fast access
+        CALL cache_namespace_pages( 0 );
 
-    #
-    # Constructs nrcatl for categorylinks.
-    #
-    # Based on nrcatl, recognizes
-    #   articles,
-    #   d - disambiguations,
-    #   cllt - colloborative lists and
-    #   chrono - chronological articles.
-    #
-    # Modifies maxsize if 0.
-    #
-    # Note: Requires @@max_heap_table_size not less than 134217728
-    #
-    CALL classify_namespace( 0, 'articles', maxsize );
+        #
+        # Constructs nrcatl for categorylinks.
+        #
+        # Based on nrcatl, recognizes
+        #   articles,
+        #   d - disambiguations,
+        #   cllt - colloborative lists and
+        #   chrono - chronological articles.
+        #
+        # Modifies maxsize if 0.
+        #
+        # Note: Requires @@max_heap_table_size not less than 134217728
+        #
+        CALL classify_namespace( 0, 'articles', maxsize );
 
-    #
-    # For pl - namespace links cached in memory
-    #
-    CALL cache_namespace_links( 0 );
+        #
+        # For pl - namespace links cached in memory
+        #
+        CALL cache_namespace_links( 0 );
 
-    #
-    # Template usage statistics
-    #
-    DROP TABLE IF EXISTS templatetop;
-    CREATE TABLE templatetop (
-      t_id int(8) unsigned NOT NULL default '0',
-      a_cnt int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (t_id)
-    ) ENGINE=MEMORY AS
-    SELECT ti_to as t_id,
-           count(DISTINCT id) as a_cnt
-           FROM ti,
-                articles
-           WHERE ti_from=id
-           GROUP BY t_id;
+        IF @template_documentation_subpage_name!=''
+          THEN
+            #
+            # Template usage statistics
+            #
+            DROP TABLE IF EXISTS templatetop;
+            CREATE TABLE templatetop (
+              t_id int(8) unsigned NOT NULL default '0',
+              a_cnt int(8) unsigned NOT NULL default '0',
+              PRIMARY KEY (t_id)
+            ) ENGINE=MEMORY AS
+            SELECT ti_to as t_id,
+                   count(DISTINCT id) as a_cnt
+                   FROM ti,
+                        articles
+                   WHERE ti_from=id
+                   GROUP BY t_id;
 
-    SELECT CONCAT( ':: echo ', count(*), ' distinct templating names used in articles' )
-           FROM templatetop;
+            SELECT CONCAT( ':: echo ', count(*), ' distinct templating names used in articles' )
+                   FROM templatetop;
+        END IF;
 
-    #
-    # FCH, from chrono articles
-    #
+        DROP TABLE IF EXISTS ti;
 
-    # permanent storage for inter-run data created here if not exists
-    CREATE TABLE IF NOT EXISTS fch (
-      clinks INT(8) unsigned NOT NULL default '0',
-      alinks INT(8) unsigned NOT NULL default '0'
-    ) ENGINE=MyISAM;
+        #
+        # FCH, from chrono articles
+        #
 
-    #
-    # Gives us l and some others: wr, mr, r filtered, r2nr.
-    #
-    CALL throwNhull4subsets( 0, 'articles' );
+        # permanent storage for inter-run data created here if not exists
+        CREATE TABLE IF NOT EXISTS fch (
+          clinks INT(8) unsigned NOT NULL default '0',
+          alinks INT(8) unsigned NOT NULL default '0'
+        ) ENGINE=MyISAM;
 
-    SELECT CONCAT( ':: echo zero namespace time: ', timediff(now(), @initstarttime));
+        #
+        # Gives us l and some others: wr, mr, r filtered, r2nr.
+        #
+        CALL throwNhull4subsets( 0, 'articles' );
 
-    SELECT ':: echo LINKS DISAMBIGUATOR';
+        SELECT CONCAT( ':: echo zero namespace time: ', timediff(now(), @initstarttime));
 
-    SET @starttime=now();
+        SELECT ':: echo LINKS DISAMBIGUATOR';
 
-    #
-    # Collects ld, dl and disambiguate0.
-    #
-    CALL constructNdisambiguate();
+        SET @starttime=now();
 
-    #
-    # <<Disambiguation rule>> disregard index.
-    #
-    CALL store_drdi();
+        #
+        # Collects ld, dl and disambiguate0.
+        #
+        CALL constructNdisambiguate();
 
-    DROP TABLE pl;
-    DROP TABLE d;
+        #
+        # <<Disambiguation rule>> disregard index.
+        #
+        CALL store_drdi();
 
-    #
-    # Named disambiguations list for use in web tools.
-    #
-    DROP TABLE IF EXISTS d0site;
-    SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT cnad_id as id, page_title as name FROM cnad, ', @dbname, '.page WHERE page_id=cnad_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        DROP TABLE pl;
+        DROP TABLE d;
+
+        #
+        # Named disambiguations list for use in web tools.
+        #
+        DROP TABLE IF EXISTS d0site;
+        SET @st=CONCAT( 'CREATE TABLE d0site ( id int(8) unsigned NOT NULL default ', "'0'", ', name varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=MyISAM AS SELECT cnad_id as id, page_title as name FROM cnad, ', @dbname, '.page WHERE page_id=cnad_id;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
     
-    # partial namespacer unload
-    DROP TABLE nr0;
+        DROP TABLE cnad;
 
-    SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
+        # partial namespacer unload
+        DROP TABLE nr0;
 
-    #
-    # DEAD-END ARTICLES PROCESSING
-    #
-    CALL deadend( 0 );
+        SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
 
-    #
-    # ISOLATED ARTICLES PROCESSING
-    #
-    # Creates table named as isolated.
+        #
+        # DEAD-END ARTICLES PROCESSING
+        #
+        CALL deadend( 0 );
 
-    SELECT ':: echo ISOLATED ARTICLES';
+        #
+        # ISOLATED ARTICLES PROCESSING
+        #
+        # Creates table named as isolated.
 
-    CALL isolated( 0, 'articles', maxsize );
+        SELECT ':: echo ISOLATED ARTICLES';
 
-    #
-    # Three paraphrases for titlepage.
-    #
-    CALL store_paraphrases();
+        CALL isolated( 0, 'articles', maxsize );
 
-    # socket for the template maintainer
-    # minimizes amount of edits combining results for deadend and isolated analysis
-    CALL combineandout();
-    DROP TABLE del;
+        DROP TABLE chrono;
 
-    CALL isolated_refresh( '0', 0 );
+        #
+        # Three paraphrases for titlepage.
+        #
+        CALL store_paraphrases();
 
-    #
-    # Initiate statistics upload on isolated chains
-    #
-    SELECT CONCAT( ':: stat ', max(ts), ' ', @master_server_id, ' ', @connectivity_project_root, '/stat' )
-           FROM wikistat
-           WHERE valid=0;
+        #
+        # A socket for the template maintainer everybody have spoken about.
+        # Minimizes the amount of edits, combining results for
+        # non-categorized, deadend and isolated analysis
+        #
+        CALL combineandout();
 
-    #
-    # Pack files for delivery
-    #
-    SELECT ':: 7z';
+        DROP TABLE del;
+        DROP TABLE nocat;
 
-    # allow orcat table to be used in postponed namespace 0 tools
-    DROP TABLE IF EXISTS ll_orcat;
-    RENAME TABLE orcat TO ll_orcat;
+        CALL isolated_refresh( '0', 0 );
 
-    # outer tools moved after a namespace change need to continue working
-    # with categories
-    # categorizer: bless nrcatl
-    DROP TABLE IF EXISTS nrcatl0;
-    RENAME TABLE nrcatl TO nrcatl0;
+        #
+        # Initiate statistics upload on isolated chains
+        #
+        # Note: Case with @connectivity_project_root empty is 
+        #       catched by outside handler.
+        #
+        SELECT CONCAT( ':: stat ', max(ts), ' ', @master_server_id, ' ', @connectivity_project_root, '/stat' )
+               FROM wikistat
+               WHERE valid=0;
 
-    # Uses articles table, so cannot be postponed yet.
-    CALL isolated_by_category();
+        #
+        # Pack files for delivery
+        #
+        SELECT ':: 7z';
 
-    # unload articlizer
-    DROP TABLE articles;
+        # allow orcat table to be used in postponed namespace 0 tools
+        DROP TABLE IF EXISTS ll_orcat;
+        RENAME TABLE orcat TO ll_orcat;
 
-    # unload isolated
-    DROP TABLE isolated;
+        # outer tools moved after a namespace change need to continue working
+        # with categories
+        # categorizer: bless nrcatl
+        DROP TABLE IF EXISTS nrcatl0;
+        RENAME TABLE nrcatl TO nrcatl0;
+
+        # Uses articles table, so cannot be postponed yet.
+        CALL isolated_by_category();
+
+        # unload articlizer
+        DROP TABLE articles;
+
+        # unload isolated
+        DROP TABLE isolated;
+      ELSE
+        SELECT ':: echo ZERO NAMESPACE CONNECTIVITY CANNOT BE PERFORMED';
+    END IF;
   END;
 //
 
 DROP PROCEDURE IF EXISTS zero_namespace_postponed_tools//
 CREATE PROCEDURE zero_namespace_postponed_tools ( server INT )
   BEGIN
-    SELECT ':: echo POSTPONED ZERO NAMESPACE TOOLS';
+    IF @disambiguation_templates_initialized>0
+      THEN
+        SELECT ':: echo POSTPONED ZERO NAMESPACE TOOLS';
 
-    CALL suggestor( server );
+        CALL suggestor( server );
 
-    CALL creatorizer();
+        CALL creatorizer();
+    END IF;
   END;
 //
 

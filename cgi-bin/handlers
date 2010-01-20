@@ -195,18 +195,6 @@ handle_rlist ()
   fi
 }
 
-handle_alist ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=${line//_/ }
-    local name=$( url "$line" )
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name\" target=\"_blank\">$line</a></li>"
-  fi
-}
-
 handle_totranslate ()
 {
   local count=$1

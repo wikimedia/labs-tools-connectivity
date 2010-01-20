@@ -70,14 +70,7 @@ else
   echo "<table class=\"sortable infotable\">"
   echo "<tr><th>&#8470;</th><th>$towhat</th><th>$linkableisolates</th></tr>"
   {
-#    echo SELECT suggestn,                       \
-#                count\(id\) as cnt              \
-#                FROM $tablename                 \
-#                WHERE lang=\'$foreign\'         \
-#                GROUP BY suggestn               \
-#                ORDER BY cnt DESC, suggestn ASC \
-#                LIMIT $((shift)),100\;
-    echo CALL wikifies_for_category_and_foreign\(\"\", \"$language\", \"$foreign\", $((shift)) \)\;
+    echo CALL wikifies_for_category_and_foreign\(\"\", \"$language\", \"$foreign\", \"$tablename\", $((shift)) \)\;
   } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
                     count=$((shift))
                     while read -r line

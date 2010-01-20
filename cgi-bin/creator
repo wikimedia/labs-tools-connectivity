@@ -16,7 +16,7 @@ handle_userlist ()
 
 if [ "$user" = '' ] || [ "$registered" = '' ]
 then
-  echo "$whatisit<br><br>"
+  echo "<br>$whatisit<br>"
 fi
 
 UPPERFIRST=`echo "$user" | cut -c 1  |tr '[a-z]' '[A-Z]'`

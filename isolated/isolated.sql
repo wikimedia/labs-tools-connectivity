@@ -108,7 +108,6 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
 # @isolated_ring_param_name    - prefix for clusters of size 2
 # @isolated_cluster_param_name - prefix for clusters of size larger than 2
 # @old_orphan_category         - optional, just in case it existed
-# @template_documentation_subpage_name
 #
 DROP PROCEDURE IF EXISTS get_isolated_category_names//
 CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
@@ -119,6 +118,12 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
 
     SELECT dbname_for_lang( targetlang ) INTO dbname;
 
+    SET @isolated_category_name='';
+    SET @orphan_param_name='';
+    SET @isolated_ring_param_name='';
+    SET @isolated_cluster_param_name='';
+    SET @old_orphan_category='';
+
     #
     # Meta-category name for isolated articles.
     #
@@ -127,53 +132,87 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    #
-    # Sub-category prefix for orphaned articles.
-    #
-    SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    IF @isolated_category_name='NULL'
+      THEN
+        SET @isolated_category_name='';
+    END IF;
 
-    #
-    # Sub-category prefix for isolated pair.
-    #
-    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    IF @isolated_category_name!=''
+      THEN
+        SET stln=2+LENGTH( @isolated_category_name );
 
-    #
-    # Sub-category prefix for isolated clusters of size above 2.
-    #
-    SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        #
+        # Sub-category prefix for orphaned articles.
+        #
+        SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
 
-    #
-    # Old-style category name for orphaned articles.
-    #
-    SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        IF @orphan_param_name='NULL'
+          THEN
+            SET @orphan_param_name='';
+        END IF;
 
-    #
-    # Template documentation sub-page name.
-    #
-    SET @st=CONCAT( 'SELECT cl_to INTO @template_documentation_subpage_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/TemplateDocumentation" ORDER BY cl_to ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        IF @orphan_param_name!=''
+          THEN
+            SET @orphan_param_name=SUBSTRING( @orphan_param_name FROM stln );
+        END IF;
 
-    SET stln=2+LENGTH( @isolated_category_name );
+        #
+        # Sub-category prefix for isolated pair.
+        #
+        SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
 
-    SET @orphan_param_name=SUBSTRING( @orphan_param_name FROM stln );
-    SET @isolated_ring_param_name=SUBSTRING( @isolated_ring_param_name FROM stln );
-    SET @isolated_cluster_param_name=SUBSTRING( @isolated_cluster_param_name FROM stln );
-    SET @old_orphan_category=SUBSTRING( @old_orphan_category FROM stln );
-    SET @template_documentation_subpage_name=SUBSTRING( @template_documentation_subpage_name FROM stln );
+        IF @isolated_ring_param_name='NULL'
+          THEN
+            SET @isolated_ring_param_name='';
+        END IF;
+
+        IF @isolated_ring_param_name!=''
+          THEN
+            SET @isolated_ring_param_name=SUBSTRING( @isolated_ring_param_name FROM stln );
+        END IF;
+
+        #
+        # Sub-category prefix for isolated clusters of size above 2.
+        #
+        SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        IF @isolated_cluster_param_name='NULL'
+          THEN
+            SET @isolated_cluster_param_name='';
+        END IF;
+
+        IF @isolated_cluster_param_name!=''
+          THEN
+            SET @isolated_cluster_param_name=SUBSTRING( @isolated_cluster_param_name FROM stln );
+        END IF;
+
+        #
+        # Old-style category name for orphaned articles.
+        #
+        SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        IF @old_orphan_category='NULL'
+          THEN
+            SET @old_orphan_category='';
+        END IF;
+
+        IF @old_orphan_category!=''
+          THEN
+            SET @old_orphan_category=SUBSTRING( @old_orphan_category FROM stln );
+        END IF;
+    END IF;
   END;
 //
 
@@ -790,7 +829,6 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
     DECLARE rank INT;
     DECLARE cnt INT;
     DECLARE curcatuid INT;
-    DECLARE whatsinfo INT;
     DECLARE actmaxsize INT DEFAULT '1';
 
     CALL isolated_layer(maxsize, claster_type);
@@ -831,19 +869,6 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
           SELECT CONCAT( outprefix, '[[:', getnsprefix(14,@target_lang), cat, '|', tmp, ']]: ', cnt )
                  FROM orcat
                  WHERE coolcat=tmp;
-
-          IF @enable_informative_output>0
-          THEN
-            SELECT CONCAT( ':: out ', @fprefix, tmp, '.info' );
-            SELECT id,
-                   title
-                   FROM isolated,
-                        articles
-                   WHERE cat=curcatuid and
-                         isolated.id=articles.id and
-                         act>=0
-                   ORDER BY title ASC; 
-          END IF;
 
           #
           # If the orphaned category is changed for some of articles,
@@ -890,20 +915,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
                        isolated.act=-1;
           DROP TABLE ttt;
 
-          # for redirects we do as it is for categories,
-          # just if especially set in @enable_informative_output
           IF targetset='articles'
-            THEN
-              SET whatsinfo=1;
-            ELSE
-              IF @enable_informative_output>0
-                THEN
-                  SET whatsinfo=1;
-                ELSE
-                  SET whatsinfo=0;
-              END IF;
-          END IF;
-          IF whatsinfo=1
             THEN
               SELECT count( * ) INTO cnt
                      FROM isolated 
@@ -1078,28 +1090,31 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     #
     IF targetset='articles'
       THEN
-        SET @st=CONCAT( 'INSERT INTO orcat SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @dbname, '.categorylinks, ', @dbname, '.page, categories WHERE page_title=categories.title and cl_to=', "'", @isolated_category_name, "'", ' and page_id=cl_from and page_namespace=14;' );
-        PREPARE stmt FROM @st; 
-        EXECUTE stmt; 
-        DEALLOCATE PREPARE stmt; 
+        IF @isolated_category_name!=''
+          THEN
+            SET @st=CONCAT( 'INSERT INTO orcat SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @dbname, '.categorylinks, ', @dbname, '.page, categories WHERE page_title=categories.title and cl_to=', "'", @isolated_category_name, "'", ' and page_id=cl_from and page_namespace=14;' );
+            PREPARE stmt FROM @st; 
+            EXECUTE stmt; 
+            DEALLOCATE PREPARE stmt; 
 
-        SELECT CONCAT( ':: echo . ', count(*), ' isolated chain types registered' )
-               FROM orcat;
+            SELECT CONCAT( ':: echo . ', count(*), ' isolated chain types registered' )
+                   FROM orcat;
      
-        #
-        # Initializing main output table with currently registered 
-        # isolated articles and their categories.
-        #
-        INSERT INTO isolated
-        SELECT nrcl_from as id,
-               uid as cat,
-               -1 as act
-               FROM nrcatl,
-                    orcat
-               WHERE nrcl_cat=uid;
+            #
+            # Initializing main output table with currently registered 
+            # isolated articles and their categories.
+            #
+            INSERT INTO isolated
+            SELECT nrcl_from as id,
+                   uid as cat,
+                   -1 as act
+                   FROM nrcatl,
+                        orcat
+                   WHERE nrcl_cat=uid;
 
-        SELECT CONCAT( ':: echo . ', count(*), ' isolated articles templated' )
-               FROM isolated;
+            SELECT CONCAT( ':: echo . ', count(*), ' isolated articles templated' )
+                   FROM isolated;
+        END IF;
     END IF;
 
     # temporary table
@@ -1149,7 +1164,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
            WHERE cat IN (
                    SELECT uid
                           FROM orcat
-                          WHERE coolcat LIKE CONCAT( '%_', @principle_component_size, '%' )
+                          WHERE coolcat LIKE CONCAT( '%\_', @principle_component_size, '%' )
                  );
 
     # from oscchull
@@ -1248,6 +1263,9 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
 
     IF postfix='r'
       THEN
+        ALTER TABLE ruwiki_ns ENGINE=MEMORY;
+        ALTER TABLE orcat_ns ENGINE=MEMORY;
+
         #
         # Redirects as they belong to redirect chains.
         #

@@ -61,9 +61,15 @@ dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${us
 
 source ./ts $dbserver
 
+translation_required=0
+
 if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
 then
-  interface='en'
+  if [ "$interface" != 'en' ]
+  then
+    translation_required=1
+    interface='en'
+  fi
   interface_url=$( url "$interface" )
 fi
 

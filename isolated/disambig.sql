@@ -21,6 +21,27 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 ############################################################
 delimiter //
 
+DROP PROCEDURE IF EXISTS count_disambiguation_templates//
+CREATE PROCEDURE count_disambiguation_templates (targetlang VARCHAR(32))
+  BEGIN
+    DECLARE st VARCHAR(511);
+    DECLARE dbname VARCHAR(32);
+
+    SELECT dbname_for_lang( targetlang ) INTO dbname;
+
+    SET @disambiguation_templates_initialized=0;
+
+    SET @st=CONCAT( 'SELECT count(DISTINCT pl_title) INTO @disambiguation_templates_initialized FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    IF @disambiguation_templates_initialized='NULL'
+      THEN
+        SET @disambiguation_templates_initialized=0;
+    END IF;
+  END;
+//
 #
 # Templates marking disambiguation pages are being collected by administrators
 # at [[:ru:MediaWiki:Disambiguationspage]].
@@ -63,10 +84,16 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
 
     SELECT CONCAT( prefix, @disambiguation_pages_count, ' disambiguation pages for all namespaces' );
 
+    #
+    # namespace=-1 used for major speedup to a per-language iwikispy function
+    #
     IF namespace>=0
       THEN
         #
         # Disambiguation pages for the namespace given are being collected here.
+        #
+        # Note: the query is fast enough, but depends on nr<ns> table, which
+        #       is not available in iwikispy for speedup.
         #
         SET @st=CONCAT( 'DELETE FROM d WHERE d_id not in (select id from nr', namespace, ');' );
         PREPARE stmt FROM @st;
@@ -218,81 +245,96 @@ CREATE PROCEDURE disambiguator (namespace INT)
 
     DROP TABLE dsstat;
 
-    #
-    # Filters table t2p removing links occuring from template docuemntation.
-    #
-    CALL template_documentation_link_cleanup();
+    IF @template_documentation_subpage_name!=''
+      THEN
+        #
+        # Filters table t2p removing links occuring from template docuemntation.
+        #
+        CALL template_documentation_link_cleanup();
 
-    DROP TABLE IF EXISTS tdl;
-    CREATE TABLE tdl (
-      dl_to int(8) unsigned NOT NULL default '0',
-      dl_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MyISAM AS
-    SELECT id as dl_from,
-           t2p_to as dl_to
-           FROM t2p,
-                regular_templates
-           WHERE t2p_to in (
-                             SELECT cnad_id
-                                    FROM cnad
-                           ) AND
-                 t2p_from=id;
+        #
+        # Links from templates to disambiguation and their redirects/
+        #
+        # Note: Becomes to be dl10 soon for use in suggestd function for cgi.
+        #
+        DROP TABLE IF EXISTS tdl;
+        CREATE TABLE tdl (
+          dl_to int(8) unsigned NOT NULL default '0',
+          dl_from int(8) unsigned NOT NULL default '0'
+        ) ENGINE=MyISAM AS
+        SELECT id as dl_from,
+               t2p_to as dl_to
+               FROM t2p,
+                    regular_templates
+               WHERE t2p_to in (
+                                 SELECT cnad_id
+                                        FROM cnad
+                               ) AND
+                     t2p_from=id;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links from templates to disambiguation pages' )
-           FROM tdl;
+        SELECT CONCAT( ':: echo ', count(*), ' links from templates to disambiguation pages' )
+               FROM tdl;
 
+        #
+        # Amount of disambiguation links for each template given by name and id.
+        #
+        DROP TABLE IF EXISTS t2d;
+        CREATE TABLE t2d (
+          td_id int(8) unsigned NOT NULL default '0',
+          t_title varchar(255) binary NOT NULL default '',
+          d_cnt int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (td_id)
+        ) ENGINE=MEMORY AS
+        SELECT id as td_id,
+               title as t_title,
+               count(t2p_to) as d_cnt
+               FROM t2p,
+                    regular_templates
+               WHERE t2p_to in (
+                                 SELECT cnad_id
+                                        FROM cnad
+                               ) AND
+                     t2p_from=id
+               GROUP BY t2p_from;
 
-    DROP TABLE IF EXISTS t2d;
-    CREATE TABLE t2d (
-      td_id int(8) unsigned NOT NULL default '0',
-      t_title varchar(255) binary NOT NULL default '',
-      d_cnt int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (td_id)
-    ) ENGINE=MEMORY AS
-    SELECT id as td_id,
-           title as t_title,
-           count(t2p_to) as d_cnt
-           FROM t2p,
-                regular_templates
-           WHERE t2p_to in (
-                             SELECT cnad_id
-                                    FROM cnad
-                           ) AND
-                 t2p_from=id
-           GROUP BY t2p_from;
+        SELECT CONCAT( ':: echo ', count(*), ' templates linking main namespace disambiguation pages' )
+               FROM t2d;
 
-    SELECT CONCAT( ':: echo ', count(*), ' templates linking main namespace disambiguation pages' )
-           FROM t2d;
+        DROP TABLE t2p;
 
-    #
-    # Redirected vs non-redirected combining.
-    #
-    # First create an imagination of self-redirects from/to every template.
-    #
-    INSERT INTO r2nr10
-    SELECT id as r2nr_to,
-           id as r2nr_from
-           FROM regular_templates;
+        #
+        # Redirected vs non-redirected combining.
+        #
+        # First create an imagination of self-redirects from/to every template.
+        #
+        INSERT INTO r2nr10
+        SELECT id as r2nr_to,
+               id as r2nr_from
+              FROM regular_templates;
 
-    DROP TABLE IF EXISTS tmpldisambig;
-    CREATE TABLE tmpldisambig (
-      td_id int(8) unsigned NOT NULL default '0',
-      d_cnt int(8) unsigned NOT NULL default '0',
-      a_cnt int(8) unsigned NOT NULL default '0',
-      ad_cnt int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MyISAM AS
-    SELECT r2nr_to as td_id,
-           t_title,
-           sum(a_cnt) as a_cnt,
-           d_cnt,
-           sum(a_cnt)*d_cnt as ad_cnt
-           FROM templatetop,
-                r2nr10,
-                t2d
-           WHERE t_id=r2nr_from AND
-                 r2nr_to=td_id
-           GROUP BY r2nr_to;
+        DROP TABLE IF EXISTS tmpldisambig;
+        CREATE TABLE tmpldisambig (
+          td_id int(8) unsigned NOT NULL default '0',
+          d_cnt int(8) unsigned NOT NULL default '0',
+          a_cnt int(8) unsigned NOT NULL default '0',
+          ad_cnt int(8) unsigned NOT NULL default '0'
+        ) ENGINE=MyISAM AS
+        SELECT r2nr_to as td_id,
+               t_title,
+               sum(a_cnt) as a_cnt,
+               d_cnt,
+               sum(a_cnt)*d_cnt as ad_cnt
+               FROM templatetop,
+                    r2nr10,
+                    t2d
+               WHERE t_id=r2nr_from AND
+                     r2nr_to=td_id
+               GROUP BY r2nr_to;
 
+        DROP TABLE r2nr10;
+        DROP TABLE templatetop;
+        DROP TABLE t2d;
+    END IF;
   END;
 //
 
@@ -423,9 +465,12 @@ CREATE PROCEDURE constructNdisambiguate ()
 
     CALL disambiguator_refresh( 'disambigtop0', 'disambigtop' );
 
-    CALL disambiguator_refresh( 'tmpldisambig0', 'tmpldisambig' );
+    IF @template_documentation_subpage_name!=''
+      THEN
+        CALL disambiguator_refresh( 'tmpldisambig0', 'tmpldisambig' );
 
-    CALL disambiguator_refresh( 'dl10', 'tdl' );
+        CALL disambiguator_refresh( 'dl10', 'tdl' );
+    END IF;
 
     CALL actuality( 'disambiguator' );
   END;

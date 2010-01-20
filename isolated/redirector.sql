@@ -280,6 +280,9 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
+    DROP TABLE orcatr;
+    DROP TABLE ruwikir;
+
     # All links from non-redirects to redirects for a given namespace.
     DROP TABLE IF EXISTS nr2r;
     CREATE TABLE nr2r (
@@ -374,6 +377,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
         SELECT CONCAT( ':: echo ', count(*), ' distinct page titles correspond to pages not forming valid links' )
                FROM iw_filter;
 
+        DROP TABLE cnar;
     END IF;
 
     CALL nr2X2nr();
@@ -399,6 +403,8 @@ CREATE PROCEDURE redirector_unload (namespace INT)
         DROP TABLE IF EXISTS r2nr10;
         RENAME TABLE r2nr TO r2nr10;
     END IF;
+
+    DROP TABLE r2r;
   END;
 //
 

@@ -34,6 +34,8 @@ CREATE PROCEDURE get_deadend_category_name (targetlang VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
 
+    SET @deadend_category_name='';
+
     #
     # Meta-category name for deadend articles.
     #
@@ -41,6 +43,11 @@ CREATE PROCEDURE get_deadend_category_name (targetlang VARCHAR(32))
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
+
+    IF @deadend_category_name='NULL'
+      THEN
+        SET @deadend_category_name='';
+    END IF;
   END;
 //
 
@@ -54,18 +61,14 @@ CREATE PROCEDURE get_known_deadend ()
   BEGIN
     DECLARE st VARCHAR(511);
 
-    #
-    # Category name for deadend articles categoryname.
-    #
-    # Derived from @i18n_page/DeadEndArticles.
-    #
-    CALL get_deadend_category_name(@target_lang);
-
-    INSERT INTO del
-    SELECT nrcl_from as id,
-           -1 as act
-           FROM nrcatl
-           WHERE nrcl_cat=nrcatuid(@deadend_category_name);
+    IF @deadend_category_name!=''
+      THEN
+        INSERT INTO del
+        SELECT nrcl_from as id,
+               -1 as act
+               FROM nrcatl
+               WHERE nrcl_cat=nrcatuid(@deadend_category_name);
+    END IF;
   END;
 //
 
@@ -171,18 +174,6 @@ CREATE PROCEDURE deadend (namespace INT)
 
     IF cnt>0
       THEN
-        IF @enable_informative_output>0
-          THEN
-            SELECT CONCAT(':: out ', @fprefix, 'de.info' ) as title;
-            SELECT del.id,
-                   title
-                   FROM del,
-                        articles
-                   WHERE articles.id=del.id and
-                         act>=0
-                   ORDER BY title ASC;
-        END IF;
-
         IF namespace=0
           THEN
             SELECT count( * ) INTO cnt

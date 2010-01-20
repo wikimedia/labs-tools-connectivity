@@ -98,17 +98,21 @@ CREATE PROCEDURE isolated_for_category_itsuggestable (cat_given VARCHAR(255), ta
 //
 
 DROP PROCEDURE IF EXISTS wikifies_for_category_and_foreign//
-CREATE PROCEDURE wikifies_for_category_and_foreign (cat_given VARCHAR(255), target_lang VARCHAR(10), foreign_lang VARCHAR(10), shift INT)
+CREATE PROCEDURE wikifies_for_category_and_foreign (cat_given VARCHAR(255), target_lang VARCHAR(10), foreign_lang VARCHAR(10), tablename VARCHAR(10), shift INT)
   BEGIN
     DECLARE st VARCHAR(511);
 
     IF cat_given=''
       THEN
-        SET @st=CONCAT( "SELECT suggestn, count(id) as cnt FROM isres WHERE isres.lang=\"", foreign_lang, "\" GROUP BY suggestn ORDER BY cnt DESC, suggestn ASC LIMIT ", shift, ",100;" );
+        SET @st=CONCAT( "SELECT suggestn, count(id) as cnt FROM ", tablename, " WHERE ", tablename, ".lang=\"", foreign_lang, "\" GROUP BY suggestn ORDER BY cnt DESC, suggestn ASC LIMIT ", shift, ",100;" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
       ELSE
+
+#
+# Redirects to be taken into account.
+#
 
 #        SET @st=CONCAT( "CREATE TABLE pc(
 #                          title VARCHAR(255) binary NOT NULL default '',
@@ -136,29 +140,11 @@ CREATE PROCEDURE wikifies_for_category_and_foreign (cat_given VARCHAR(255), targ
 #                                         suggestn ASC
 #                                LIMIT ", shift, ", 100;" );
 
-        SET @st=CONCAT( "SELECT suggestn, count(id) as cnt FROM pc, isres WHERE title=suggestn and isres.lang=\"", foreign_lang, "\" GROUP BY suggestn ORDER BY cnt DESC, suggestn ASC LIMIT ", shift, ", 100;" );
+        SET @st=CONCAT( "SELECT suggestn, count(id) as cnt FROM pc, ", tablename, " WHERE title=suggestn and ", tablename, ".lang=\"", foreign_lang, "\" GROUP BY suggestn ORDER BY cnt DESC, suggestn ASC LIMIT ", shift, ", 100;" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
  
-# This code provides incorrect counts for a_amnt:
-#
-##    SET @st=CONCAT( 'CREATE TABLE ', outname, " (
-##                       cat int(8) unsigned NOT NULL default '0',
-##                       lang varchar(10) not null default '',
-##                       a_amnt int(8) unsigned not null default '0',
-##                       i_amnt int(8) unsigned not null default '0',
-##                       PRIMARY KEY (lang, cat)
-##                  ) ENGINE=MyISAM AS
-##                  SELECT nrcl_cat as cat,
-##                         lang,
-##                         count(distinct suggestn) as a_amnt,
-##                         count(distinct id) as i_amnt
-##                         FROM nrcatl0, ",
-##                              inname, '
-##                         WHERE id=nrcl_from
-##                         GROUP BY lang, nrcl_cat;' );
-
         DROP TABLE pc;
     END IF;
   END;
@@ -330,6 +316,44 @@ CREATE PROCEDURE ordered_cat_list_for_lang (tablename VARCHAR(255), foreignlang 
     DEALLOCATE PREPARE stmt;
   END;
 //
+
+DROP PROCEDURE IF EXISTS obtain_project_settings//
+CREATE PROCEDURE obtain_project_settings(targetlang VARCHAR(32))
+  BEGIN
+    #
+    # Connectivity project root page is used for statistics upload and
+    # could be also accomodated for other purposes.
+    #
+    CALL get_connectivity_project_root( targetlang );
+
+    #
+    # Isolated analysis is being run for different target sets,
+    # so we have to initialize it once before any processing
+    #
+    # Localized isolated category name and subcategories naming rules
+    # are initialized here as defined at
+    #   ConnectivityProjectInternationalization/IsolatedArticles
+    #
+    CALL get_isolated_category_names( targetlang );
+  
+    #
+    # Category name for deadend articles categoryname.
+    #
+    # Derived from @i18n_page/DeadEndArticles.
+    #
+    CALL get_deadend_category_name( targetlang );
+
+    CALL get_nca_category_name( targetlang );
+
+    #
+    # Standard subpage name for template documentation.
+    #
+    CALL get_template_documentation_subpage_name( targetlang );
+
+    CALL count_disambiguation_templates( targetlang );
+  END;
+//
+
 
 delimiter ;
 ############################################################

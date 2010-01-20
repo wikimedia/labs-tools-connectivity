@@ -17,6 +17,46 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 ############################################################
 delimiter //
 
+
+#
+# This function reads content of the language configuration page and
+# intializes the following global variables:
+#
+# @template_documentation_subpage_name
+#
+DROP PROCEDURE IF EXISTS get_template_documentation_subpage_name//
+CREATE PROCEDURE get_template_documentation_subpage_name (targetlang VARCHAR(32))
+  BEGIN
+    DECLARE st VARCHAR(511);
+    DECLARE stln INT;
+    DECLARE dbname VARCHAR(32);
+
+    SELECT dbname_for_lang( targetlang ) INTO dbname;
+
+    SET @template_documentation_subpage_name='';
+
+    #
+    # Meta-category name for isolated articles.
+    #
+    SET @st=CONCAT( 'SELECT pl_title INTO @template_documentation_subpage_name FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE pl_title LIKE CONCAT( @i18n_page, "/TemplateDoc/%" ) and pl_namespace=4 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/TemplateDoc" ORDER BY pl_title ASC LIMIT 1;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    IF @template_documentation_subpage_name='NULL'
+      THEN
+        SET @template_documentation_subpage_name='';
+    END IF;
+
+    IF @template_documentation_subpage_name!=''
+      THEN
+        SET stln=2+LENGTH( CONCAT( @i18n_page, '/TemplateDoc' ) );
+
+        SET @template_documentation_subpage_name=SUBSTRING( @template_documentation_subpage_name FROM stln );
+    END IF;
+  END;
+//
+
 DROP PROCEDURE IF EXISTS a2a_templating//
 CREATE PROCEDURE a2a_templating ()
   BEGIN
@@ -63,7 +103,6 @@ CREATE PROCEDURE a2a_templating ()
 
     CALL nr2X2nr();
     DROP TABLE nr2r;
-    DROP TABLE r2r;
 
     SELECT CONCAT( ':: echo ', count(*), ' overall (direct & redirected) articles templating links count' )
            FROM pl;
@@ -76,7 +115,6 @@ CREATE PROCEDURE a2a_templating ()
 DROP PROCEDURE IF EXISTS template_documentation_link_cleanup//
 CREATE PROCEDURE template_documentation_link_cleanup ()
   BEGIN
-
     #
     # Correspondence between template pages and their documentation pages.
     #
@@ -96,7 +134,7 @@ CREATE PROCEDURE template_documentation_link_cleanup ()
            FROM doct;
 
     #
-    # Template documentation pages sometimes are redirects to other documents.
+    # Documentation pages sometimes are redirects to other documents.
     #
     INSERT INTO doct
     SELECT r2nr_to AS doc,
@@ -110,6 +148,8 @@ CREATE PROCEDURE template_documentation_link_cleanup ()
 
     SELECT CONCAT( ':: echo ', count(*), ' templates with documentation found' )
            FROM doct;
+
+    DROP TABLE r10;
 
     #
     # Links present on template pages due to the documentation included.
@@ -127,9 +167,11 @@ CREATE PROCEDURE template_documentation_link_cleanup ()
            WHERE docum.t2p_from=doc AND
                  templ.t2p_from=t;
 
+    DROP TABLE doct;
+
     #
-    # Links from the documentation page are being removed here from templates
-    # as not occuring in articles with templating.
+    # Links from the documentation page are being removed here from
+    # templates as not occuring in articles with templating.
     #
     DELETE t2p
            FROM t2p,
@@ -139,9 +181,20 @@ CREATE PROCEDURE template_documentation_link_cleanup ()
 
     SELECT CONCAT( ':: echo ', count(*), ' links from templates to main namespace pages after documentation links removal' )
            FROM t2p;
+
+    DROP TABLE r_t2p;
   END;
 //
 
+#
+# Collection of links occuring in articles due to templates used.
+#
+# Notes: This function does not work properly and thus is not used currently.
+#
+#        Variable @massive_lists_recognition_alive is associated with this code.
+#        As far as it is not initialized, the function is never called and
+#        no data is being prepared especially for it.
+#
 DROP PROCEDURE IF EXISTS recognizable_template_links//
 CREATE PROCEDURE recognizable_template_links ()
   BEGIN

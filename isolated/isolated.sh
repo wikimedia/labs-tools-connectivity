@@ -80,12 +80,6 @@ time {
     #
     echo "set @i18n_page='ConnectivityProjectInternationalization';"
 
-    #
-    # Enable/disable informative output, such as current sets of
-    # dead end articles or isolated chains of various types.
-    #
-    echo "set @enable_informative_output=0;"
-
     cat toolserver.sql
 
     echo "select dbname_for_lang( '$language' ) into @dbname;"
@@ -124,22 +118,10 @@ time {
     echo "SET max_sp_recursion_depth=12;"
 
     #
-    # Connectivity project root page is used for statistics upload and
-    # could be also accomodated for other purposes.
+    # This function collects all the project settings configured on
+    # various wiki pages.
     #
-    echo "CALL get_connectivity_project_root( '$language' );"
-
-    #
-    # Isolated analysis is being run for different target sets,
-    # so we have to initialize it once before any processing
-    #
-    # Localized isolated category name and subcategories naming rules
-    # are initialized here as defined at
-    #   ConnectivityProjectInternationalization/IsolatedArticles
-    #
-    # Includes initialization of default template documentation sub-page name.
-    # 
-    echo "CALL get_isolated_category_names( '$language' );"
+    echo "CALL obtain_project_settings( '$language' );"
 
     #
     # From now on the templates are the subject of our interest.

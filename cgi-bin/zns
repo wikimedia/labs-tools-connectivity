@@ -120,19 +120,39 @@ zns ()
 
   if no_sql_error "$articles $chron $disambigs $cllt"
   then
-    articles_flexies $articles passive
-    echo "$zns_contains_ $articles $__articles<br />"
+    echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
 
-    echo "($chrono $_of_them_crono),<br />"
+    articles_flexies $articles passive
+    echo -ne "$zns_contains_ $articles $__articles"
+
+    if [ "$chrono" != '0' ]
+    then
+      echo "<br />"
+      echo -ne "($chrono $_of_them_crono)"
+    fi
 
     pages_flexies $disambigs
-    lists_flexies $cllt
-    if [ "$interface" = 'en' ]
+    if [ "$cllt" != '0' ]
     then
-      echo "$disambigs $_disambigs $__pages $_and_ $cllt $_cllt $__lists."
+      echo ",<br />"
+      lists_flexies $cllt
+      if [ "$interface" = 'en' ]
+      then
+        echo "$disambigs $_disambigs $__pages $_and_ $cllt $_cllt $__lists."
+      else
+        echo "$disambigs $__pages $_disambigs $_and_ $cllt $__lists $_cllt."
+      fi
     else
-      echo "$disambigs $__pages $_disambigs $_and_ $cllt $__lists $_cllt."
+      echo "<br />"
+      if [ "$interface" = 'en' ]
+      then
+        echo "$_and_ $disambigs $_disambigs $__pages."
+      else
+        echo "$_and_ $disambigs $__pages $_disambigs."
+      fi
     fi
+
+    echo '</div></center>'
   fi
 }
 
@@ -143,11 +163,30 @@ fromchrono ()
 
   if no_sql_error "$clinks $alinks"
   then
-    articles_flexies $clinks passive
-    echo "$avg_chrono_links_ $clinks $__articles.<br />"
+    if [ $((clinks)) -ne 0 ]
+    then
+      echo "<p>$par3</p>"
 
-    articles_flexies $alinks passive
-    echo "$other_links_ $alinks $__articles."
+      echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+
+      articles_flexies $clinks passive
+      echo "$avg_chrono_links_ $clinks $__articles.<br />"
+
+      articles_flexies $alinks passive
+      echo "$other_links_ $alinks $__articles."
+
+      echo '</div></center>'
+    else
+      if [ $((alinks)) -ne 0 ]
+      then
+        echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+
+        articles_flexies $alinks passive
+        echo "$each_links_ $alinks $__articles."
+
+        echo '</div></center>'
+      fi
+    fi
   fi
 }
 
@@ -158,10 +197,19 @@ tochrono ()
 
   if no_sql_error "$clratio $linksc"
   then
-    echo "$clratio % $_of_links_are_to_chrono.<br />"
+    if [ "$clratio" != "0.000" ] && [ $linksc -ne 0 ]
+    then
+      echo "<p>$par4</p>"
 
-    articles_flexies $linksc active
-    echo "$avg_chrono_is_linked_by_ $linksc $__articles."
+      echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+
+      echo "$clratio % $_of_links_are_to_chrono.<br />"
+
+      articles_flexies $linksc active
+      echo "$avg_chrono_is_linked_by_ $linksc $__articles."
+
+      echo '</div></center>'
+    fi
   fi
 }
 
@@ -216,11 +264,7 @@ echo "<p>$par2</p>"
 #      21636 disambiguation pages and 1571 collaborative lists.    # 
 #                                                                  #
 ####################################################################
-echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
 resume 'zns'
-echo '</div></center>'
-
-echo "<p>$par3</p>"
 
 ####################################################################
 #                                                                  #
@@ -228,11 +272,7 @@ echo "<p>$par3</p>"
 #         Other articles link in average just 35 articles.         #
 #                                                                  #
 ####################################################################
-echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
 resume 'fromchrono'
-echo '</div></center>'
-
-echo "<p>$par4</p>"
 
 ####################################################################
 #                                                                  #
@@ -240,7 +280,5 @@ echo "<p>$par4</p>"
 #        Average chrono article is linked from 368 articles.       #
 #                                                                  #
 ####################################################################
-echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
 resume 'tochrono'
-echo '</div></center>'
 

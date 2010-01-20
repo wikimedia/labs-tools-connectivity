@@ -26,23 +26,27 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
     DECLARE st VARCHAR(255);
     DECLARE prefix VARCHAR(32);
     DECLARE cnt INT;
+    DECLARE outcnt INT;
 
     SELECT CONCAT( ':: echo .', language, ' . ' ) INTO prefix;
 
     #
     # How many pages do link interwiki partners of our isolates.
     #
-    SET @st=CONCAT( 'INSERT INTO liwl SELECT /* SLOW_OK */ pl_from as fr, id as t FROM ', dbname, ".pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language, "';" );
+    # Note: Of course, we do not need too much of suggestions, thus
+    #       the amount of links selected is limited here by 524'288;
+    #
+    SET @st=CONCAT( 'INSERT INTO liwl SELECT /* SLOW_OK */ pl_from as fr, id as t FROM ', dbname, ".pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language, "' LIMIT 524288;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SELECT count(*) INTO cnt
+    SELECT count(*) INTO @cnt
            FROM liwl;
 
-    SELECT CONCAT( prefix, cnt, " links to isolate's interwikis found" );
+    SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis found" );
 
-    IF cnt>0
+    IF @cnt>0
       THEN
         SET @st=CONCAT( 'INSERT INTO rinfo SELECT fr, page_is_redirect, page_title, t FROM ', dbname, '.page, liwl WHERE page_id=fr GROUP BY fr;' );
         PREPARE stmt FROM @st;
@@ -97,10 +101,21 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        SELECT CONCAT( prefix, count(*), " links to isolate's interwikis from zero namespace" )
+        SELECT count(*) INTO @cnt
                FROM liwl;
 
-        SET @st=CONCAT( "INSERT INTO res SELECT REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
+        SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis from zero namespace" );
+
+        SELECT count(*) INTO @outcnt
+               FROM res;
+
+        #
+        # Experimental data: One row of res takes near to 1088 bytes
+        #                    on 64-bit system.
+        #
+        CALL allow_allocation( 1088*(@outcnt+@cnt) );
+
+        SET @st=CONCAT( "INSERT INTO res SELECT /* SLOW_OK */ REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -114,8 +129,19 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after exclusion of already translated" )
+        SELECT count(*) INTO @cnt
                FROM liwl;
+
+        SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis after exclusion of already translated" );
+
+        SELECT count(*) INTO @outcnt
+               FROM tres;
+
+        #
+        # Experimental data: One row of tres takes near to 1088 bytes
+        #                    on 64-bit system.
+        #
+        CALL allow_allocation( 1088*(@outcnt+@cnt) );
 
         SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as id, '", language, "' as lang FROM ", dbname, '.page, liwl WHERE page_id=fr and page_namespace=0;' );
         PREPARE stmt FROM @st;
@@ -228,7 +254,7 @@ CREATE PROCEDURE inter_langs( srv INT )
       IF NOT done
         THEN
           # hope this reduces the amount of mysql connections created
-          SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql disambig.sql iwikispy.sql' );
+          SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql memory.sql disambig.sql iwikispy.sql' );
           # hope this reduces the density of sql connection requests,
           # which is limited
           SELECT sleep( 1 ) INTO ready;
@@ -264,7 +290,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # Prepare interwiki links for isolated articles.
     #
-    SET @st=CONCAT( 'INSERT INTO iwl SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @dbname, '.langlinks, ruwiki0 WHERE id=ll_from;' );
+    SET @st=CONCAT( 'INSERT INTO iwl /* SLOW_OK */ SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @dbname, '.langlinks, ruwiki0 WHERE id=ll_from;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -431,6 +457,20 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_sv;
       IF NOT done
         THEN
+          SELECT count(*) INTO @dcnt
+                 FROM res;
+
+          SET @st=CONCAT( 'SELECT ', @dcnt, '+count(*) INTO @dcnt FROM res_s', cur_sv, ';' );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+
+          #
+          # Experimental data: One row of res takes near to 1088 bytes
+          #                    on 64-bit system.
+          #
+          CALL allow_allocation( 1088*@dcnt );
+
           SET @st=CONCAT( 'INSERT INTO res SELECT suggestn, id, lang FROM res_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
           EXECUTE stmt;
@@ -439,6 +479,20 @@ CREATE PROCEDURE inter_langs( srv INT )
           PREPARE stmt FROM @st;
           EXECUTE stmt;
           DEALLOCATE PREPARE stmt;
+
+          SELECT count(*) INTO @dcnt
+                 FROM tres;
+
+          SET @st=CONCAT( 'SELECT ', @dcnt, '+count(*) INTO @dcnt FROM tres_s', cur_sv, ';' );
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+
+          #
+          # Experimental data: One row of tres takes near to 1088 bytes
+          #                    on 64-bit system.
+          #
+          CALL allow_allocation( 1088*@dcnt );
 
           SET @st=CONCAT( 'INSERT INTO tres SELECT suggestn, id, lang FROM tres_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
@@ -453,7 +507,7 @@ CREATE PROCEDURE inter_langs( srv INT )
 
     CLOSE scur;
 
-    SELECT count(*) INTO dcnt
+    SELECT count(*) INTO @dcnt
            FROM res;
 
     #
@@ -486,7 +540,7 @@ CREATE PROCEDURE inter_langs( srv INT )
            WHERE res.id=ruwiki0.id and
                  suggestn=title;
 
-    SELECT CONCAT( ':: echo ', dcnt-count(*), ' linking suggestions discarded as not forming valid links' )
+    SELECT CONCAT( ':: echo ', @dcnt-count(*), ' linking suggestions discarded as not forming valid links' )
            FROM res;
 
     #

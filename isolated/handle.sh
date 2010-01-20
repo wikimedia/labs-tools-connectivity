@@ -52,8 +52,8 @@
 # set the maximal replication lag value in minutes, which is allowed for apply
 # probably, less than script actually works
 maxlag=10
-# upload stat if replication time changed to last upload no less than 
-# statintv minutes
+# upload stat if replication time difference to the latest upload made
+# is greater then statintv minutes
 statintv=720
 
 source ./isoinv
@@ -163,10 +163,14 @@ handle ()
                 then
                   do_stat=0
                 else
-                   stats_reply_to=${line:28:1}
-                   stats_store=${line:30}
-                  # cut 3 very first utf-8 bytes and upload the stats
-                  tail --bytes=+4 ./*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
+                  stats_reply_to=${line:28:1}
+                  stats_store=${line:30}
+                  # empty @connectivity_project_root should prevent any upload
+                  if [ "$stats_store" != '/stat' ]
+                  then
+                    # cut 3 very first utf-8 bytes and upload the stats
+                    tail --bytes=+4 ./*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
+                  fi
                 fi
               fi
               echo -ne \\0357\\0273\\0277 > stats_done.log
@@ -204,6 +208,7 @@ handle ()
                    # call in a parallel thread 
                    # with slave and master identifiers as parameters
                    {
+                     echo 'SET @heap_size_upper_limit=64*@@max_heap_table_size;'
                      echo "CALL ${line:11}( ${line:4:1}, '$outvariable' );"
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl &
                    ;;
@@ -252,6 +257,7 @@ handle ()
                   7z a $language.stat.7z ./*.stat >>7z.log 2>&1
 
                   todos 7z.log
+                  chmod 755 *.7z
                 else
                   echo command: $line, not recognized >> ${language}.debug.log
                 fi
