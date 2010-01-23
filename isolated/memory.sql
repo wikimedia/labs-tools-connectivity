@@ -18,12 +18,6 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# This module allows avoiding default limits on heap table size, 
-# however some reasonable limitations should exist.
-#
-SET @heap_size_upper_limit=64*@@max_heap_table_size;
-
-#
 # Requests change for memory table size limit if required/allowed.
 #
 DROP PROCEDURE IF EXISTS allow_allocation//
@@ -31,7 +25,11 @@ CREATE PROCEDURE allow_allocation ( size VARCHAR(64) )
   BEGIN
     DECLARE srv INT;
 
-    IF size<@heap_size_upper_limit
+    #
+    # This module allows avoiding default limits on heap table size, 
+    # however some reasonable limitations should exist.
+    #
+    IF size<=4294967296
       THEN
         IF size>@@max_heap_table_size
           THEN

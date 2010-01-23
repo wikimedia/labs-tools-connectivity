@@ -12,16 +12,12 @@
  #          Reports on completion to communtication_exchange table on receiving
  #          side and to stdout.
  # 
- # Use: Not for direct use, called from handle.sh as a result of a command like
- #      coming from a sender.
- #
- #      SELECT ':: <sender-server> give <data selection statement>';
- #
- #      Requires receiver to be prepared with use of a command like
+ # Use: Not for direct use, called from handle.sh as a result of
+ #      a command sequence like
  #
  #      SELECT ':: <receiver-server> take <table-name>';
  #
- #      Allowed values for <sender-server> and <receiver-server> are: s<1-3>.
+ #      SELECT ':: <sender-server> give <data selection statement>';
  #
 
 iter=0
@@ -30,6 +26,10 @@ portion=0;
 while read line
 do
   portion=$(($portion+8192))
+#
+#  For debugging purposes
+#
+#  portion=$(($portion+4))
 
   echo "INSERT INTO $1 VALUES "
   echo -e "$line"

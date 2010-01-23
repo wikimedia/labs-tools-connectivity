@@ -502,9 +502,6 @@ CREATE PROCEDURE categorybridge ()
 #
 # Side output: wr<ns>, r<ns> filtered, r2nr, mr output into a file
 #
-# Notes: Now requires @@max_heap_table_size to be equal to 268435456 bytes
-#        for main namespace analysis in ruwiki.
-#
 DROP PROCEDURE IF EXISTS throwNhull4subsets//
 CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255))
   BEGIN
@@ -786,8 +783,6 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
         #
         # Modifies maxsize if 0.
         #
-        # Note: Requires @@max_heap_table_size not less than 134217728
-        #
         CALL classify_namespace( 0, 'articles', maxsize );
 
         #
@@ -951,6 +946,8 @@ CREATE PROCEDURE zero_namespace_postponed_tools ( server INT )
         CALL suggestor( server );
 
         CALL creatorizer();
+      ELSE
+        SELECT ':: echo NO POSTPONED TOOLS FOR ZERO NAMESPACE';
     END IF;
   END;
 //

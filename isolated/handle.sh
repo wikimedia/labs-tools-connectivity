@@ -182,19 +182,9 @@ handle ()
                 case $outcommand in
                 'call')
                    {
-#                     echo "set @@max_heap_table_size=134217728;"
-#                     echo "set @@max_heap_table_size=268435456;"
-                     echo "set @@max_heap_table_size=536870912;"
+                     echo "CALL allow_allocation( 4294967296 );"
                      echo "CALL ${line:11}();"
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
-                   ;;
-                'take')
-                   tosqlservernum=${line:4:1}
-                   outtable=${line:11}
-                   toparams=$params
-                   ;;
-                'give')
-                   echo "${line:11}" | $( sql $params ) 2>&1 | ./import.sh $outtable ${line:4:1} $tosqlservernum | $( sql $toparams ) 2>&1 | ./handle.sh $cmdl &
                    ;;
                 'valu')
                    # get a value for transmission as prlc parameter
@@ -204,13 +194,22 @@ handle ()
                      echo "empty outvariable transmission, params: ${params}"
                    fi
                    ;;
+                'take')
+                   tosqlservernum=${line:4:1}
+                   outtable=${line:11}
+                   toparams=$params
+                   ;;
+                'give')
+                   echo "${line:11}" | $( sql $params ) 2>&1 | ./import.sh $outtable ${line:4:1} $tosqlservernum $outvariable | $( sql $toparams ) 2>&1 | ./handle.sh $cmdl &
+                   outvariable=''
+                   ;;
                 'prlc')
                    # call in a parallel thread 
                    # with slave and master identifiers as parameters
                    {
-                     echo 'SET @heap_size_upper_limit=64*@@max_heap_table_size;'
                      echo "CALL ${line:11}( ${line:4:1}, '$outvariable' );"
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl &
+                   outvariable=''
                    ;;
                 'done')
                    # update inter-run timing data for a name given

@@ -775,52 +775,20 @@ the_menu ()
 # [[:ru]] [[:uk]]
 #
   echo "<hr />"
-  case $language in
-   'bg')
-     local lswch1=$( url_params cs $interface_url $listby_url $shift_url )
-     local lswch2=$( url_params pl $interface_url $listby_url $shift_url )
-     local lswch3=$( url_params ru $interface_url $listby_url $shift_url )
-     local lswch4=$( url_params uk $interface_url $listby_url $shift_url )
-     echo -ne "<h2><a href=\"./go.sh?$lswch1\">[[cs:]]</a> <a href=\"./go.sh?$lswch2\">[[pl:]]</a> <a href=\"./go.sh?$lswch3\">[[ru:]]</a> <a href=\"./go.sh?$lswch4\">[[uk:]]</a></h2>"
-     ;;
-   'cs')
-     local lswch1=$( url_params bg $interface_url $listby_url $shift_url )
-     local lswch2=$( url_params pl $interface_url $listby_url $shift_url )
-     local lswch3=$( url_params ru $interface_url $listby_url $shift_url )
-     local lswch4=$( url_params uk $interface_url $listby_url $shift_url )
-     echo -ne "<h2><a href=\"./go.sh?$lswch1\">[[bg:]]</a> <a href=\"./go.sh?$lswch2\">[[pl:]]</a> <a href=\"./go.sh?$lswch3\">[[ru:]]</a> <a href=\"./go.sh?$lswch4\">[[uk:]]</a></h2>"
-     ;;
-   'pl')
-     local lswch1=$( url_params bg $interface_url $listby_url $shift_url )
-     local lswch2=$( url_params cs $interface_url $listby_url $shift_url )
-     local lswch3=$( url_params ru $interface_url $listby_url $shift_url )
-     local lswch4=$( url_params uk $interface_url $listby_url $shift_url )
-     echo -ne "<h2><a href=\"./go.sh?$lswch1\">[[bg:]]</a> <a href=\"./go.sh?$lswch2\">[[cs:]]</a> <a href=\"./go.sh?$lswch3\">[[ru:]]</a> <a href=\"./go.sh?$lswch4\">[[uk:]]</a></h2>"
-     ;;
-   'ru')
-     local lswch1=$( url_params bg $interface_url $listby_url $shift_url )
-     local lswch2=$( url_params cs $interface_url $listby_url $shift_url )
-     local lswch3=$( url_params pl $interface_url $listby_url $shift_url )
-     local lswch4=$( url_params uk $interface_url $listby_url $shift_url )
-     echo -ne "<h2><a href=\"./go.sh?$lswch1\">[[bg:]]</a> <a href=\"./go.sh?$lswch2\">[[cs:]]</a> <a href=\"./go.sh?$lswch3\">[[pl:]]</a> <a href=\"./go.sh?$lswch4\">[[uk:]]</a></h2>"
-     ;;
-   'uk')
-     local lswch1=$( url_params bg $interface_url $listby_url $shift_url )
-     local lswch2=$( url_params cs $interface_url $listby_url $shift_url )
-     local lswch3=$( url_params pl $interface_url $listby_url $shift_url )
-     local lswch4=$( url_params ru $interface_url $listby_url $shift_url )
-     echo -ne "<h2><a href=\"./go.sh?$lswch1\">[[bg:]]</a> <a href=\"./go.sh?$lswch2\">[[cs:]]</a> <a href=\"./go.sh?$lswch3\">[[pl:]]</a> <a href=\"./go.sh?$lswch4\">[[ru:]]</a></h2>"
-     ;;
-   *)
-     local lswch1=$( url_params bg $interface_url $listby_url $shift_url )
-     local lswch2=$( url_params cs $interface_url $listby_url $shift_url )
-     local lswch3=$( url_params pl $interface_url $listby_url $shift_url )
-     local lswch4=$( url_params ru $interface_url $listby_url $shift_url )
-     local lswch5=$( url_params uk $interface_url $listby_url $shift_url )
-     echo -ne "<h2><a href=\"./go.sh?$lswch1\">[[bg:]]</a> <a href=\"./go.sh?$lswch2\">[[cs:]]</a> <a href=\"./go.sh?$lswch3\">[[pl:]]</a> <a href=\"./go.sh?$lswch4\">[[ru:]]</a> <a href=\"./go.sh?$lswch5\">[[uk:]]</a></h2>"
-     ;;
-  esac
 
+  #
+  # Links to other languages are not well-formed yet.
+  #
+  echo -ne "<h2>"
+  for item in af bg eo cs pl ru sah tt uk uz
+  do
+    if [ "$language" != "$item" ]
+    then
+      lswch=$( url_params $item $interface_url $listby_url $shift_url )
+      echo -ne "<a href=\"./go.sh?${lswch}\">[[${item}:]]</a> "
+    fi
+  done
+  echo -ne "</h2>"
 }
 
 #

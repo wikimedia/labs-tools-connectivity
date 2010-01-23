@@ -27,8 +27,6 @@ server=3
 #
 source ../cgi-bin/ts $server
 
-rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log
-
 {
   #
   # New language database might have to be created.

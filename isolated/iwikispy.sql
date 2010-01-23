@@ -26,7 +26,6 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
     DECLARE st VARCHAR(255);
     DECLARE prefix VARCHAR(32);
     DECLARE cnt INT;
-    DECLARE outcnt INT;
 
     SELECT CONCAT( ':: echo .', language, ' . ' ) INTO prefix;
 
@@ -106,15 +105,6 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
 
         SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis from zero namespace" );
 
-        SELECT count(*) INTO @outcnt
-               FROM res;
-
-        #
-        # Experimental data: One row of res takes near to 1088 bytes
-        #                    on 64-bit system.
-        #
-        CALL allow_allocation( 1088*(@outcnt+@cnt) );
-
         SET @st=CONCAT( "INSERT INTO res SELECT /* SLOW_OK */ REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -133,15 +123,6 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VAR
                FROM liwl;
 
         SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis after exclusion of already translated" );
-
-        SELECT count(*) INTO @outcnt
-               FROM tres;
-
-        #
-        # Experimental data: One row of tres takes near to 1088 bytes
-        #                    on 64-bit system.
-        #
-        CALL allow_allocation( 1088*(@outcnt+@cnt) );
 
         SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as id, '", language, "' as lang FROM ", dbname, '.page, liwl WHERE page_id=fr and page_namespace=0;' );
         PREPARE stmt FROM @st;
@@ -242,6 +223,8 @@ CREATE PROCEDURE inter_langs( srv INT )
     DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and server!=srv and is_closed=0 ORDER BY server ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
+    CALL allow_allocation( 4294967296 );
+
     #
     # Infect slave servers with this library code
     # and inform them on who is the master.
@@ -307,7 +290,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     # Note: master host languages may be left as they are due to no transfer.
     #
     UPDATE iwl 
-           SET title=REPLACE (title, '"', '\\"')
+           SET title=REPLACE (REPLACE( title, '\\', '\\\\\\' ), '"', '\\"')
            WHERE lang IN 
                  (
                    SELECT lang 
@@ -327,10 +310,19 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_sv;
       IF NOT done
         THEN
+          #
+          # Table name on the destination slave sever to be filled.
+          #
           SELECT CONCAT( ':: s', cur_sv, ' take iwl' );
+          #
+          # This query will come back to the master server from 
+          # the outer handler driving transmission to its finish.
+          #
           SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and is_closed=0 and iwl.lang=toolserver.wiki.lang\;" );
-          # hope this reduces the density of sql connection requests,
-          # which is limited
+          #
+          # Hope this reduces the density of sql connection requests,
+          # which is limited.
+          #
           SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
@@ -457,20 +449,6 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_sv;
       IF NOT done
         THEN
-          SELECT count(*) INTO @dcnt
-                 FROM res;
-
-          SET @st=CONCAT( 'SELECT ', @dcnt, '+count(*) INTO @dcnt FROM res_s', cur_sv, ';' );
-          PREPARE stmt FROM @st;
-          EXECUTE stmt;
-          DEALLOCATE PREPARE stmt;
-
-          #
-          # Experimental data: One row of res takes near to 1088 bytes
-          #                    on 64-bit system.
-          #
-          CALL allow_allocation( 1088*@dcnt );
-
           SET @st=CONCAT( 'INSERT INTO res SELECT suggestn, id, lang FROM res_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
           EXECUTE stmt;
@@ -479,20 +457,6 @@ CREATE PROCEDURE inter_langs( srv INT )
           PREPARE stmt FROM @st;
           EXECUTE stmt;
           DEALLOCATE PREPARE stmt;
-
-          SELECT count(*) INTO @dcnt
-                 FROM tres;
-
-          SET @st=CONCAT( 'SELECT ', @dcnt, '+count(*) INTO @dcnt FROM tres_s', cur_sv, ';' );
-          PREPARE stmt FROM @st;
-          EXECUTE stmt;
-          DEALLOCATE PREPARE stmt;
-
-          #
-          # Experimental data: One row of tres takes near to 1088 bytes
-          #                    on 64-bit system.
-          #
-          CALL allow_allocation( 1088*@dcnt );
 
           SET @st=CONCAT( 'INSERT INTO tres SELECT suggestn, id, lang FROM tres_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
@@ -680,10 +644,10 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
            WHERE suggestn='';
 
     UPDATE res
-           SET suggestn=REPLACE( suggestn, '"', '\\"');
+           SET suggestn=REPLACE( REPLACE( suggestn, '\\', '\\\\\\' ), '"', '\\"');
 
     UPDATE tres
-           SET suggestn=REPLACE( suggestn, '"', '\\"');
+           SET suggestn=REPLACE( REPLACE( suggestn, '\\', '\\\\\\' ), '"', '\\"');
 
     SELECT CONCAT( ':: echo With use of s', snum, ' ', count(DISTINCT id), ' isolates could be linked based on interwiki' )
            FROM res;
@@ -692,10 +656,10 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
            FROM tres;
 
     SELECT CONCAT( ':: s', mnum, ' take res_s', snum );
-    SELECT CONCAT( ":: s", snum, " give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM res\;" );
+    SELECT CONCAT( ":: s", snum, " give SELECT DISTINCT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM res\;" );
 
     SELECT CONCAT( ':: s', mnum, ' take tres_s', snum );
-    SELECT CONCAT( ":: s", snum, " give SELECT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM tres\;" );
+    SELECT CONCAT( ":: s", snum, " give SELECT DISTINCT CONCAT\( '\(\"', suggestn, '\",\"', id, '\",\"', lang, '\"\)' \) FROM tres\;" );
 
     SELECT CONCAT( ':: echo all transfer issued from s', snum );
   END;
