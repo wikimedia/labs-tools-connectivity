@@ -780,7 +780,7 @@ the_menu ()
   # Links to other languages are not well-formed yet.
   #
   echo -ne "<h2>"
-  for item in af bg eo cs pl ru sah tt uk uz
+  for item in af bg cs eo pl ru sah tt uk uz
   do
     if [ "$language" != "$item" ]
     then
