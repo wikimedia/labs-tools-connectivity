@@ -160,6 +160,10 @@ time {
     #
     echo "CALL zero_namespace_postponed_tools( $server );"
 
+    #
+    # Once the processing is done, every server should be informed.
+    #
+    echo "CALL emit_for_everywhere( $server, '$language' );"
   } | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh $cmdl
 }
 

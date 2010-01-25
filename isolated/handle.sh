@@ -233,6 +233,31 @@ handle ()
                      cat ${line:11}
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
+                'emit')
+                   # handle dynamical request from sql job report loading
+                   # on a given server
+                   {
+                     #
+                     # New language database may have to be created.
+                     #
+                     echo "create database if not exists u_${usr}_golem_p;"
+                   } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
+                   {
+                     #
+                     # Infect with scripts every database should have
+                     #
+                     cat toolserver.sql
+                     cat replag.sql
+
+                     #
+                     # Current replication time and language are stored into
+                     # a table readable by everyone.
+                     #
+                     echo "create table if not exists language_stats ( lang VARCHAR(10) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+
+                     echo "INSERT INTO language_stats SELECT '$language' as lang, '${line:11}' as ts ON DUPLICATE KEY UPDATE ts='${line:11}';"
+                   } | $( sql ${line:4:1} u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
+                   ;;
                 *) ;;
                 esac
                 state=3 # communicate among servers

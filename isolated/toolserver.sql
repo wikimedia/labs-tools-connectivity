@@ -83,6 +83,44 @@ CREATE FUNCTION dbname_for_lang ( language VARCHAR(64) )
   END;
 //
 
+DROP PROCEDURE IF EXISTS emit_for_everywhere//
+CREATE PROCEDURE emit_for_everywhere ( srv INT, language VARCHAR(64) )
+  BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE ready INT DEFAULT 0;
+    DECLARE cur_sv INT DEFAULT 0;
+    DECLARE st VARCHAR(511);
+    DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and is_closed=0 ORDER BY server ASC;
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+
+    CALL replag( language );
+
+    OPEN scur;
+    SET done = 0;
+
+    REPEAT
+      FETCH scur INTO cur_sv;
+      IF NOT done
+        THEN
+          #
+          # Outside handler to distribute good news through sql servers
+          #
+          # Notes: Better if distributed over db-servers, which sometimes
+          #        handle more than one sql server and share content.
+          #
+          #        Better if current server was not handled from outside.
+          #
+          SELECT CONCAT( ':: s', cur_sv, ' emit ', @rep_time );
+          # hope this reduces the density of sql connection requests,
+          # which is limited
+          SELECT sleep( 1 ) INTO ready;
+      END IF;
+    UNTIL done END REPEAT;
+
+    CLOSE scur;
+  END;
+//
+
 delimiter ;
 ############################################################
 

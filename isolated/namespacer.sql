@@ -76,7 +76,10 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
     #
     # Experimental data: one row of p takes near to 400 bytes on 64-bit system.
     #
-    CALL allow_allocation( 512*@cnt );
+    # However, we have to avoid as too long computation of page links amount,
+    # thus we a be reinsuring herer.
+    #
+    CALL allow_allocation( 1024*@cnt );
 
     #
     # Cache pages.

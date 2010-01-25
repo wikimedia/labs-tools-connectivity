@@ -63,15 +63,12 @@ source ./ts $dbserver
 
 translation_required=0
 
-if [ "$interface" != 'ru' ] && [ "$interface" != 'uk' ]
+if [ ! -f ./$listby.$interface ]
 then
-  if [ "$interface" != 'en' ]
-  then
-    translation_required=1
-    interface='en'
-  fi
-  interface_url=$( url "$interface" )
+  translation_required=1
+  interface='en'
 fi
+interface_url=$( url "$interface" )
 
 stdurl="language=${language_url}&interface=${interface_url}"
 
