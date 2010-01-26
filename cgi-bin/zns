@@ -222,7 +222,7 @@ resume ()
     {
       echo SELECT \* \
                   FROM zns\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
                         do zns $line
                       done
@@ -232,7 +232,7 @@ resume ()
     {
       echo SELECT \* \
                   FROM fch\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
                         do fromchrono $line
                       done
@@ -242,7 +242,7 @@ resume ()
     {
       echo SELECT \* \
                   FROM tch\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
                         do tochrono $line
                       done

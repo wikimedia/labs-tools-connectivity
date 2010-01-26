@@ -30,7 +30,7 @@ paraphrase ()
 {
   echo SELECT \* \
               FROM drdi\;
-} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   while read -r line
                     do paraphrase $line
                   done
@@ -47,7 +47,7 @@ echo "<ol start=$((shift+1))>"
               FROM disambiguate0  \
               ORDER BY d_cnt DESC \
               LIMIT $((shift)),100\;
-} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   while read -r line
                     do handle_dsglist "$line"
                   done

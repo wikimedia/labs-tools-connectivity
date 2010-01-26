@@ -6,6 +6,7 @@ then
 else
   language="$1"
 fi
+language_sql=${language//\-/_}
 
 do_templates=0
 do_stat=1

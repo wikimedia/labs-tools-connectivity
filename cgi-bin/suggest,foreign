@@ -44,7 +44,7 @@ then
                         is_closed=0 AND                        \
                         a_amnt\>0                              \
                   ORDER BY size DESC\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       count=0
                       while read -r line
                         do handle_langlist $((count+1)) "$line"
@@ -71,7 +71,7 @@ else
   echo "<tr><th>&#8470;</th><th>$towhat</th><th>$linkableisolates</th></tr>"
   {
     echo CALL wikifies_for_category_and_foreign\(\"\", \"$language\", \"$foreign\", \"$tablename\", $((shift)) \)\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     count=$((shift))
                     while read -r line
                       do handle_totranslate $((count+1)) "$line"

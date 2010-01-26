@@ -13,6 +13,7 @@
 # Wikipedia language
 #
 language="$1"
+language_sql=${language//\-/_}
 
 #
 # Server for connection depends on the target language
@@ -32,19 +33,19 @@ rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log
   #
   # New language database might have to be created.
   #
-  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language};"
+  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
 
 } | $( sql $server ) 2>&1 | ./handle.sh
 
 {
   cat toolserver.sql
   cat replag.sql
-} | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh
+} | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | ./handle.sh
 
 #
 # Time is the measure of change.
 # What time is it? Now you know that, and this is a change for youself.
 #
-echo "CALL replag( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh
+echo "CALL replag( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | ./handle.sh
 
 # </pre>

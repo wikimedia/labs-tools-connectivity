@@ -143,7 +143,7 @@ if( $current eq '' )
     my $minutes_left=int(delta_time( $editcomment, $tstime)/60);
 
     if ( $minutes_left >= $fix_stat_for ) {
-      print ":: it now time to upload\n";
+      print ":: echo time to upload now\n";
       $time_to_upload=1;
     } else {
       print ":: echo too early to upload\n";

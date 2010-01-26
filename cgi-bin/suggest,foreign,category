@@ -16,7 +16,7 @@ then
 # It categorizes isolated articles, not suggestions, so the amounts are wrong.
 #
         echo CALL ordered_cat_list_for_lang\( \"sglflcatvolume0\", \"$foreign\", $((shift)) \)\;
-      } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+      } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                         while read -r line
                           do handle_catlist "$line" 'interlink'
                         done
@@ -33,7 +33,7 @@ then
       echo "<tr><th>&#8470;</th><th>$towhat</th><th>$linkableisolates</th></tr>"
       {
         echo CALL wikifies_for_category_and_foreign\(\"$convertedcat\", \"$language\", \"$foreign\", \"isres\", $((shift)) \)\;
-      } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+      } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                         count=$((shift))
                         while read -r line
                           do handle_totranslate $((count+1)) "$line"

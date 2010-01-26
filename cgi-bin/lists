@@ -17,7 +17,7 @@ echo "<ol>"
   echo SELECT wr_title \
               FROM wr0 \
               ORDER BY wr_title ASC\;
-} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   while read -r line
                     do handle_rlist "$line"
                   done

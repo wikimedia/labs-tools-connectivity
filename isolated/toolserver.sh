@@ -13,6 +13,7 @@
 # Wikipedia language
 #
 language="$1"
+language_sql=${language//\-/_}
 
 #
 # Later could be changed to any other constant or chosen
@@ -31,15 +32,15 @@ source ../cgi-bin/ts $server
   #
   # New language database might have to be created.
   #
-  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language};"
+  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
 
 } | $( sql $server ) 2>&1
 
-cat toolserver.sql | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1
+cat toolserver.sql | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1
 
 #
 # Which server the $language database is located at?
 #
-echo "SELECT server_num( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1
+echo "SELECT server_num( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1
 
 # </pre>

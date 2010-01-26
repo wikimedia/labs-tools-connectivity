@@ -6,7 +6,7 @@ then
   echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
   {
     echo CALL isolated_for_category\(\"${convertedcat}\"\, \'${language}\'\)\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     count=0
                     while read -r line
                       do handle_isolates_as_table $((count+1)) "$line"
@@ -22,7 +22,7 @@ else
   echo "<ol start=$((shift+1))>"
   {
     echo CALL ordered_cat_list\( \"isocatvolume0\", $((shift)) \)\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line"
                     done
@@ -45,7 +45,7 @@ else
                       isocatvolume0.cat=id                    \
                 ORDER BY pcnt DESC, isocatvolume0.cnt DESC    \
                 LIMIT $((shift)),100\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
                       do handle_catlist "$line"
                     done

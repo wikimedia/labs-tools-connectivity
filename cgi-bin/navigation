@@ -115,7 +115,7 @@ how_actual ()
                 FROM $table                   \
                 ORDER BY actual DESC          \
                 LIMIT 1\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
                       do handle_dates "$line"
                     done
@@ -150,6 +150,8 @@ handle_interlingues ()
     then
       lswch=$( url_params $lang $interface_url $listby_url $shift_url )
       echo -ne "<a href=\"./go.sh?${lswch}\">[[${lang}:]]</a> "
+    else
+      echo -ne "<font color=red>[[${lang}:]]</font> "
     fi
 
   fi
@@ -166,7 +168,7 @@ get_project_page ()
                     echo "SET @catnspref=getnsprefix(14, '$language');"
 
                     echo "SELECT CONCAT( @catnspref, ' ', @connectivity_project_root, ' ', @isolated_category_name, ' ', @orphan_param_name, ' ', @deadend_category_name, ' ', @non_categorized_articles_category, ' ', @template_documentation_subpage_name, ' ', @disambiguation_templates_initialized );"
-                  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | {
+                  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | {
                                     while read -r line
                                       do handle_values "$line"
                                     done

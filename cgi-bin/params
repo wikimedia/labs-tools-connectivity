@@ -50,6 +50,7 @@ then
   language='ru'
   language_url=$( url "$language" )
 fi
+language_sql=${language//\-/_}
 
 #
 # Any working server should be queried here
@@ -57,7 +58,7 @@ fi
 anysrv=3
 source ./ts ${anysrv}
 
-dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 )
+dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 )
 
 source ./ts $dbserver
 
@@ -108,7 +109,7 @@ then
   foreignname=$(
                  {
                     echo "SELECT CONCAT( REPLACE(english_name,' ','_'), ' / ', REPLACE(native_name,' ','_') ) FROM toolserver.language WHERE lang='${foreign}';"
-                 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | {
+                 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | {
                                    while read -r line
                                      do echo $line
                                    done
@@ -130,7 +131,7 @@ then
   isotype=$(
              {
                echo "SELECT cat FROM ruwiki0 WHERE title=\"${titlesql// /_}\";"
-             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | { 
+             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                                  while read -r line
                                    do echo $line
                                  done

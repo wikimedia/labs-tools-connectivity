@@ -58,7 +58,7 @@ rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${
   #
   # New language database might have to be created.
   #
-  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language};"
+  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
 
 } | $( sql $server ) 2>&1 | ./handle.sh $cmdl
 
@@ -164,7 +164,7 @@ time {
     # Once the processing is done, every server should be informed.
     #
     echo "CALL emit_for_everywhere( $server, '$language' );"
-  } | $( sql $server u_${usr}_golem_s${dbserver}_${language} ) 2>&1 | ./handle.sh $cmdl
+  } | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | ./handle.sh $cmdl
 }
 
 # </pre>
