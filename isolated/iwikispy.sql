@@ -458,6 +458,8 @@ CREATE PROCEDURE inter_langs( srv INT )
           EXECUTE stmt;
           DEALLOCATE PREPARE stmt;
 
+          SELECT CONCAT( ':: s', cur_sv, ' drop res' );
+
           SET @st=CONCAT( 'INSERT INTO tres SELECT suggestn, id, lang FROM tres_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
           EXECUTE stmt;
@@ -466,6 +468,8 @@ CREATE PROCEDURE inter_langs( srv INT )
           PREPARE stmt FROM @st;
           EXECUTE stmt;
           DEALLOCATE PREPARE stmt;
+
+          SELECT CONCAT( ':: s', cur_sv, ' drop tres' );
       END IF;
     UNTIL done END REPEAT;
 

@@ -59,32 +59,6 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
 //
       
 #
-# This function is useful for former articles moved out from zero namespace.
-# Returns namespace prefix by its numerical identifier.
-#
-DROP FUNCTION IF EXISTS getnsprefix//
-CREATE FUNCTION getnsprefix ( ns INT, targetlang VARCHAR(32) )
-  RETURNS VARCHAR(255)
-  DETERMINISTIC
-  BEGIN
-    DECLARE wrconstruct VARCHAR(255);
-
-    SELECT ns_name INTO wrconstruct
-           FROM toolserver.namespace
-           WHERE dbname=dbname_for_lang(targetlang) and
-                 ns_id=ns;
-
-    IF wrconstruct != ''
-      THEN
-        SET wrconstruct=CONCAT( wrconstruct, ':' );
-    END IF;
-
-    RETURN wrconstruct;
-
-  END;
-//
-
-#
 # Create a task with respect to edits count minimization. Not for AWB,
 # but for automated uploader, which is supposed to be implemented.
 #

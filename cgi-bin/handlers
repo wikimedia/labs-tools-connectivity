@@ -32,18 +32,18 @@ handle_catlist ()
     local cname=$( url "$name" )
     case "$suggest" in
     'disambig')
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>: $volume ($percent%)</li>"
+      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category='$cname'\">$name</a>&lrm: $volume ($percent%)</li>"
       ;;
     'interlink' | 'translate')
       if [ "$foreign" = '' ]
       then
-        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>: $volume ($percent%) <small><a href=\"./go.sh?$stdurl&listby=$listby,foreign&suggest=$suggest&category=$cname\"><font color=green>[[$byforeignlang]]</font></a></small></li>"
+        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>&lrm: $volume ($percent%) <small><a href=\"./go.sh?$stdurl&listby=$listby,foreign&suggest=$suggest&category=$cname\"><font color=green>[[$byforeignlang]]</font></a></small></li>"
       else
-        echo "<li><a href=\"./go.sh?$stdurl&listby=$listby&suggest=$suggest&foreign=$foreign&category=$cname\">$name</a>: $volume ($percent%)</li>"
+        echo "<li><a href=\"./go.sh?$stdurl&listby=$listby&suggest=$suggest&foreign=$foreign&category=$cname\">$name</a>&lrm: $volume ($percent%)</li>"
       fi
       ;;
     '')
-      echo "<li><a href=\"./go.sh?$stdurl&listby=category&category=$cname\">$name</a>: $volume ($percent%)</li>"
+      echo "<li><a href=\"./go.sh?$stdurl&listby=category&category=$cname\">$name</a>&lrm: $volume ($percent%)</li>"
       ;;
     *) ;;
     esac

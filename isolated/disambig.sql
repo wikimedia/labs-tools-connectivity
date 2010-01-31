@@ -21,27 +21,6 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 ############################################################
 delimiter //
 
-DROP PROCEDURE IF EXISTS count_disambiguation_templates//
-CREATE PROCEDURE count_disambiguation_templates (targetlang VARCHAR(32))
-  BEGIN
-    DECLARE st VARCHAR(511);
-    DECLARE dbname VARCHAR(32);
-
-    SELECT dbname_for_lang( targetlang ) INTO dbname;
-
-    SET @disambiguation_templates_initialized=0;
-
-    SET @st=CONCAT( 'SELECT count(DISTINCT pl_title) INTO @disambiguation_templates_initialized FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    IF @disambiguation_templates_initialized='NULL'
-      THEN
-        SET @disambiguation_templates_initialized=0;
-    END IF;
-  END;
-//
 #
 # Templates marking disambiguation pages are being collected by administrators
 # at [[:ru:MediaWiki:Disambiguationspage]].

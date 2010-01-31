@@ -317,44 +317,6 @@ CREATE PROCEDURE ordered_cat_list_for_lang (tablename VARCHAR(255), foreignlang 
   END;
 //
 
-DROP PROCEDURE IF EXISTS obtain_project_settings//
-CREATE PROCEDURE obtain_project_settings(targetlang VARCHAR(32))
-  BEGIN
-    #
-    # Connectivity project root page is used for statistics upload and
-    # could be also accomodated for other purposes.
-    #
-    CALL get_connectivity_project_root( targetlang );
-
-    #
-    # Isolated analysis is being run for different target sets,
-    # so we have to initialize it once before any processing
-    #
-    # Localized isolated category name and subcategories naming rules
-    # are initialized here as defined at
-    #   ConnectivityProjectInternationalization/IsolatedArticles
-    #
-    CALL get_isolated_category_names( targetlang );
-  
-    #
-    # Category name for deadend articles categoryname.
-    #
-    # Derived from @i18n_page/DeadEndArticles.
-    #
-    CALL get_deadend_category_name( targetlang );
-
-    CALL get_nca_category_name( targetlang );
-
-    #
-    # Standard subpage name for template documentation.
-    #
-    CALL get_template_documentation_subpage_name( targetlang );
-
-    CALL count_disambiguation_templates( targetlang );
-  END;
-//
-
-
 delimiter ;
 ############################################################
 

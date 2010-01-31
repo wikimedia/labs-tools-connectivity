@@ -9,8 +9,14 @@ handle_userlist ()
     local uid=${line[1]}
     local amnt=${line[2]}
     utxt=${utxt//_/ }
+    utxt=${utxt#\"}
+    utxt=${utxt%\"}
+    if [ "$utxt" = '' ]
+    then
+      utxt='&lt;an empty name user&gt;'
+    fi
 
-    echo "<li><a href='./go.sh?$stdurl&listby=creator&user=$utxt&registered=$uid'>$utxt</a>: $amnt</li>"
+    echo "<li><a href='./go.sh?$stdurl&listby=creator&user=$utxt&registered=$uid'>$utxt</a>&lrm: $amnt</li>"
   fi
 }
 
@@ -24,11 +30,17 @@ user=$( echo "$user" | sed 's/./'$UPPERFIRST'/'1)
 
 if [ "$user" != '' ]
 then
+  if [ "$user" = '<an empty name user>' ]
+  then
+    user=''
+    user_url='&&;lt;an empty name user&&;gt;'
+    user_sql=''
+  fi
   usersql=${user//\"/\"\'\"\'\"}
   echo -ne "<br />$list1expl "
   if [ "$registered" = '0' ]
   then
-    echo "<a href='http://$language.wikipedia.org/wiki/Special:Contributions/$user' target=\"_blank\">$user</a>"
+    echo "<a href='http://$language.wikipedia.org/wiki/Special:Contributions/$user_url' target=\"_blank\">$user</a>"
   else
     echo "<a href=\"http://$language.wikipedia.org/w/index.php?title=User:${user_url}\" target=\"_blank\">$user</a>"
   fi
@@ -83,7 +95,7 @@ else
       shifter
       echo "<ol start=$((shift+1))>"
       {
-        echo SELECT REPLACE\(user_text,\' \',\'\_\'\), \
+        echo SELECT CONCAT\( \'\"\', REPLACE\(user_text,\' \',\'\_\'\), \'\"\' \), \
                     sign\(user\),                      \
                     count\(\*\) as cnt                 \
                     FROM creators0                     \

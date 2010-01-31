@@ -107,6 +107,11 @@ CREATE PROCEDURE nr2X2nr ()
     DECLARE cnt INT;
     DECLARE chainlen INT DEFAULT '1';
 
+    #
+    # Just in case there is no nr2r;
+    #
+    SET @pl_count=0;
+
     SELECT count(*) INTO cnt
            FROM nr2r;
 

@@ -248,6 +248,7 @@ handle ()
                      #
                      cat toolserver.sql
                      cat replag.sql
+                     cat projector.sql
 
                      #
                      # Current replication time and language are stored into
@@ -257,6 +258,30 @@ handle ()
 
                      echo "INSERT INTO language_stats SELECT '$language' as lang, '${line:11}' as ts ON DUPLICATE KEY UPDATE ts='${line:11}';"
                    } | $( sql ${line:4:1} u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
+                   ;;
+                'proj')
+                   # handle dynamical request from sql job report loading
+                   # on a given server
+                   {
+                     #
+                     # New language database may have to be created.
+                     #
+                     echo "create database if not exists u_${usr}_golem_p;"
+                   } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
+                   {
+                     #
+                     # Infect with scripts every database should have
+                     #
+                     cat toolserver.sql
+                     cat replag.sql
+                     cat projector.sql
+                   } | $( sql ${line:4:1} u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
+                   ;;
+                'drop')
+                   # drop a table by its name
+                   {
+                     echo "DROP TABLE ${line:11};"
+                   } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 *) ;;
                 esac

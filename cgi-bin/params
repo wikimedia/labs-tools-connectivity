@@ -55,10 +55,14 @@ language_sql=${language//\-/_}
 #
 # Any working server should be queried here
 #
-anysrv=3
+anysrv=1
 source ./ts ${anysrv}
+anydbserver=$anysrv
 
-dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 )
+#
+# Sorry, could you please tell me which server runs wikipedia for $language?
+#
+dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 )
 
 source ./ts $dbserver
 

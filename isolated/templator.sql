@@ -17,46 +17,6 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 ############################################################
 delimiter //
 
-
-#
-# This function reads content of the language configuration page and
-# intializes the following global variables:
-#
-# @template_documentation_subpage_name
-#
-DROP PROCEDURE IF EXISTS get_template_documentation_subpage_name//
-CREATE PROCEDURE get_template_documentation_subpage_name (targetlang VARCHAR(32))
-  BEGIN
-    DECLARE st VARCHAR(511);
-    DECLARE stln INT;
-    DECLARE dbname VARCHAR(32);
-
-    SELECT dbname_for_lang( targetlang ) INTO dbname;
-
-    SET @template_documentation_subpage_name='';
-
-    #
-    # Meta-category name for isolated articles.
-    #
-    SET @st=CONCAT( 'SELECT pl_title INTO @template_documentation_subpage_name FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE pl_title LIKE CONCAT( @i18n_page, "/TemplateDoc/%" ) and pl_namespace=4 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/TemplateDoc" ORDER BY pl_title ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    IF @template_documentation_subpage_name='NULL'
-      THEN
-        SET @template_documentation_subpage_name='';
-    END IF;
-
-    IF @template_documentation_subpage_name!=''
-      THEN
-        SET stln=2+LENGTH( CONCAT( @i18n_page, '/TemplateDoc' ) );
-
-        SET @template_documentation_subpage_name=SUBSTRING( @template_documentation_subpage_name FROM stln );
-    END IF;
-  END;
-//
-
 DROP PROCEDURE IF EXISTS a2a_templating//
 CREATE PROCEDURE a2a_templating ()
   BEGIN

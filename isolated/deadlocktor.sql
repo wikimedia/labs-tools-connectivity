@@ -24,34 +24,6 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# This function reads content of the language configuration page and
-# intializes the following global variables:
-#
-# @deadend_category_name      - category containing all deadend articles
-#
-DROP PROCEDURE IF EXISTS get_deadend_category_name//
-CREATE PROCEDURE get_deadend_category_name (targetlang VARCHAR(32))
-  BEGIN
-    DECLARE st VARCHAR(511);
-
-    SET @deadend_category_name='';
-
-    #
-    # Meta-category name for deadend articles.
-    #
-    SET @st=CONCAT( 'SELECT DISTINCT pl_title INTO @deadend_category_name FROM ', dbname_for_lang( targetlang ), '.page, ', dbname_for_lang( targetlang ), '.pagelinks WHERE pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/DeadEndArticles" ORDER BY pl_title ASC LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    IF @deadend_category_name='NULL'
-      THEN
-        SET @deadend_category_name='';
-    END IF;
-  END;
-//
-
-#
 # New multilingual way to determine deadend pages already templated/marked.
 #
 # DEAD-END PAGES REGISTERED AT THE MOMENT

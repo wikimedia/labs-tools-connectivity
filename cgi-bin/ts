@@ -1,6 +1,7 @@
 dbserver="$1"
 dbhost="sql-s${dbserver}"
 usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
+prjp='ConnectivityProjectInternationalization'
 
 #
 # Returns mysql handler.

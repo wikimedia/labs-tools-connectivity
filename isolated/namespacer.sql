@@ -28,31 +28,6 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 delimiter //
 
 #
-# This procedure obtains connecitity project root page name from
-# a templated named {{Connectivity project root}} and stores it in
-# @connectivity_project_root variable.
-#
-DROP PROCEDURE IF EXISTS get_connectivity_project_root//
-CREATE PROCEDURE get_connectivity_project_root (targetlang VARCHAR(32))
-  BEGIN
-    DECLARE st VARCHAR(511);
-
-    SET @connectivity_project_root='';
-
-    SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace, "', targetlang, '" ), pl_title ) INTO @connectivity_project_root FROM ', dbname_for_lang( targetlang ), '.page, ', dbname_for_lang( targetlang ), '.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    IF @connectivity_project_root='NULL'
-      THEN
-        SET @connectivity_project_root='';
-    END IF;
-  END;
-//
-
-
-#
 # Caches the pages for a namespace given to local tables 
 #   p<namespace>  (for all pages, mostly for pagelinks caching),
 #   nr<namespace> (for non-redirects)
@@ -246,6 +221,10 @@ DROP PROCEDURE IF EXISTS classify_namespace//
 CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255), INOUT maxsize INT)
   BEGIN
     DECLARE st VARCHAR(255);
+    DECLARE main_page VARCHAR(255);
+    DECLARE r_flag INT;
+    DECLARE main_page_id INT;
+    DECLARE mp_ns INT;
 
     CALL categorylinks( namespace );
 
@@ -289,12 +268,60 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
     #
     IF namespace!=14
       THEN
+        IF namespace=0
+          THEN
+            SET @main_page='Main_Page';
+            SET @mp_ns=0;
+
+            SET @st=CONCAT( 'SELECT page_is_redirect, page_id INTO @r_flag, @main_page_id FROM ', @dbname, '.page WHERE page_namespace=0 AND page_title="', @main_page, '";' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+
+            WHILE @r_flag!=0 DO
+              #
+              # Note: This supposes the redirects chain from 'Main_Page' to
+              #       real main page doesn't include any wrong redirects!
+              #
+              SET @st=CONCAT( 'SELECT pl_title, pl_namespace INTO @main_page, @mp_ns FROM ', @dbname,'.pagelinks WHERE pl_from=', @main_page_id, ' LIMIT 1;' );
+              PREPARE stmt FROM @st;
+              EXECUTE stmt;
+              DEALLOCATE PREPARE stmt;
+          
+              IF @mp_ns=0
+                THEN
+                  SET @st=CONCAT( 'SELECT page_is_redirect, page_id INTO @r_flag, @main_page_id FROM ', @dbname,'.page WHERE page_namespace=0 AND page_title="', @main_page, '";' );
+                  PREPARE stmt FROM @st;
+                  EXECUTE stmt;
+                  DEALLOCATE PREPARE stmt;
+                ELSE
+                  SET @r_flag=0;
+              END IF;
+            END WHILE;
+
+            IF @mp_ns=0
+              THEN
+                INSERT INTO cna
+                SELECT @main_page_id as cna_id;
+
+                SELECT CONCAT( ':: echo main page found for zero namespace' );
+              ELSE
+                SELECT CONCAT( ':: echo main page is out of zero namespace' );
+            END IF;
+
+        END IF;
+
         #
         # Add disambiguations to cna.
         #
         INSERT INTO cna
         SELECT d_id as cna_id
-               FROM d;
+               FROM d
+        #
+        # Just in case the main page is marked as disambig,
+        # which sounds strange.
+        #
+        ON DUPLICATE KEY UPDATE cna_id=d_id;
 
         #
         # Add collaborative lists to cna.

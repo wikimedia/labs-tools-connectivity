@@ -78,12 +78,13 @@ time {
     #
     # Root page for various language related configurations
     #
-    echo "set @i18n_page='ConnectivityProjectInternationalization';"
+    echo "set @i18n_page='$prjp';"
 
     cat toolserver.sql
 
     echo "select dbname_for_lang( '$language' ) into @dbname;"
 
+    cat projector.sql
     cat memory.sql
     cat handle.sql
     cat replag.sql
@@ -99,6 +100,15 @@ time {
     cat creatorizer.sql
     cat cgi.sql
 
+    #
+    # Once the processing is started, every server should have capabilities
+    # to support web-server.
+    #
+    echo "CALL project_for_everywhere( $server, '$language' );"
+
+    #
+    # real start time
+    #
     echo "CALL actual_replag( '$language' );"
 
     #

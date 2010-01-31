@@ -1,4 +1,7 @@
+neverrun=''
+errorstring=''
 project_page=''
+wiknspref=''
 catnspref=''
 isolated_category=''
 orphan_param=''
@@ -36,6 +39,9 @@ no_sql_error ()
     ;;
   'ERROR 1054 (42S22) a')
     echo $dbjustcreated
+    ;;
+  'ERROR 1129 (HY000): ')
+    echo $dbhostblocked
     ;;
   *)
     res=0
@@ -107,19 +113,43 @@ handle_dates ()
 how_actual ()
 {
   local table=$1
-  {
-
-    echo SELECT REPLACE\(rep,\' \',\'_\'\),   \
-                REPLACE\(run,\' \',\'_\'\),   \
-                REPLACE\(actual,\' \',\'_\'\) \
-                FROM $table                   \
-                ORDER BY actual DESC          \
-                LIMIT 1\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-                    while read -r line
-                      do handle_dates "$line"
-                    done
-                  }
+  
+  if [ "$listby" = 'categoryspruce' ] || [ $disambiguating_templates -gt 0 ]
+  then
+    local string=$(
+                    {
+                      echo SELECT REPLACE\(rep,\' \',\'_\'\),   \
+                                  REPLACE\(run,\' \',\'_\'\),   \
+                                  REPLACE\(actual,\' \',\'_\'\) \
+                                  FROM $table                   \
+                                  ORDER BY actual DESC          \
+                                  LIMIT 1\;
+                    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                                  while read -r line
+                                    do handle_dates "$line"
+                                  done
+                    }
+                  )
+    if [ "$errorstring" = "$noudb" ]
+    then
+      if [ "$string" = "$noudb" ]
+      then
+        echo $errorstring
+      fi
+    else
+      if [ "$errorstring" = "$dbhostblocked" ]
+      then
+        echo $errorstring
+      else
+        if [ "$string" != "$noudb" ]
+        then
+          echo $string
+        else
+          neverrun=$never_run
+        fi
+      fi
+    fi
+  fi
 }
 
 handle_values ()
@@ -161,32 +191,54 @@ get_project_page ()
 {
   local string=$(
                   {
-                    echo "SET @i18n_page='ConnectivityProjectInternationalization';"
+                    echo "SET @i18n_page='$prjp';"
 
                     echo "CALL obtain_project_settings( '$language' );"
 
                     echo "SET @catnspref=getnsprefix(14, '$language');"
 
-                    echo "SELECT CONCAT( @catnspref, ' ', @connectivity_project_root, ' ', @isolated_category_name, ' ', @orphan_param_name, ' ', @deadend_category_name, ' ', @non_categorized_articles_category, ' ', @template_documentation_subpage_name, ' ', @disambiguation_templates_initialized );"
-                  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | {
+                    echo "SET @wiknspref=getnsprefix(4, '$language');"
+
+                    echo "SELECT CONCAT( @wiknspref, ' ', @catnspref, ' ', @connectivity_project_root, ' ', @isolated_category_name, ' ', @orphan_param_name, ' ', @deadend_category_name, ' ', @non_categorized_articles_category, ' ', @template_documentation_subpage_name, ' ', @disambiguation_templates_initialized );"
+                  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
                                     while read -r line
                                       do handle_values "$line"
                                     done
                   }
                 )
+  if [ "$string" != "$noudb" ]
+  then
+    wiknspref=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\1/g' )
+    catnspref=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\2/g' )
+    project_page=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\3/g' )
+    isolated_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\4/g' )
+    orphan_param=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\5/g' )
+    deadend_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\6/g' )
+    nca_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\7/g' )
+    template_doc=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\8/g' )
+    disambiguating_templates=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\9/g' )
 
-  catnspref=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\1/g' )
-  project_page=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\2/g' )
-  isolated_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\3/g' )
-  orphan_param=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\4/g' )
-  deadend_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\5/g' )
-  nca_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\6/g' )
-  template_doc=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\7/g' )
-  disambiguating_templates=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\8/g' )
+    isolated_category="${catnspref}${isolated_category}"
+    deadend_category="${catnspref}${deadend_category}"
+    nca_category="${catnspref}${nca_category}"
+  else
+    errorstring=$string
+  fi
 
-  isolated_category="${catnspref}${isolated_category}"
-  deadend_category="${catnspref}${deadend_category}"
-  nca_category="${catnspref}${nca_category}"
+#
+# For debugging
+#
+#  echo "<br>$anysrv"
+#  echo "<br>$dbserver"
+#  echo "<br>$wiknspref"
+#  echo "<br>$catnspref"
+#  echo "<br>$project_page"
+#  echo "<br>$isolated_category"
+#  echo "<br>$orphan_param"
+#  echo "<br>$deadend_category"
+#  echo "<br>$nca_category"
+#  echo "<br>$template_doc"
+#  echo "<br>$disambiguating_templates"
 }
 
 #
@@ -854,6 +906,8 @@ EOM
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
 
+  get_project_page
+
   #
   # Data actuality info at the top left
   #
@@ -915,8 +969,6 @@ EOM
   #
   if_lang
 
-  get_project_page
-
   #
   # The page header at the center
   #
@@ -935,6 +987,49 @@ EOM
   the_menu
 
   echo "</td><td width=70%>"
+}
+
+the_content ()
+{
+  echo "<h1>$thish1</h1>"
+
+  #
+  # the search form
+  #
+  case $listby in
+   'category')
+    echo $example
+    echo "<FORM action=\"./go.sh\" method=\"get\">"
+    echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
+    echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+    echo "<INPUT type=hidden name=\"listby\" value=\"$listby\">"
+    if [ "$shift_url" != '' ]
+    then
+      echo "<INPUT type=hidden name=\"shift\" value=\"$shift\">"
+    fi
+    echo "<P><font color=red>$catnamereq: <INPUT name=category type=\"text\"> $activateform</font></P>"
+    echo "</FORM>"
+    ;;
+   'creator')
+    echo $example
+    echo "<FORM action=\"./go.sh\" method=\"get\">"
+    echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+    echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
+    echo "<INPUT type=hidden name=\"listby\" value=\"$listby\">"
+    echo "<P><font color=red>$unamereq: <INPUT name=user type=\"text\"> $activateform</font></P>"
+    echo "</FORM>"
+    ;;
+   'suggest' | 'suggest,category' | 'suggest,category,foreign' | 'suggest,foreign' | 'suggest,foeign,category' | 'suggest,title')
+    echo "<FORM action=\"./go.sh\" method=\"get\">"
+    echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+    echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
+    echo "<INPUT type=hidden name=\"listby\" value=\"suggest,title\">"
+    echo "<P><font color=red>$ianamereq: <INPUT name=title type=\"text\"> $activateform</font></P>"
+    echo "</FORM>"
+    ;;
+  esac
+
+  source ./$listby
 }
 
 the_footer ()
