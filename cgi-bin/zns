@@ -214,6 +214,8 @@ fromchrono ()
 
       echo '</div></center>'
     else
+      echo "<p>$par3a <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=red>; $par3b.</p>"
+
       if [ $((alinks)) -ne 0 ]
       then
         echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
@@ -246,6 +248,8 @@ tochrono ()
       echo "$avg_chrono_is_linked_by_ $linksc $__articles."
 
       echo '</div></center>'
+    else
+      echo "<p>$par4a</p>"
     fi
   fi
 }
