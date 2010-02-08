@@ -16,7 +16,7 @@ handle_userlist ()
       utxt='&lt;an empty name user&gt;'
     fi
 
-    echo "<li><a href='./go.sh?$stdurl&listby=creator&user=$utxt&registered=$uid'>$utxt</a>&lrm: $amnt</li>"
+    echo "<li><a href='./go.sh?$stdurl&listby=creator&user=$utxt&registered=$uid'>$utxt</a>&lrm;: $amnt</li>"
   fi
 }
 

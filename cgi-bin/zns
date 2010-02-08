@@ -5,7 +5,7 @@ articles_flexies ()
 
   __articles=$_articles1
 
-  if [ "$interface" = 'en' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
   then
     if [ "$articles" != '1' ]
     then
@@ -45,7 +45,7 @@ pages_flexies ()
 
   __pages=$_pages1
 
-  if [ "$interface" = 'en' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
   then
     if [ "$pages" != '1' ]
     then
@@ -81,7 +81,7 @@ lists_flexies ()
 
   __lists=$_lists1
 
-  if [ "$interface" = 'en' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
   then
     if [ "$lists" != '1' ]
     then
@@ -117,7 +117,7 @@ types_flexies ()
 
   __types=$_types1
 
-  if [ "$interface" = 'en' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
   then
     if [ "$lists" != '1' ]
     then
@@ -173,7 +173,7 @@ zns ()
     then
       echo ",<br />"
       lists_flexies $cllt
-      if [ "$interface" = 'en' ]
+      if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
       then
         echo "$disambigs $_disambigs $__pages $_and_ $cllt $_cllt $__lists."
       else
@@ -181,7 +181,7 @@ zns ()
       fi
     else
       echo "<br />"
-      if [ "$interface" = 'en' ]
+      if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
       then
         echo "$_and_ $disambigs $_disambigs $__pages."
       else

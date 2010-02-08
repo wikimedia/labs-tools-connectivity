@@ -218,20 +218,23 @@ handle ()
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'init')
-                   # handle dynamical request from sql for subscripts to
-                   # be loaded to different servers
+                   # send a golem's spy given by ${line:11}
                    {
                      #
                      # New language database might have to be created.
                      #
                      echo "create database if not exists u_${usr}_golem_s${line:4:1}_${language_sql};"
-                   } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
-                   {
+
+                     #
+                     # Switch to the database just created.
+                     #
+                     echo "use u_${usr}_golem_s${line:4:1}_${language_sql};"
+
                      #
                      # Infecting the database with a script or a set of scripts
                      #
                      cat ${line:11}
-                   } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
+                   } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'emit')
                    # handle dynamical request from sql job report loading
@@ -241,8 +244,12 @@ handle ()
                      # New language database may have to be created.
                      #
                      echo "create database if not exists u_${usr}_golem_p;"
-                   } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
-                   {
+
+                     #
+                     # Switch to the database just created.
+                     #
+                     echo "use u_${usr}_golem_p;"
+
                      #
                      # Infect with scripts every database should have
                      #
@@ -257,25 +264,7 @@ handle ()
                      echo "create table if not exists language_stats ( lang VARCHAR(10) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
 
                      echo "INSERT INTO language_stats SELECT '$language' as lang, '${line:11}' as ts ON DUPLICATE KEY UPDATE ts='${line:11}';"
-                   } | $( sql ${line:4:1} u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
-                   ;;
-                'proj')
-                   # handle dynamical request from sql job report loading
-                   # on a given server
-                   {
-                     #
-                     # New language database may have to be created.
-                     #
-                     echo "create database if not exists u_${usr}_golem_p;"
                    } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
-                   {
-                     #
-                     # Infect with scripts every database should have
-                     #
-                     cat toolserver.sql
-                     cat replag.sql
-                     cat projector.sql
-                   } | $( sql ${line:4:1} u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'drop')
                    # drop a table by its name
@@ -308,7 +297,77 @@ handle ()
                   todos 7z.log
                   chmod 755 *.7z
                 else
-                  echo command: $line, not recognized >> ${language}.debug.log
+                  if [ "${line:3:10}" = 'introduce ' ]
+                  then
+                    distinct_srv=''
+                    # for all sql servers we try creating a db and
+                    # ask for its hostname
+                    for item in ${line:13}
+                    do
+                      local str=$(
+                                   {
+                                     #
+                                     # New language database may have to be created.
+                                     #
+                                     echo "create database if not exists u_${usr}_golem_p;"
+
+                                     echo "SELECT @@hostname;"
+                                   } | $( sql $item ) 2>&1
+                                 )
+                      if [ "$str:0:6" != 'ERROR ' ]
+                      then
+                        repeated=0
+                        host[$item]=$str
+                        # look if this host was already met
+                        for (( bck = 0 ; bck < item ; bck++ ))
+                        do
+                          if [ "${host[$bck]}" = "${host[$item]}" ]
+                          then
+                            repeated=1
+                          fi
+                        done
+                        # distinct hosts collection
+                        if [ "$repeated" = '0' ]
+                        then
+                          distinct_srv="${distinct_srv} $item"
+                        fi
+                      else
+                        echo "error connection to sql server s${item}" >> ${language}.debug.log
+                      fi
+                    done
+
+                    # for all servers representing distinct hosts
+                    for item in ${distinct_srv:1}
+                    do
+                      #
+                      # Infect with scripts every database should have
+                      #
+                      {
+                        cat toolserver.sql
+                        cat replag.sql
+                        cat projector.sql
+
+                        echo "CREATE TABLE IF NOT EXISTS server ( sv_id INT(8) unsigned NOT NULL default '0', host_name VARCHAR(255) binary NOT NULL default '', PRIMARY KEY (sv_id) ) ENGINE=MyISAM;"
+
+                        echo -e "INSERT INTO server VALUES "
+                        str=''
+                        for bck in ${line:13}
+                        do
+                          if [ "$str" = '' ]
+                          then
+                            str="($bck,'${host[$bck]}')"
+                          else
+                            str="$str,($bck,'${host[$bck]}')"
+                          fi
+                        done
+                        echo "$str ON DUPLICATE KEY UPDATE server.host_name=VALUES(host_name);"
+
+                        echo "SELECT ':: echo s${item} represents ${host[$item]}';"
+                      } | $( sql $item u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
+                    done
+                  else
+                    echo command: $line, not recognized >> ${language}.debug.log
+                  fi
                 fi
               fi
             fi

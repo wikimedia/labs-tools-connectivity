@@ -29,7 +29,7 @@ CREATE PROCEDURE allow_allocation ( size VARCHAR(64) )
     # This module allows avoiding default limits on heap table size, 
     # however some reasonable limitations should exist.
     #
-    IF size<=4294967296
+    IF size<=8589934592
       THEN
         IF size>@@max_heap_table_size
           THEN

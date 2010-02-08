@@ -54,7 +54,7 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
     # However, we have to avoid as too long computation of page links amount,
     # thus we a be reinsuring herer.
     #
-    CALL allow_allocation( 1024*@cnt );
+    CALL allow_allocation( 2048*@cnt );
 
     #
     # Cache pages.

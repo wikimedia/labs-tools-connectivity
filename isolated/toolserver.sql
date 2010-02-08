@@ -34,7 +34,7 @@ CREATE FUNCTION server_num ( language VARCHAR(64) )
     SELECT server INTO srv
            FROM toolserver.wiki
            WHERE family='wikipedia' and
-                 lang=language and
+                 domain=CONCAT(language,'.wikipedia.org') and
                  is_closed=0;
 
     RETURN srv;
@@ -46,7 +46,6 @@ CREATE FUNCTION largest_neighbour ( language VARCHAR(64) )
   RETURNS VARCHAR(64)
   DETERMINISTIC
   BEGIN
-    DECLARE srv INT;
     DECLARE res VARCHAR(64);
 
     SELECT dbname INTO res
@@ -69,14 +68,49 @@ CREATE FUNCTION dbname_for_lang ( language VARCHAR(64) )
   RETURNS VARCHAR(64)
   DETERMINISTIC
   BEGIN
-    DECLARE srv INT;
     DECLARE res VARCHAR(64);
 
     SELECT dbname INTO res
            FROM toolserver.wiki
            WHERE family='wikipedia' and
                  is_closed=0 and
-                 lang=language
+                 domain=CONCAT(language,'.wikipedia.org')
+           LIMIT 1;
+
+    RETURN res;
+  END;
+//
+
+DROP FUNCTION IF EXISTS host_for_lang//
+CREATE FUNCTION host_for_lang ( language VARCHAR(64) )
+  RETURNS VARCHAR(255)
+  DETERMINISTIC
+  BEGIN
+    DECLARE res VARCHAR(64);
+
+    SELECT host_name INTO res
+           FROM toolserver.wiki,
+                u_mashiah_golem_p.server
+           WHERE family='wikipedia' and
+                 is_closed=0 and
+                 domain=CONCAT(language,'.wikipedia.org') and
+                 server=sv_id
+           LIMIT 1;
+
+    RETURN res;
+  END;
+//
+
+DROP FUNCTION IF EXISTS host_for_srv//
+CREATE FUNCTION host_for_srv ( srv INT )
+  RETURNS VARCHAR(255)
+  DETERMINISTIC
+  BEGIN
+    DECLARE res VARCHAR(64);
+
+    SELECT host_name INTO res
+           FROM u_mashiah_golem_p.server
+           WHERE sv_id=srv
            LIMIT 1;
 
     RETURN res;
@@ -84,14 +118,16 @@ CREATE FUNCTION dbname_for_lang ( language VARCHAR(64) )
 //
 
 DROP PROCEDURE IF EXISTS project_for_everywhere//
-CREATE PROCEDURE project_for_everywhere ( srv INT, language VARCHAR(64) )
+CREATE PROCEDURE project_for_everywhere ( )
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE ready INT DEFAULT 0;
     DECLARE cur_sv INT DEFAULT 0;
-    DECLARE st VARCHAR(511);
+    DECLARE srvlist VARCHAR(20);
     DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and is_closed=0 ORDER BY server ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+
+    SET srvlist = '';
 
     OPEN scur;
     SET done = 0;
@@ -101,32 +137,27 @@ CREATE PROCEDURE project_for_everywhere ( srv INT, language VARCHAR(64) )
       IF NOT done
         THEN
           #
-          # Outside handler to distribute good news between sql servers
+          # Collect subject of interest server list
           #
-          # Notes: Better if distributed over db-servers, which sometimes
-          #        handle more than one sql server and share content.
-          #
-          #        Better if current server was not handled from outside.
-          #
-          SELECT CONCAT( ':: s', cur_sv, ' proj' );
-          # hope this reduces the density of sql connection requests,
-          # which is limited
-          SELECT sleep( 1 ) INTO ready;
+          SET srvlist=CONCAT( srvlist, ' ', cur_sv );
       END IF;
     UNTIL done END REPEAT;
 
     CLOSE scur;
+
+    SELECT CONCAT( ':: introduce', srvlist );
   END;
 //
 
 DROP PROCEDURE IF EXISTS emit_for_everywhere//
-CREATE PROCEDURE emit_for_everywhere ( srv INT, language VARCHAR(64) )
+CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE ready INT DEFAULT 0;
     DECLARE cur_sv INT DEFAULT 0;
+    DECLARE cur_host VARCHAR(255) DEFAULT '';
     DECLARE st VARCHAR(511);
-    DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and is_closed=0 ORDER BY server ASC;
+    DECLARE scur CURSOR FOR SELECT host_name, MIN(server) as sv FROM toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and is_closed=0 and sv_id=server and host_name!=host_for_lang(language) GROUP BY host_name ORDER BY sv ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     CALL replag( language );
@@ -135,25 +166,25 @@ CREATE PROCEDURE emit_for_everywhere ( srv INT, language VARCHAR(64) )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           #
-          # Outside handler to distribute good news between sql servers
-          #
-          # Notes: Better if distributed over db-servers, which sometimes
-          #        handle more than one sql server and share content.
-          #
-          #        Better if current server was not handled from outside.
+          # Outside handler to distribute good news among sql hosts.
           #
           SELECT CONCAT( ':: s', cur_sv, ' emit ', @rep_time );
-          # hope this reduces the density of sql connection requests,
-          # which is limited
-          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
     CLOSE scur;
+
+    #
+    # Current host log is updated with no call to the outside handler.
+    #
+    SET @st=CONCAT( 'INSERT INTO u_', usr, '_golem_p.language_stats SELECT "', language, '" as lang, "', @rep_time, '" as ts ON DUPLICATE KEY UPDATE ts="', @rep_time, '";' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
   END;
 //
 

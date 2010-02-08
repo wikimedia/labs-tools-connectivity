@@ -54,16 +54,17 @@ source ./isoinv
 
 rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log stats_done.log
 
-{
-  #
-  # New language database might have to be created.
-  #
-  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
-
-} | $( sql $server ) 2>&1 | ./handle.sh $cmdl
-
 time { 
   {
+    #
+    # New language database might have to be created.
+    #
+    echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
+
+    #
+    # Switch to the language database just created.
+    #
+    echo "use u_${usr}_golem_s${dbserver}_${language_sql};"
 
     #
     # Configure the target wikipedia language name for analysis
@@ -104,7 +105,7 @@ time {
     # Once the processing is started, every server should have capabilities
     # to support web-server.
     #
-    echo "CALL project_for_everywhere( $server, '$language' );"
+    echo "CALL project_for_everywhere();"
 
     #
     # real start time
@@ -124,8 +125,7 @@ time {
     # Set the recursion depth to 255 for the first run
     # and then set it e.g. the maximal clusters chain length doubled.
     #
-
-    echo "SET max_sp_recursion_depth=12;"
+    echo "SET max_sp_recursion_depth=255;"
 
     #
     # This function collects all the project settings configured on
@@ -151,13 +151,6 @@ time {
     echo "CALL replag( '$language' );"
 
     #
-    # Choose the right limit for recursion depth allowed.
-    # Set the recursion depth to 255 for the first run
-    # and then set it e.g. the maximal clusters chain length doubled.
-    #
-    echo "SET max_sp_recursion_depth=255;"
-
-    #
     # Analyze categorytree namespace connectivity and prepare categoryspruce.
     # No limit on claster size.
     #
@@ -171,10 +164,32 @@ time {
     echo "CALL zero_namespace_postponed_tools( $server );"
 
     #
-    # Once the processing is done, every server should be informed.
+    # New project database may have to be created.
     #
-    echo "CALL emit_for_everywhere( $server, '$language' );"
-  } | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | ./handle.sh $cmdl
+    echo "create database if not exists u_${usr}_golem_p;"
+
+    #
+    # Switch to the project database just created.
+    #
+    echo "use u_${usr}_golem_p;"
+
+    #
+    # Infect it with scripts normative for project database.
+    #
+    cat toolserver.sql
+    cat replag.sql
+    cat projector.sql
+
+    #
+    # Prepare a shared log table with actuality data for languages.
+    #
+    echo "create table if not exists language_stats ( lang VARCHAR(10) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+
+    #
+    # Signed record to the public log on analysis actuality.
+    #
+    echo "CALL emit_for_everywhere( '$language', '$usr' );"
+  } | $( sql $server ) 2>&1 | ./handle.sh $cmdl
 }
 
 # </pre>

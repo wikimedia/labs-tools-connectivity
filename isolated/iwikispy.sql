@@ -215,12 +215,13 @@ CREATE PROCEDURE inter_langs( srv INT )
     DECLARE cur_lang VARCHAR(16);
     DECLARE cur_db VARCHAR(32);
     DECLARE ready INT DEFAULT 0;
+    DECLARE cur_host VARCHAR(64) DEFAULT '';
     DECLARE cur_sv INT DEFAULT 0;
     DECLARE dsync INT DEFAULT 0;
     DECLARE dcnt INT DEFAULT 0;
     DECLARE st VARCHAR(511);
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=srv and is_closed=0 ORDER BY size DESC;
-    DECLARE scur CURSOR FOR SELECT DISTINCT server FROM toolserver.wiki WHERE family='wikipedia' and server!=srv and is_closed=0 ORDER BY server ASC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT TRIM(TRAILING '.wikipedia.org' FROM domain), dbname FROM toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and is_closed=0 and server=sv_id and host_name=host_for_srv(srv) ORDER BY size DESC;
+    DECLARE scur CURSOR FOR SELECT host_name, MIN(server) as sv FROM toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and is_closed=0 and sv_id=server and host_name!=host_for_srv(srv) GROUP BY host_name ORDER BY sv ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     CALL allow_allocation( 4294967296 );
@@ -233,14 +234,11 @@ CREATE PROCEDURE inter_langs( srv INT )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           # hope this reduces the amount of mysql connections created
           SELECT CONCAT( ':: s', cur_sv, ' init toolserver.sql memory.sql disambig.sql iwikispy.sql' );
-          # hope this reduces the density of sql connection requests,
-          # which is limited
-          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -253,13 +251,10 @@ CREATE PROCEDURE inter_langs( srv INT )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' call inter_langs_ct' );
-          # hope this reduces the density of sql connection requests,
-          # which is limited
-          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -294,10 +289,12 @@ CREATE PROCEDURE inter_langs( srv INT )
            WHERE lang IN 
                  (
                    SELECT lang 
-                          FROM toolserver.wiki
+                          FROM toolserver.wiki,
+                               u_mashiah_golem_p.server
                           WHERE family='wikipedia' and
-                                server!=srv and
-                                is_closed=0
+                                is_closed=0 and
+                                server=sv_id and
+                                host_name!=host_for_srv(srv)
                  );
 
     #
@@ -307,7 +304,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           #
@@ -318,12 +315,7 @@ CREATE PROCEDURE inter_langs( srv INT )
           # This query will come back to the master server from 
           # the outer handler driving transmission to its finish.
           #
-          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki WHERE family='wikipedia' and server=", cur_sv, " and is_closed=0 and iwl.lang=toolserver.wiki.lang\;" );
-          #
-          # Hope this reduces the density of sql connection requests,
-          # which is limited.
-          #
-          SELECT sleep( 1 ) INTO ready;
+          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and server=sv_id and host_name=host_for_srv\(", cur_sv, "\) and is_closed=0 and iwl.lang=TRIM\(TRAILING \'.wikipedia.org\' FROM domain\)\;" );
       END IF;
     UNTIL done END REPEAT;
 
@@ -338,7 +330,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           SET @st=CONCAT( "DROP TABLE IF EXISTS res_s", cur_sv, ";" );
@@ -372,14 +364,11 @@ CREATE PROCEDURE inter_langs( srv INT )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           SELECT CONCAT( ':: s', cur_sv, ' valu ', @target_lang );
           SELECT CONCAT( ':: s', cur_sv, ' prlc inter_langs_slave' );
-          # hope this reduces the density of sql connection requests,
-          # which is limited
-          SELECT sleep( 1 ) INTO ready;
       END IF;
     UNTIL done END REPEAT;
 
@@ -421,10 +410,12 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # The expected amount of synchonization events from slave processes.
     #
-    SELECT 2*(count(DISTINCT server)-1) INTO dsync
-           FROM toolserver.wiki
+    SELECT 2*(count(DISTINCT host_name)-1) INTO dsync
+           FROM toolserver.wiki,
+                u_mashiah_golem_p.server
            WHERE family='wikipedia' and
-                 is_closed=0;
+                 is_closed=0 and
+                 server=sv_id;
 
     #
     # Looks like an infinite loop, right?
@@ -446,7 +437,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     SET done = 0;
 
     REPEAT
-      FETCH scur INTO cur_sv;
+      FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
           SET @st=CONCAT( 'INSERT INTO res SELECT suggestn, id, lang FROM res_s', cur_sv, ';' );
@@ -610,7 +601,7 @@ CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
     DECLARE cur_lang VARCHAR(16);
     DECLARE cur_db VARCHAR(32);
     DECLARE ready INT DEFAULT 0;
-    DECLARE cur CURSOR FOR SELECT DISTINCT lang, dbname FROM toolserver.wiki WHERE family='wikipedia' and server=snum and is_closed=0 ORDER BY size DESC;
+    DECLARE cur CURSOR FOR SELECT DISTINCT TRIM(TRAILING '.wikipedia.org' FROM domain), dbname FROM toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and server=sv_id and host_name=host_for_srv(snum) and is_closed=0 ORDER BY size DESC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     # Convert master language name to master server number

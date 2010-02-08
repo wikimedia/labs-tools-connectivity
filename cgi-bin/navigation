@@ -152,20 +152,6 @@ how_actual ()
   fi
 }
 
-handle_values ()
-{
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    local mline=$( url "$line" )
-    mline=${mline// /\"}
-    mline=${mline//_/ }
-
-    echo "$mline"
-  fi
-}
-
 handle_interlingues ()
 {
   local line=$1
@@ -185,60 +171,6 @@ handle_interlingues ()
     fi
 
   fi
-}
-
-get_project_page ()
-{
-  local string=$(
-                  {
-                    echo "SET @i18n_page='$prjp';"
-
-                    echo "CALL obtain_project_settings( '$language' );"
-
-                    echo "SET @catnspref=getnsprefix(14, '$language');"
-
-                    echo "SET @wiknspref=getnsprefix(4, '$language');"
-
-                    echo "SELECT CONCAT( @wiknspref, ' ', @catnspref, ' ', @connectivity_project_root, ' ', @isolated_category_name, ' ', @orphan_param_name, ' ', @deadend_category_name, ' ', @non_categorized_articles_category, ' ', @template_documentation_subpage_name, ' ', @disambiguation_templates_initialized );"
-                  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
-                                    while read -r line
-                                      do handle_values "$line"
-                                    done
-                  }
-                )
-  if [ "$string" != "$noudb" ]
-  then
-    wiknspref=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\1/g' )
-    catnspref=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\2/g' )
-    project_page=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\3/g' )
-    isolated_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\4/g' )
-    orphan_param=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\5/g' )
-    deadend_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\6/g' )
-    nca_category=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\7/g' )
-    template_doc=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\8/g' )
-    disambiguating_templates=$( echo $string | sed -e 's/^\([^\"]\+\)\"\([^\"]\+\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([^\"]*\)\"\([0-9]\+\)$/\9/g' )
-
-    isolated_category="${catnspref}${isolated_category}"
-    deadend_category="${catnspref}${deadend_category}"
-    nca_category="${catnspref}${nca_category}"
-  else
-    errorstring=$string
-  fi
-
-#
-# For debugging
-#
-#  echo "<br>$anysrv"
-#  echo "<br>$dbserver"
-#  echo "<br>$wiknspref"
-#  echo "<br>$catnspref"
-#  echo "<br>$project_page"
-#  echo "<br>$isolated_category"
-#  echo "<br>$orphan_param"
-#  echo "<br>$deadend_category"
-#  echo "<br>$nca_category"
-#  echo "<br>$template_doc"
-#  echo "<br>$disambiguating_templates"
 }
 
 #
@@ -905,8 +837,6 @@ EOM
  <body>
 <a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
 EOM
-
-  get_project_page
 
   #
   # Data actuality info at the top left
