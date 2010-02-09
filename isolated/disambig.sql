@@ -460,7 +460,14 @@ CREATE PROCEDURE store_drdi ()
   BEGIN
     DECLARE _l_ratio REAL(5,3) DEFAULT @aricles_to_disambiguations_links_count*100/(@aricles_to_disambiguations_links_count+@articles_to_articles_links_count);
     DECLARE _d_ratio REAL(5,3) DEFAULT @disambiguation_pages_count*100/(@disambiguation_pages_count+@articles_count);
-    DECLARE _drdi REAL(5,3) DEFAULT _l_ratio*100/_d_ratio;
+    DECLARE _drdi REAL(5,3);
+
+    IF _d_ratio>0
+      THEN
+        SET _drdi=_l_ratio*100/_d_ratio;
+      ELSE
+        SET _drdi=0;
+    END IF;
 
     #
     # DRDI, id est <<disambiguation rule>> disregard ratio.
