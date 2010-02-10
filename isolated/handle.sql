@@ -83,6 +83,7 @@ CREATE PROCEDURE combineandout ()
       deact int(8) signed NOT NULL default '0',
       isoact int(8) signed NOT NULL default '0',
       isocat varchar(255) binary NOT NULL default '',
+      title varchar(511) binary NOT NULL default '',
       PRIMARY KEY (id)
     ) ENGINE=MEMORY AS
     #
@@ -92,7 +93,8 @@ CREATE PROCEDURE combineandout ()
            0 as ncaact,
            0 as deact,
            act as isoact,
-           coolcat as isocat
+           coolcat as isocat,
+           '' as title
            FROM isolated,
                 orcat
            WHERE act!=0 and
@@ -105,7 +107,8 @@ CREATE PROCEDURE combineandout ()
            0 as ncaact,
            act as deact,
            0 as isoact,
-           '' as isocat
+           '' as isocat,
+           '' as title
            FROM del
            WHERE act!=0
     ON DUPLICATE KEY UPDATE deact=del.act;
@@ -118,7 +121,8 @@ CREATE PROCEDURE combineandout ()
            act as ncaact,
            0 as deact,
            0 as isoact,
-           '' as isocat
+           '' as isocat,
+           '' as title
            FROM nocat,
                 articles
            WHERE act!=0 and
@@ -131,12 +135,32 @@ CREATE PROCEDURE combineandout ()
     IF cnt>0
       THEN
         #
+        # This request doesn't insert anything, it does update on this
+        # strange manner. The reason is that <dbname>.page is not granted
+        # to users for update.
+        #
+        # Preparing the updated table with title column set I wish I prevent
+        # outer handler being waiting for data in the next query performing out.
+        #
+        SET @st=CONCAT( 'INSERT INTO task SELECT id, ncaact, deact, isoact, isocat, CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title FROM task, ', @dbname, '.page WHERE id=page_id ON DUPLICATE KEY UPDATE title=VALUES(title);' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        #
+        # To the moment some of the pages theoretically could be permanently
+        # dropped from the database. No need to consider any actions to them.
+        #
+        DELETE FROM task
+               WHERE title='';
+
+        #
         # Output common task for processing in an outer handler.
         # 
         SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
         SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
 
-        SET @st=CONCAT( 'SELECT CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, ncaact, deact, isoact, isocat FROM task, ', @dbname, '.page WHERE id=page_id ORDER BY ncaact+deact+deact+isoact DESC, page_title ASC;' );
+        SET @st=CONCAT( 'SELECT title, ncaact, deact, isoact, isocat FROM task ORDER BY ncaact+deact+deact+isoact DESC, title ASC;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
