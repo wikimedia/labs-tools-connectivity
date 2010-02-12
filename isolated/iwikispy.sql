@@ -21,7 +21,7 @@ delimiter //
 # Prepare interwiki based linking suggestions for one language
 #
 DROP PROCEDURE IF EXISTS inter_lang//
-CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(10), mlang VARCHAR(10) )
+CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VARCHAR(16) )
   BEGIN
     DECLARE st VARCHAR(255);
     DECLARE prefix VARCHAR(32);
@@ -148,7 +148,7 @@ CREATE PROCEDURE inter_langs_ct()
     CREATE TABLE iwl (
       id int(8) unsigned not null default '0',
       title varchar(255) not null default '',
-      lang varchar(10) not null default '',
+      lang varchar(16) not null default '',
       KEY (title)
     ) ENGINE=MEMORY;
 
@@ -178,14 +178,14 @@ CREATE PROCEDURE inter_langs_ct()
     CREATE TABLE res (
       suggestn varchar(255) not null default '',
       id int(8) unsigned not null default '0',
-      lang varchar(10) not null default ''
+      lang varchar(16) not null default ''
     ) ENGINE=MEMORY;
 
     DROP TABLE IF EXISTS tres;
     CREATE TABLE tres (
       suggestn varchar(255) not null default '',
       id int(8) unsigned not null default '0',
-      lang varchar(10) not null default ''
+      lang varchar(16) not null default ''
     ) ENGINE=MEMORY;
 
     #
@@ -516,7 +516,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     DROP TABLE IF EXISTS nres;
     CREATE TABLE nres (
-      lang varchar(10) not null default '',
+      lang varchar(16) not null default '',
       a_amnt int(8) unsigned not null default '0',
       i_amnt int(8) unsigned not null default '0'
     ) ENGINE=MEMORY AS
@@ -534,7 +534,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     DROP TABLE IF EXISTS ntres;
     CREATE TABLE ntres (
-      lang varchar(10) not null default '',
+      lang varchar(16) not null default '',
       a_amnt int(8) unsigned not null default '0',
       i_amnt int(8) unsigned not null default '0'
     ) ENGINE=MEMORY AS
@@ -594,7 +594,7 @@ CREATE PROCEDURE inter_langs( srv INT )
 # from slave languages and push results to the master server.
 #
 DROP PROCEDURE IF EXISTS inter_langs_slave//
-CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(10) )
+CREATE PROCEDURE inter_langs_slave( snum INT, mlang VARCHAR(16) )
   BEGIN
     DECLARE mnum INT DEFAULT 0;
     DECLARE done INT DEFAULT 0;

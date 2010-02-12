@@ -214,7 +214,7 @@ CREATE PROCEDURE langcategorystats (inname VARCHAR(255), outname VARCHAR(255))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SET @st=CONCAT( 'CREATE TABLE ', outname, " ( cat int(8) unsigned NOT NULL default '0', lang varchar(10) not null default '', a_amnt int(8) unsigned not null default '0', i_amnt int(8) unsigned not null default '0', PRIMARY KEY (lang, cat) ) ENGINE=MyISAM AS SELECT nrcl_cat as cat, lang, count(distinct suggestn) as a_amnt, count(distinct id) as i_amnt FROM nrcatl0, ", inname, ' WHERE id=nrcl_from GROUP BY lang, nrcl_cat;' );
+    SET @st=CONCAT( 'CREATE TABLE ', outname, " ( cat int(8) unsigned NOT NULL default '0', lang varchar(16) not null default '', a_amnt int(8) unsigned not null default '0', i_amnt int(8) unsigned not null default '0', PRIMARY KEY (lang, cat) ) ENGINE=MyISAM AS SELECT nrcl_cat as cat, lang, count(distinct suggestn) as a_amnt, count(distinct id) as i_amnt FROM nrcatl0, ", inname, ' WHERE id=nrcl_from GROUP BY lang, nrcl_cat;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

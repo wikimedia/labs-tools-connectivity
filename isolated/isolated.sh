@@ -183,7 +183,14 @@ time {
     #
     # Prepare a shared log table with actuality data for languages.
     #
-    echo "create table if not exists language_stats ( lang VARCHAR(10) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+    echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+
+    #
+    # a bugfix for zh-classic problem
+    # to be deleted once the problem is finally fixed
+    #
+    echo "alter table language_stats modify lang varchar (16) binary not null default '';"
+    echo "update language_stats set lang='zh-classical', ts=language_stats.ts where lang='zh-classic';"
 
     #
     # Signed record to the public log on analysis actuality.
