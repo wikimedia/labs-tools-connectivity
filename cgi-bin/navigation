@@ -154,23 +154,16 @@ how_actual ()
 
 handle_interlingues ()
 {
-  local line=$1
-
-  if no_sql_error "$line"
-  then
-    line=( $line )
-    local lang=${line[0]}
-    local ts=${line[1]}
-
-    if [ "$language" != "$lang" ]
+  for item in $1
+  do
+    if [ "$language" != "$item" ]
     then
-      lswch=$( url_params $lang $interface_url $listby_url $shift_url )
-      echo -ne "<a href=\"./go.sh?${lswch}\">[[${lang}:]]</a> "
+      lswch=$( url_params $item $interface_url $listby_url $shift_url )
+      echo -ne "<a href=\"./go.sh?${lswch}\">[[${item}:]]</a> "
     else
-      echo -ne "<font color=red>[[${lang}:]]</font> "
+      echo -ne "<font color=red>[[${item}:]]</font> "
     fi
-
-  fi
+  done
 }
 
 #
@@ -782,33 +775,32 @@ the_menu ()
   echo "<hr />"
 
   echo -ne "<h2>"
-  {
-    echo "SELECT lang, ts FROM language_stats WHERE ts+interval 1 day>now() ORDER BY ts DESC;"
-  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
-         while read -r line
-           do handle_interlingues "$line"
-         done
-      }
-  echo -ne "</h2>"
-  echo -ne "<h3>"
-  {
-    echo "SELECT lang, ts FROM language_stats WHERE ts+interval 1 day<=now() and ts+interval 7 day>now() ORDER BY ts DESC;"
-  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
-         while read -r line
-           do handle_interlingues "$line"
-         done
-      }
-  echo -ne "</h3>"
-  echo -ne "<h4>"
-  {
-    echo "SELECT lang, ts FROM language_stats WHERE ts+interval 7 day<=now() ORDER BY ts DESC;"
-  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
-         while read -r line
-           do handle_interlingues "$line"
-         done
-      }
-  echo -ne "</h4>"
 
+  {
+    echo "CALL langwiki();"
+  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
+    read -r languages
+    if [ "$languages" != "$noudb" ]
+    then
+      handle_interlingues "$languages"
+
+      echo '</h2><h3>'
+
+      read -r languages
+
+      handle_interlingues "$languages"
+
+      echo '</h3><h4>'
+
+      read -r languages
+
+      handle_interlingues "$languages"
+    else
+      errorstring=$noudb
+    fi
+  }
+
+  echo -ne "</h4>"
 }
 
 #

@@ -17,7 +17,7 @@ source ./allyouneed
   echo "SELECT @disambiguation_templates_initialized;"
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
   read -r wiknspref
-  if [ "$string" != "$noudb" ]
+  if [ "$wiknspref" != "$noudb" ]
   then
     read -r catnspref
     read -r project_page
