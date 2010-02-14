@@ -15,6 +15,8 @@ source ./allyouneed
   echo "SELECT @non_categorized_articles_category;"
   echo "SELECT @template_documentation_subpage_name;"
   echo "SELECT @disambiguation_templates_initialized;"
+
+  echo "CALL langwiki();"
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
   read -r wiknspref
   if [ "$wiknspref" != "$noudb" ]
@@ -31,6 +33,10 @@ source ./allyouneed
     isolated_category="${catnspref}${isolated_category}"
     deadend_category="${catnspref}${deadend_category}"
     nca_category="${catnspref}${nca_category}"
+
+    read -r languages1
+    read -r languages2
+    read -r languages3
   else
     errorstring=$noudb
   fi

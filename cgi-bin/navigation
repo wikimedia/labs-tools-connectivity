@@ -9,6 +9,9 @@ deadend_category=''
 nca_category=''
 template_doc=''
 disambiguating_templates=0
+languages1=''
+languages2=''
+languages3=''
 
 no_sql_error ()
 {
@@ -254,7 +257,6 @@ if_lang ()
       echo "<a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/toolserver_texts\" target=\"_blank\">how to translate</a>"
     fi
   fi
-  echo "<small><br />$howoften</small>"
   echo '</div>'
 }
 
@@ -776,29 +778,15 @@ the_menu ()
 
   echo -ne "<h2>"
 
-  {
-    echo "CALL langwiki();"
-  } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
-    read -r languages
-    if [ "$languages" != "$noudb" ]
-    then
-      handle_interlingues "$languages"
+  handle_interlingues "$languages1"
 
-      echo '</h2><h3>'
+  echo '</h2><h3>'
 
-      read -r languages
+  handle_interlingues "$languages2"
 
-      handle_interlingues "$languages"
+  echo '</h3><h4>'
 
-      echo '</h3><h4>'
-
-      read -r languages
-
-      handle_interlingues "$languages"
-    else
-      errorstring=$noudb
-    fi
-  }
+  handle_interlingues "$languages3"
 
   echo -ne "</h4>"
 }

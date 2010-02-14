@@ -221,9 +221,9 @@ CREATE PROCEDURE langwiki ()
     DECLARE lng VARCHAR(16) DEFAULT '';
     DECLARE lng_str VARCHAR(8192) DEFAULT '';
     DECLARE garbage TIMESTAMP(14);
-    DECLARE cur1 CURSOR FOR SELECT lang, ts FROM language_stats WHERE ts+interval 1 day>now() ORDER BY ts DESC;
-    DECLARE cur2 CURSOR FOR SELECT lang, ts FROM language_stats WHERE ts+interval 1 day<=now() and ts+interval 7 day>now() ORDER BY ts DESC;
-    DECLARE cur3 CURSOR FOR SELECT lang, ts FROM language_stats WHERE ts+interval 7 day<=now() ORDER BY ts DESC;
+    DECLARE cur1 CURSOR FOR SELECT lang, ts FROM language_stats WHERE ts+interval 1 day>now() ORDER BY ts DESC, lang ASC;
+    DECLARE cur2 CURSOR FOR SELECT lang, ts FROM language_stats WHERE ts+interval 1 day<=now() and ts+interval 7 day>now() ORDER BY ts DESC, lang ASC;
+    DECLARE cur3 CURSOR FOR SELECT lang, ts FROM language_stats WHERE ts+interval 7 day<=now() ORDER BY ts DESC, lang ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur1;
