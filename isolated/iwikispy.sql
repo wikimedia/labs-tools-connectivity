@@ -26,8 +26,12 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
     DECLARE st VARCHAR(255);
     DECLARE prefix VARCHAR(32);
     DECLARE cnt INT;
+    DECLARE mlang10 VARCHAR(10);
+    DECLARE language10 VARCHAR(10);
 
     SELECT CONCAT( ':: echo .', language, ' . ' ) INTO prefix;
+
+    SET language10=SUBSTRING( language FROM 1 FOR 10 );
 
     #
     # How many pages do link interwiki partners of our isolates.
@@ -35,7 +39,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
     # Note: Of course, we do not need too much of suggestions, thus
     #       the amount of links selected is limited here by 524'288;
     #
-    SET @st=CONCAT( 'INSERT INTO liwl SELECT /* SLOW_OK */ pl_from as fr, id as t FROM ', dbname, ".pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language, "' LIMIT 524288;" );
+    SET @st=CONCAT( 'INSERT INTO liwl SELECT /* SLOW_OK */ pl_from as fr, id as t FROM ', dbname, ".pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language10, "' LIMIT 524288;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -47,6 +51,8 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
 
     IF @cnt>0
       THEN
+        SET mlang10=SUBSTRING( mlang FROM 1 FOR 10 );
+
         SET @st=CONCAT( 'INSERT INTO rinfo SELECT fr, page_is_redirect, page_title, t FROM ', dbname, '.page, liwl WHERE page_id=fr GROUP BY fr;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -105,7 +111,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
 
         SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis from zero namespace" );
 
-        SET @st=CONCAT( "INSERT INTO res SELECT /* SLOW_OK */ REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
+        SET @st=CONCAT( "INSERT INTO res SELECT /* SLOW_OK */ REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang10, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -114,7 +120,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
                FROM res
                WHERE lang=language;
 
-        SET @st=CONCAT( 'DELETE liwl FROM ', dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang, "';" );
+        SET @st=CONCAT( 'DELETE liwl FROM ', dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang10, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -148,7 +154,7 @@ CREATE PROCEDURE inter_langs_ct()
     CREATE TABLE iwl (
       id int(8) unsigned not null default '0',
       title varchar(255) not null default '',
-      lang varchar(16) not null default '',
+      lang varchar(10) not null default '',
       KEY (title)
     ) ENGINE=MEMORY;
 
@@ -201,10 +207,9 @@ CREATE PROCEDURE inter_langs_ct()
 //
 
 #
-# This procedure is being run on the master-host (s3). It infects slave-hosts
+# This procedure is being run on the master-host. It infects slave-hosts
 # with its code and tables, initialtes transfer of initial data from master to
-# slaves
-# 
+# slaves.
 #
 # Prepare interwiki based linking suggestions for isolated articles.
 #
@@ -288,7 +293,7 @@ CREATE PROCEDURE inter_langs( srv INT )
            SET title=REPLACE (REPLACE( title, '\\', '\\\\\\' ), '"', '\\"')
            WHERE lang IN 
                  (
-                   SELECT lang 
+                   SELECT SUBSTRING( lang FROM 1 FOR 10 )
                           FROM toolserver.wiki,
                                u_mashiah_golem_p.server
                           WHERE family='wikipedia' and
@@ -315,7 +320,7 @@ CREATE PROCEDURE inter_langs( srv INT )
           # This query will come back to the master server from 
           # the outer handler driving transmission to its finish.
           #
-          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and server=sv_id and host_name=host_for_srv\(", cur_sv, "\) and is_closed=0 and iwl.lang=TRIM\(TRAILING \'.wikipedia.org\' FROM domain\)\;" );
+          SELECT CONCAT( ":: s", srv, " give SELECT CONCAT\( '\( \"', id, '\",\"', title, '\",\"', iwl.lang, '\" \)' \) FROM iwl, toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and server=sv_id and host_name=host_for_srv\(", cur_sv, "\) and is_closed=0 and iwl.lang=SUBSTRING\(TRIM\(TRAILING \'.wikipedia.org\' FROM domain\) FROM 1 FOR 10\)\;" );
       END IF;
     UNTIL done END REPEAT;
 

@@ -85,10 +85,12 @@ CREATE PROCEDURE combineandout ()
       isocat varchar(255) binary NOT NULL default '',
       title varchar(511) binary NOT NULL default '',
       PRIMARY KEY (id)
-    ) ENGINE=MEMORY AS
+    ) ENGINE=MEMORY;
+
     #
     # Initialize with isolated articles to be edited.
     #
+    INSERT INTO task
     SELECT id,
            0 as ncaact,
            0 as deact,
@@ -98,7 +100,13 @@ CREATE PROCEDURE combineandout ()
            FROM isolated,
                 orcat
            WHERE act!=0 and
-                 uid=isolated.cat;
+                 uid=isolated.cat
+    #
+    # Hard to imagine a situation when duplicates may occur here,
+    # however, it has been met once; thus better to have it double checked.
+    #
+    ON DUPLICATE KEY UPDATE isoact=isolated.act, isocat=orcat.coolcat;
+
     #
     # Add dead-end articles to be edited updating existent rows.
     #
