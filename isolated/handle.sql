@@ -4,7 +4,6 @@
  -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
  --
  -- Shared procedures: outifexists
- --                    getnsprefix
  --                    combineandout
  --
  -- <pre>
@@ -14,13 +13,6 @@
  --
 
 set @fprefix='';
-
- --
- -- Significant speedup
- --
-
-SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
 
 ############################################################
 delimiter //
@@ -84,6 +76,7 @@ CREATE PROCEDURE combineandout ()
       isoact int(8) signed NOT NULL default '0',
       isocat varchar(255) binary NOT NULL default '',
       title varchar(511) binary NOT NULL default '',
+      importance int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (id)
     ) ENGINE=MEMORY;
 
@@ -96,7 +89,8 @@ CREATE PROCEDURE combineandout ()
            0 as deact,
            act as isoact,
            coolcat as isocat,
-           '' as title
+           '' as title,
+           0 as importance
            FROM isolated,
                 orcat
            WHERE act!=0 and
@@ -116,7 +110,8 @@ CREATE PROCEDURE combineandout ()
            act as deact,
            0 as isoact,
            '' as isocat,
-           '' as title
+           '' as title,
+           0 as importance
            FROM del
            WHERE act!=0
     ON DUPLICATE KEY UPDATE deact=del.act;
@@ -130,7 +125,8 @@ CREATE PROCEDURE combineandout ()
            0 as deact,
            0 as isoact,
            '' as isocat,
-           '' as title
+           '' as title,
+           0 as importance
            FROM nocat,
                 articles
            WHERE act!=0 and
@@ -147,10 +143,11 @@ CREATE PROCEDURE combineandout ()
         # strange manner. The reason is that <dbname>.page is not granted
         # to users for update.
         #
-        # Preparing the updated table with title column set I wish I prevent
-        # outer handler being waiting for data in the next query performing out.
+        # Preparing the updated table with title and importance columns set
+        # I hope I prevent outer handler to be waiting for data in the next
+        # query performing ':: out'.
         #
-        SET @st=CONCAT( 'INSERT INTO task SELECT id, ncaact, deact, isoact, isocat, CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title FROM task, ', @dbname, '.page WHERE id=page_id ON DUPLICATE KEY UPDATE title=VALUES(title);' );
+        SET @st=CONCAT( 'INSERT INTO task SELECT id, ncaact, deact, isoact, isocat, CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, 0 as importance FROM task, ', @dbname, '.page WHERE id=page_id ON DUPLICATE KEY UPDATE title=VALUES(title), importance=values(ncaact)+values(deact)+values(deact)+values(isoact);' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -163,15 +160,24 @@ CREATE PROCEDURE combineandout ()
                WHERE title='';
 
         #
+        # Final ':: out' speedup. Let it be sorting smoothly.
+        #
+        ALTER TABLE task ADD KEY (importance, title);
+
+        #
         # Output common task for processing in an outer handler.
         # 
         SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
         SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
 
-        SET @st=CONCAT( 'SELECT title, ncaact, deact, isoact, isocat FROM task ORDER BY ncaact+deact+deact+isoact DESC, title ASC;' );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
+        SELECT title,
+               ncaact,
+               deact,
+               isoact,
+               isocat
+               FROM task
+               ORDER BY importance DESC,
+                        title ASC;
     END IF;
 
     DROP TABLE task;

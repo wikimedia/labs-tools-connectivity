@@ -46,16 +46,30 @@
  #
  # Error handling:
  #
- #      See <lang>.debug.log if created or last file modified.
+ #      See <lang>.debug.log if created or the last file modified.
  #
  # <pre>
 
 source ./isoinv
 
+#
+# Server for connection depends on the target language
+#
+server=$( ./toolserver.sh "$language" skip_infecting )
+
+#
+# Initialize variables: $dbserver, $dbhost, $usr.
+#
+# Creates sql( $server ) function.
+#
+source ../cgi-bin/ts $server
+
 rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log stats_done.log
 
 time { 
   {
+    echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
     #
     # New language database might have to be created.
     #
@@ -102,12 +116,6 @@ time {
     cat cgi.sql
 
     #
-    # Once the processing is started, every server should have capabilities
-    # to support web-server.
-    #
-    echo "CALL project_for_everywhere();"
-
-    #
     # real start time
     #
     echo "CALL actual_replag( '$language' );"
@@ -147,7 +155,6 @@ time {
     #
     echo "CALL zero_namespace_connectivity( ${claster_limit} );"
 
-
     echo "CALL replag( '$language' );"
 
     #
@@ -172,13 +179,6 @@ time {
     # Switch to the project database just created.
     #
     echo "use u_${usr}_golem_p;"
-
-    #
-    # Infect it with scripts normative for project database.
-    #
-    cat toolserver.sql
-    cat replag.sql
-    cat projector.sql
 
     #
     # Prepare a shared log table with actuality data for languages.

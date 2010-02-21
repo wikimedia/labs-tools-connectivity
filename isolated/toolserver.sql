@@ -4,16 +4,7 @@
  --
  -- Caution: PROCEDUREs defined here may have output designed for handle.sh.
  -- 
- -- Shared procedures: server
- --
  -- <pre>
-
- --
- -- Significant speedup
- --
-
-SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
 
 ############################################################
 delimiter //
@@ -170,7 +161,7 @@ CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
       IF NOT done
         THEN
           #
-          # Outside handler to distribute good news among sql hosts.
+          # Outer handler to distribute good news among sql hosts.
           #
           SELECT CONCAT( ':: s', cur_sv, ' emit ', @rep_time );
       END IF;
@@ -179,7 +170,7 @@ CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
     CLOSE scur;
 
     #
-    # Current host log is updated with no call to the outside handler.
+    # Current host log is updated with no call to the outer handler.
     #
     SET @st=CONCAT( 'INSERT INTO u_', usr, '_golem_p.language_stats SELECT "', language, '" as lang, "', @rep_time, '" as ts ON DUPLICATE KEY UPDATE ts="', @rep_time, '";' );
     PREPARE stmt FROM @st;

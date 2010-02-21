@@ -58,6 +58,14 @@ statintv=720
 
 source ./isoinv
 
+#
+# Initialize variables: $dbserver, $dbhost, $usr.
+#
+# Creates sql( $server ) function.
+#
+source ../cgi-bin/ts
+
+
 extminutes ()
 {
   local given=$1
@@ -182,6 +190,8 @@ handle ()
                 case $outcommand in
                 'call')
                    {
+                     echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
                      echo "CALL allow_allocation( 4294967296 );"
                      echo "CALL ${line:11}();"
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
@@ -207,6 +217,8 @@ handle ()
                    # call in a parallel thread 
                    # with slave and master identifiers as parameters
                    {
+                     echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
                      echo "CALL ${line:11}( ${line:4:1}, '$outvariable' );"
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl &
                    outvariable=''
@@ -220,6 +232,8 @@ handle ()
                 'init')
                    # send a golem's spy given by ${line:11}
                    {
+                     echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
                      #
                      # New language database might have to be created.
                      #
@@ -240,6 +254,8 @@ handle ()
                    # handle dynamical request from sql job report loading
                    # on a given server
                    {
+                     echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
                      #
                      # New language database may have to be created.
                      #
@@ -249,13 +265,6 @@ handle ()
                      # Switch to the database just created.
                      #
                      echo "use u_${usr}_golem_p;"
-
-                     #
-                     # Infect with scripts every database should have
-                     #
-                     cat toolserver.sql
-                     cat replag.sql
-                     cat projector.sql
 
                      #
                      # Current replication time and language are stored into
@@ -350,9 +359,7 @@ handle ()
                       # Infect with scripts every database should have
                       #
                       {
-                        cat toolserver.sql
-                        cat replag.sql
-                        cat projector.sql
+                        echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
 
                         echo "CREATE TABLE IF NOT EXISTS server ( sv_id INT(8) unsigned NOT NULL default '0', host_name VARCHAR(255) binary NOT NULL default '', PRIMARY KEY (sv_id) ) ENGINE=MyISAM;"
 
@@ -369,8 +376,14 @@ handle ()
                         done
                         echo "$str ON DUPLICATE KEY UPDATE server.host_name=VALUES(host_name);"
 
-                        echo "SELECT ':: echo s${item} represents ${host[$item]}';"
+                        #
+                        # Infect with scripts every database should have
+                        #
+                        cat toolserver.sql replag.sql projector.sql
+
                       } | $( sql $item u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
+
+                      echo "s${item} represents ${host[$item]}"
                     done
                   else
                     echo command: $line, not recognized >> ${language}.debug.log
@@ -383,10 +396,10 @@ handle ()
       fi
     fi
   else
-    case $state in           # Can't connect to MySQL server on '$dbhost' (111)'
+    case $state in           # Can't connect to MySQL server on a host
     0) if [ "${line:0:20}" = 'ERROR 2003 (HY000): ' ] || [ "${line:0:20}" = 'ERROR 2013 (HY000): ' ] || [ "${line:0:20}" = 'ERROR 1130 (00000): ' ]
        then
-         echo $dbhost is unavailable, now nothing will be applied
+         echo sql server is unavailable, now nothing will be applied
        else
          if [ "${line:0:20}" = 'ERROR 1049 (42000): ' ]
          then

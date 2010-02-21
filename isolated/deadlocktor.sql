@@ -13,13 +13,6 @@
  --
  -- <pre>
 
- --
- -- Significant speedup
- --
-
-SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
-
 ############################################################
 delimiter //
 

@@ -13,7 +13,6 @@
 # Wikipedia language
 #
 language="$1"
-language_sql=${language//\-/_}
 
 #
 # Later could be changed to any other constant or chosen
@@ -29,18 +28,20 @@ server=3
 source ../cgi-bin/ts $server
 
 {
+  echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
+  echo "use u_${usr}_golem_p;"
+
+  if [ "$2" != 'skip_infecting' ]
+  then
+    cat toolserver.sql
+  fi
+
   #
-  # New language database might have to be created.
+  # Which server the $language database is located at?
   #
-  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
+  echo "SELECT server_num( '$language' );"
 
 } | $( sql $server ) 2>&1
-
-cat toolserver.sql | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1
-
-#
-# Which server the $language database is located at?
-#
-echo "SELECT server_num( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1
 
 # </pre>

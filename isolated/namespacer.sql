@@ -18,12 +18,6 @@
  --                     templates (which is wrong on my own opinion, but used).
  -- <pre>
 
- --
- -- Significant speedup
- --
-
-SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
 ############################################################
 delimiter //
 

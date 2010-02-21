@@ -13,7 +13,6 @@
 # Wikipedia language
 #
 language="$1"
-language_sql=${language//\-/_}
 
 #
 # Server for connection depends on the target language
@@ -30,22 +29,18 @@ source ../cgi-bin/ts $server
 rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log
 
 {
+  echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+
+  echo "use u_${usr}_golem_p;"
+
+  cat toolserver.sql replag.sql
+
   #
-  # New language database might have to be created.
+  # Time is the measure of change.
+  # What time is it? Now you know that, and this is a change for youself.
   #
-  echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
+  echo "CALL replag( '$language' );"
 
 } | $( sql $server ) 2>&1 | ./handle.sh
-
-{
-  cat toolserver.sql
-  cat replag.sql
-} | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | ./handle.sh
-
-#
-# Time is the measure of change.
-# What time is it? Now you know that, and this is a change for youself.
-#
-echo "CALL replag( '$language' );" | $( sql $server u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | ./handle.sh
 
 # </pre>

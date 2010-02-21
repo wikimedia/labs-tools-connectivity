@@ -43,15 +43,3 @@ then
     claster_limit=${5:6}
   fi
 fi
-
-#
-# Server for connection depends on the target language
-#
-server=$( ./toolserver.sh "$language" )
-
-#
-# Initialize variables: $dbserver, $dbhost, $usr.
-#
-# Creates sql( $server ) function.
-#
-source ../cgi-bin/ts $server
