@@ -111,6 +111,7 @@ sub _put {
     my $options = shift;
     my $extra   = shift;
     my $res     = $self->_get( $page, 'edit', $extra );
+
     unless ($res) { return; }
     if ( ( $res->decoded_content ) =~ m/<textarea .+?readonly=['"]readonly['"]/ ) {
         $self->{errstr} = "Error editing $page: Page is protected";
@@ -148,6 +149,7 @@ sub login {
     my $cookies  = ".perlwikipedia-$editor-cookies";
     $self->{mech}->cookie_jar(
         { file => $cookies, autosave => 1 } );
+
     if ( !defined $password ) {
         $self->{mech}->{cookie_jar}->load($cookies);
         my $cookies_exist = $self->{mech}->{cookie_jar}->as_string;
@@ -161,17 +163,19 @@ sub login {
             return 1;
         }
     }
+
     my $res = $self->_put(
         'Special:Userlogin',
         {
             form_name => 'userlogin',
             fields    => {
-                wpName     => $editor,
-                wpPassword => $password,
+                wpName     => $HTML::Form::VERSION eq '5.810' ? $editor : decode('utf8', $editor ),
+                wpPassword => $HTML::Form::VERSION eq '5.810' ? $password : decode('utf8', $password ),
                 wpRemember => 1,
             },
         }
     );
+
     unless ($res) { return 1; }
     my $content = $res->decoded_content();
     # '= "' means there is a name, no matter which one if not just '= null'.
@@ -210,7 +214,8 @@ sub edit {
     my $is_minor = shift || 0;
     my $res;
 
-	$text = encode( 'utf8', $text );
+# drop this line out once 5.810 is upgraded on Linux
+    $text = $HTML::Form::VERSION eq '5.810' ? encode( 'utf8', $text ) : $text;
 
     my $options  = {
                     form_name => 'editform',

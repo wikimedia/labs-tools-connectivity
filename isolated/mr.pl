@@ -1,4 +1,4 @@
-﻿#!/usr/bin/perl
+#!/usr/bin/perl
  #
  # Authors: [[:ru:user:Mashiah Davidson]]
  #
@@ -61,6 +61,17 @@ my $m_L=decode('utf8', 'Л');
 my $m_l=decode('utf8', 'л');
 my $m_I=decode('utf8', 'И');
 my $m_i=decode('utf8', 'и');
+
+
+#
+# All three constants are needed for edit descriptions 
+#     and the first pair is also used in the text.
+# No way to {{subst:an edit description}},
+#     so constants could not be stored just for templating.
+#
+my $self_redirect_text=decode('utf8', 'перенаправление ссылается само на себя');
+my $ring_of_two_redirects=decode('utf8', 'кольцо из двух перенаправлений');
+my $regular_edit_text=decode('utf8', 'исправление [[ВП:Двойные перенаправления|двойных перенаправлений]] с помощью perlwikipedia');
 
 my $editor=Perlwikipedia->new($user);
 $editor->{debug} = 0;
@@ -139,7 +150,7 @@ while( <> )
   {
     if(
         $mr_text=~m{
-                     ^[\s\t\n\r]*
+                     \A[\s\t\n\r]*
                      \#
                      (?:
                        # I know about "i" modifier but it doesn't work for utf8.
@@ -167,7 +178,7 @@ while( <> )
 
       if( $r eq $mr )
       {
-        do_edit( $r, '{{db|перенаправление ссылается само на себя}}', '{{db|перенаправление ссылается само на себя}}'."\n#REDIRECT [[$r]]" );
+        do_edit( $r, '{{db|'.$self_redirect_text.'}}', '{{db|'.$self_redirect_text.'}}'."\n#REDIRECT [[$r]]" );
         if( $editor->{errstr} ne '' )
         {
           $failed_count+=1;
@@ -193,7 +204,7 @@ while( <> )
         {
           if(
               $r_text=~m{
-                          ^[\s\t\n\r]*
+                          \A[\s\t\n\r]*
                           \#
                           (?:
                             # I know about "i" modifier.
@@ -217,7 +228,7 @@ while( <> )
               # this happy self-redirect.
               # Here we rely on web-API smartness and suppose edits with
               # the same content will not occur.
-              do_edit( $r, '{{db|перенаправление ссылается само на себя}}', '{{db|перенаправление ссылается само на себя}}'."\n#REDIRECT [[$r]]" );
+              do_edit( $r, '{{db|'.$self_redirect_text.'}}', '{{db|'.$self_redirect_text.'}}'."\n#REDIRECT [[$r]]" );
               if( $editor->{errstr} ne '' )
               {
                 $failed_count+=1;
@@ -232,7 +243,7 @@ while( <> )
             }
             elsif( $target eq $mr )
             {
-              do_edit( $r, '{{db|кольцо из двух перенаправлений}}', '{{db|кольцо из двух перенаправлений}}'."\n#REDIRECT [[$r]]" );
+              do_edit( $r, '{{db|'.$ring_of_two_redirects.'}}', '{{db|'.$ring_of_two_redirects.'}}'."\n#REDIRECT [[$r]]" );
               if( $editor->{errstr} ne '' )
               {
                 $failed_count+=1;
@@ -241,7 +252,7 @@ while( <> )
               }
               else
               {
-                do_edit( $mr, '{{db|кольцо из двух перенаправлений}}', '{{db|кольцо из двух перенаправлений}}'."\n#REDIRECT [[$mr]]" );
+                do_edit( $mr, '{{db|'.$ring_of_two_redirects.'}}', '{{db|'.$ring_of_two_redirects.'}}'."\n#REDIRECT [[$mr]]" );
                 if( $editor->{errstr} ne '' )
                 {
                   $failed_count+=1;
@@ -264,7 +275,7 @@ while( <> )
               }
 
               # resolving the double redirect
-              do_edit( $mr, 'исправление [[ВП:Двойные перенаправления|двойных перенаправлений]] с помощью perlwikipedia', "#REDIRECT [[$target]]");
+              do_edit( $mr, $regular_edit_text, "#REDIRECT [[$target]]");
               if( $editor->{errstr} ne '' )
               {
                 $failed_count+=1;
