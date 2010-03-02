@@ -132,12 +132,13 @@ CREATE PROCEDURE deadend (namespace INT)
 
     DROP TABLE lwl;
 
-    SELECT count(*) INTO cnt
+    SELECT count(*) INTO @deadend_articles_count
            FROM del
            WHERE act>=0;
-    SELECT CONCAT(':: echo total: ', cnt ) as title;
 
-    IF cnt>0
+    SELECT CONCAT(':: echo total: ', @deadend_articles_count ) as title;
+
+    IF @deadend_articles_count>0
       THEN
         IF namespace=0
           THEN

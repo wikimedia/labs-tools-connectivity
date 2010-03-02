@@ -1,13 +1,13 @@
 pagetitle='Vikipedio:Projekto:Ligiteco'
 scope='strukturo de la ĉefa nomspaco'
-par1='Artikolo estas nomita teksto en la ĉefa nomspaco, kies enhavo priskribas unu terminon, uzitan por nomi la tekston.'
+par1='<strong>Artikolo</strong> estas nomita teksto en la ĉefa nomspaco, kies enhavo priskribas unu terminon, uzitan por nomi la tekston.'
 par2='Apartigiloj priskribas kelkajn diversajn signifojn de termino, dum kunordigaj listoj kaj alidirektiloj entute ne enhavas unuecan tekston. Nek unuj, nek aliaj povas esti nomataj artikoloj.'
 par3='Ligiloj el ĥronologiaj artikoloj ne estas kalkulataj dum serĉado de izolitaj artikoloj.'
 par3a="All links considered as equivalent, however links from chrono articles are irrelevant for connectivity analysis, thus <font color=red>it is necessary to configure categories for chronological articles on page</font>"
 par3b="configuration example can be found</font> <a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks\">here</a>"
-par4='Sakvoja artikolo estas artikolo, en kiu forestas ligiloj al ekzistanta neĥronologia paĝo. Do, pli larĝe ol postulo pri ligilo al ie ajn.'
-par4a="Dead-end articles do not contain any links to other existent articles. This defines a wider set than just \"no links at all\" not taking into account where those link go to."
-par5="Isolated articles are not linked from most of the articles. Some of them (e.g. orphaned) are not linked at all."
+par4='<strong>Sakvoja artikolo</strong> estas artikolo, en kiu forestas ligiloj al ekzistanta neĥronologia paĝo. Do, pli larĝe ol postulo pri ligilo al ie ajn.'
+par4a="<strong>Dead-end articles</strong> do not contain any links to other existent articles. This defines a wider set than just \"no links at all\" not taking into account where those link go to."
+par5="<strong>Isolated articles</strong> are not linked from most of the articles. Some of them (e.g. orphaned) are not linked at all."
 zns_contains_="La ĉefa nomspaco enhavas"
 _articles1="artikolon"
 _articles="artikolojn"
@@ -17,6 +17,8 @@ _lists1="liston"
 _lists="listojn"
 _types1="type"
 _types="various types"
+_deadend1="sakvoja"
+_deadend="sakvoja"
 _of_them_crono="el ili estas ĥronologiaj artikoloj"
 _disambigs="de apartigo (apartigiloj)"
 _and_="kaj"
@@ -27,3 +29,4 @@ each_links_="Each article is linked from and links in average"
 _of_links_are_to_chrono="ligiloj en artikoloj ligas al ĥronologiaj artikoloj"
 avg_chrono_is_linked_by_="Averaĝe estas tiom da ligiloj al ĥronologia artikolo"
 _of_articles_are_isolated_of="of articles are isolated articles of"
+determined_="Decidema"

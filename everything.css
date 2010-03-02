@@ -1,0 +1,314 @@
+body {
+    background: white;
+    font-family: 'Arial', 'Liberation Sans', sans-serif;
+    font-size: 10pt;
+    color: black;
+    position: absolute;
+    margin: 1.5em 5%;
+}
+
+#heading h1 {
+    text-align: center;
+    letter-spacing: 1px;
+    margin: 0;
+    font-weight: normal;
+}
+
+#heading h4 {
+    margin: 0;
+    font-weight: normal;
+    font-size: 85%;
+    color: #AAA;
+    text-align: center;
+}
+
+#language {
+    color: white;
+    font-size: 85%;
+    padding: 0 0.3em;
+    background: #F60;
+    text-decoration: none;
+    letter-spacing: 0;
+}
+
+ul.clean {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.clean li {
+    margin: 0;
+    padding: 0;
+}
+
+#updated {
+    float: left;
+    position: absolute;
+    color: #AAA;
+    font-size: 85%;
+}
+
+#powered-by {
+    float: right;
+    color: #CCC;
+    text-align: right;
+    width: 12em;
+    position: absolute;
+    right: 0;
+}
+
+a {
+    color: rgb(16, 82, 204);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+a:visited {
+    color: rgb(82, 16, 204);
+}
+
+a:active {
+    color: rgb(240, 120, 60);
+}
+
+#languages {
+    clear: both;
+    margin-top: 1em;
+    padding: 1em 0;
+    border-top: 3px solid #CCC;
+}
+
+.langgroup {
+    float: left;
+    width: 30%;
+    margin-right: 3%;
+}
+
+.langgroup h6 {
+    font-weight: normal;
+    font-size: 110%;
+    margin: 0 0 1em;
+    color: #888;
+}
+
+.langgroup ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5em;
+}
+
+.langgroup ul li {
+    display: inline-block;
+    padding: 0 0.4em;
+    white-space: nowrap;
+}
+
+#wrapper {
+    margin-top: 4em;
+    margin-bottom: 2em;
+    overflow: hidden;
+}
+
+#content {
+    float: right;
+    width: 70%;
+    overflow: hidden;
+}
+
+#navigation {
+    float: left;
+    width: 30%;
+}
+
+.data {
+    font-weight: bold;
+    font-size: 130%;
+}
+
+.content-block {
+    overflow: hidden;
+    padding-bottom: 1em;
+}
+
+.aside {
+    float: right;
+    width: 55%;
+    margin-left: 5%;
+    padding-left: 3%;
+    border-left: 5px solid #BBB;
+}
+
+.large {
+    font-size: 150%;
+}
+
+#navigation ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#navigation li ul {
+    padding-left: 1.25em;
+}
+
+#navigation li {
+    padding: 0;
+    margin: 0.35em 0.25em 0 0;
+}
+
+.beta {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 0.6em;
+    color: #AAA;
+}
+
+#navigation a {
+    padding: 0 3px;
+    display: inline-block;
+}
+
+a.current {
+    color: white !important;
+    background: rgb(16, 82, 204);
+    padding-top: 3px;
+}
+
+a.current:visited {
+    background: rgb(82, 16, 204);
+}
+
+a.current:active {
+    background: rgb(240, 120, 60);
+}
+a.language {
+    color: #A94;
+}
+
+a.category {
+    color: #B25;
+}
+
+a.language.current {
+    background: #A94;
+}
+
+a.category.current {
+    background: #B25;
+}
+
+a.title.current {
+    background: #F55;
+}
+
+a.creator.current {
+    background: #F55;
+}
+
+img {
+  border:none;
+}
+
+table.infotable {
+  margin: 1em 1em 1em 0;
+  background: #fdfdfd;
+  border: 1px #ddd solid;
+  border-collapse: collapse;
+  font-size: 8pt;
+  white-space:nowrap;
+}
+
+table.infotable th, table.infotable td {
+  border: 1px #ddd solid;
+  padding: 0.2em 0.35em;
+}
+
+table.infotable th {
+  background-color: #f2f2f2;
+  text-align: center;
+}
+
+table.infotable .bright {
+  background-color: #fff9e6;
+}
+
+table.infotable .linkexistent {
+  background-color: burlywood;
+}
+
+table.infotable .translateandlink {
+  background-color: aqua;
+}
+
+table.infotable tr:hover td {
+  background-color: #fff9e6;
+}
+
+fieldset {
+  border:none;
+  padding:0;
+  margin:0;
+}
+
+th img {
+  vertical-align:bottom;
+}
+
+.v-near, .v-near:hover {
+  background-image:url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Yes_check.svg/11px-Yes_check.svg.png');
+}
+
+.v-good, .v-good:hover {
+  background-image:url('http://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Green_check.svg/11px-Orange_check.svg.png');
+}
+
+.v-fail {
+  color:#AAA;
+}
+
+.v-good, .v-near, .v-fail {
+  background-position: 5px center;
+  background-repeat: no-repeat;
+  padding-left:20px !important;
+}
+
+table.e-table {
+  font-size:7.5pt;
+}
+
+table.e-table td {
+  padding:0;
+}
+
+table.e-table th {
+  padding:0 1px 0 0;
+}
+
+table.e-table td.user, table.e-table td.e-right {
+  padding:1px 4px;
+}
+
+table.e-table td.e-supp {
+  background:#66CC44;
+}
+
+table.e-table td.e-opp {
+  background:#EE6633;
+}
+
+table.e-table tr:hover td.e-supp {
+  background:#93D974;
+}
+
+table.e-table tr:hover td.e-opp {
+  background:#F39168;
+}
+
+table.e-table td.e-right {
+  text-align:right
+}

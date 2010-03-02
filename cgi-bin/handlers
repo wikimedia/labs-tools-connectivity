@@ -32,7 +32,7 @@ handle_catlist ()
     local cname=$( url "$name" )
     case "$suggest" in
     'disambig')
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category='$cname'\">$name</a>&lrm;: $volume ($percent%)</li>"
+      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>&lrm;: $volume ($percent%)</li>"
       ;;
     'interlink' | 'translate')
       if [ "$foreign" = '' ]

@@ -28,7 +28,6 @@ CREATE PROCEDURE isolated_for_category (cat_given VARCHAR(255), target_lang VARC
   END;
 //
 
-
 #
 # This procedure is being called from isolated articles categorization tool in
 # order to list all isolated articles for a given category for which there

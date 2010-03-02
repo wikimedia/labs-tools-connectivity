@@ -43,7 +43,7 @@ parse_query() #@ USAGE: parse_query var ...
   set +f
 }
 
-parse_query language interface listby shift
+parse_query language interface listby shift view
 
 if [ "$language" = '' ]
 then
@@ -76,6 +76,11 @@ fi
 interface_url=$( url "$interface" )
 
 stdurl="language=${language_url}&interface=${interface_url}"
+
+if [ "$view" != '' ]
+then
+  stdurl="${stdurl}&view=${view}"
+fi
 
 shiftnext=$((shift+100))
 shiftprev=$((shift-100))

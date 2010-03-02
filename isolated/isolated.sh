@@ -66,6 +66,8 @@ source ../cgi-bin/ts $server
 
 rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log stats_done.log
 
+echo "PROCESSING LANGUAGE $language"
+
 time { 
   {
     echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
@@ -186,11 +188,9 @@ time {
     echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
 
     #
-    # a bugfix for zh-classic problem
-    # to be deleted once the problem is finally fixed
+    # remove closed ng language
     #
-    echo "alter table language_stats modify lang varchar (16) binary not null default '';"
-    echo "update language_stats set lang='zh-classical', ts=language_stats.ts where lang='zh-classic';"
+    echo "delete from language_stats where lang='ng';"
 
     #
     # Signed record to the public log on analysis actuality.

@@ -905,7 +905,6 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DECLARE st VARCHAR(511);
     DECLARE rank INT;
     DECLARE cnt INT;
-    DECLARE overall INT;
 
     SET @starttime=now();
 
@@ -1088,14 +1087,18 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     #
     # Overall isolated articles count.
     #
-    SELECT count(*) INTO overall
+    SELECT count(*) INTO @isolated_articles_count
            FROM isolated
            WHERE act>=0;
 
-    SELECT CONCAT( ':: echo ', overall, ' isolated ', targetset, ' found' );
+    SELECT count(DISTINCT cat) INTO @isolated_articles_types_count
+           FROM isolated
+           WHERE act>=0;
+
+    SELECT CONCAT( ':: echo ', @isolated_articles_count, ' isolated ', targetset, ' of ', @isolated_articles_types_count, ' various types found' );
     
     SELECT CONCAT( ':: out ', @fprefix, targetset, '.stat' );
-    SELECT CONCAT( '{{total amount of isolated articles}}: ', overall );
+    SELECT CONCAT( '{{total amount of isolated articles}}: ', @isolated_articles_count );
 
     # this table is pretty well worn here after isolated processing
     #

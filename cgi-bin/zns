@@ -119,7 +119,7 @@ types_flexies ()
 
   if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
   then
-    if [ "$lists" != '1' ]
+    if [ "$types" != '1' ]
     then
       __types=$_types
     fi
@@ -147,6 +147,18 @@ types_flexies ()
   fi
 }
 
+deadend_flexies ()
+{
+  local deadend=$1
+
+  __deadend=$_deadend1
+
+  if [ "$deadend" != '1' ]
+  then
+    __deadend=$_deadend
+  fi
+}
+
 zns ()
 {
   local articles=$1
@@ -157,39 +169,152 @@ zns ()
   if no_sql_error "$articles $chron $disambigs $cllt"
   then
     global_articles=$articles
-    echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+
+    if [ "$view" = 'new' ]
+    then
+      echo "<div class=\"content-block\">"
+
+      echo "<div class=\"aside\">"
+    fi
+
+    echo "<p>$par1</p>"
+
+    echo "<p>$par2</p>"
+
+    if [ "$view" = 'new' ]
+    then
+      # aside
+      echo "</div>"
+
+      echo "<ul class=\"clean\">"
+    else
+      echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+    fi
 
     articles_flexies $articles passive
-    echo -ne "$zns_contains_ $articles $__articles"
+
+    if [ "$view" = 'new' ]
+    then
+      echo "<li class=\"large\">$zns_contains_ <strong class=\"data\">$articles</strong> $__articles</li>"
+    else
+      echo "$zns_contains_ $articles $__articles"
+    fi
 
     if [ "$chrono" != '0' ]
     then
-      echo "<br />"
-      echo -ne "($chrono $_of_them_crono)"
+      if [ "$view" = 'new' ]
+      then
+        echo "<li>(<strong class=\"data\">$chrono</strong> $_of_them_crono),</li>"
+      else
+        echo "<br />($chrono $_of_them_crono),"
+      fi
     fi
 
     pages_flexies $disambigs
     if [ "$cllt" != '0' ]
     then
-      echo ",<br />"
       lists_flexies $cllt
       if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
       then
-        echo "$disambigs $_disambigs $__pages $_and_ $cllt $_cllt $__lists."
+        if [ "$view" = 'new' ]
+        then
+          echo "<li><strong class=\"data\">$disambigs</strong> $_disambigs $__pages $_and_ <strong class=\"data\">$cllt</strong> $_cllt $__lists.</li>"
+        else
+          echo "<br />$disambigs $_disambigs $__pages $_and_ $cllt $_cllt $__lists."
+        fi
       else
-        echo "$disambigs $__pages $_disambigs $_and_ $cllt $__lists $_cllt."
+        if [ "$view" = 'new' ]
+        then
+          echo "<li><strong class=\"data\">$disambigs</strong> $__pages $_disambigs $_and_ <strong class=\"data\">$cllt</strong> $__lists $_cllt.</li>"
+        else
+          echo "<br />$disambigs $__pages $_disambigs $_and_ $cllt $__lists $_cllt."
+        fi
       fi
     else
-      echo "<br />"
       if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
       then
-        echo "$_and_ $disambigs $_disambigs $__pages."
+        if [ "$view" = 'new' ]
+        then
+          echo "<li>$_and_ <strong class=\"data\">$disambigs</strong> $_disambigs $__pages.</li>"
+        else
+          echo "<br />$_and_ $disambigs $_disambigs $__pages."
+        fi
       else
-        echo "$_and_ $disambigs $__pages $_disambigs."
+        if [ "$view" = 'new' ]
+        then
+          echo "$_and_ <strong class=\"data\">$disambigs</strong> $__pages $_disambigs."
+        else
+          echo "$_and_ $disambigs $__pages $_disambigs."
+        fi
       fi
     fi
 
-    echo '</div></center>'
+    if [ "$view" = 'new' ]
+    then
+      # clean
+      echo "</ul>"
+      # content-block
+      echo "</div>"
+    else
+      echo '</div></center>'
+    fi
+  fi
+}
+
+onchrono ()
+{
+  local clinks=$1
+  local alinks=$2
+  local clratio=$3
+  local linksc=$4
+
+  if no_sql_error "$clinks $alinks $clratio $linksc"
+  then
+    echo "<div class=\"content-block\">"
+
+    if [ $((clinks)) -ne 0 ]
+    then
+      echo "<div class=\"aside\">"
+
+      echo "<p>$par3</p>"
+
+      echo "</div>"
+
+      echo "<ul class=\"clean\">"
+
+      articles_flexies $clinks passive
+      echo "<li>$avg_chrono_links_ <strong class=\"data\">$clinks</strong> $__articles.</li>"
+
+      articles_flexies $alinks passive
+
+      echo "<li>$other_links_ <strong class=\"data\">$alinks</strong> $__articles.</li>"
+    else
+      echo "<div class=\"aside\">"
+
+      echo "<p>$par3a <small><a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=red></small>; $par3b.</p>"
+
+      echo "</div>"
+
+      echo "<ul class=\"clean\">"
+
+      if [ $((alinks)) -ne 0 ]
+      then
+        articles_flexies $alinks passive
+        echo "<li>$each_links_ <strong class=\"data\">$alinks</strong> $__articles.</li>"
+      fi
+    fi
+
+    if [ "$clratio" != "0.000" ] && [ $linksc -ne 0 ]
+    then
+      echo "<li><strong class=\"data\">$clratio %</strong> $_of_links_are_to_chrono.</li>"
+      articles_flexies $linksc active
+      echo "<li>$avg_chrono_is_linked_by_ <strong class=\"data\">$linksc</strong> $__articles.</li>"
+    fi
+
+    # clean
+    echo '</ul>'
+
+    echo "</div>"
   fi
 }
 
@@ -200,31 +325,83 @@ fromchrono ()
 
   if no_sql_error "$clinks $alinks"
   then
+    if [ "$view" = 'new' ]
+    then
+      echo "<div class=\"content-block\">"
+    fi
+
     if [ $((clinks)) -ne 0 ]
     then
+      if [ "$view" = 'new' ]
+      then
+        echo "<div class=\"aside\">"
+      fi
+
       echo "<p>$par3</p>"
 
-      echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+      if [ "$view" = 'new' ]
+      then
+        echo "</div>"
+        echo "<ul class=\"clean\">"
+      else
+        echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+      fi
 
       articles_flexies $clinks passive
-      echo "$avg_chrono_links_ $clinks $__articles.<br />"
+      if [ "$view" = 'new' ]
+      then
+        echo "<li>$avg_chrono_links_ <strong class=\"data\">$clinks</strong> $__articles.</li>"
+      else
+        echo "$avg_chrono_links_ $clinks $__articles.<br />"
+      fi
 
       articles_flexies $alinks passive
-      echo "$other_links_ $alinks $__articles."
 
-      echo '</div></center>'
+      if [ "$view" = 'new' ]
+      then
+       echo "<li>$other_links_ <strong class=\"data\">$alinks</strong> $__articles.</li>"
+       echo '</ul>'
+      else
+        echo "$other_links_ $alinks $__articles."
+        echo '</div></center>'
+      fi
     else
+      if [ "$view" = 'new' ]
+      then
+        echo "<div class=\"aside\">"
+      fi
+
       echo "<p>$par3a <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=red>; $par3b.</p>"
+
+      if [ "$view" = 'new' ]
+      then
+        echo "</div>"
+      fi
 
       if [ $((alinks)) -ne 0 ]
       then
-        echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+        if [ "$view" = 'new' ]
+        then
+          echo "<ul class=\"clean\">"
+        else
+          echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+        fi
 
         articles_flexies $alinks passive
-        echo "$each_links_ $alinks $__articles."
-
-        echo '</div></center>'
+        if [ "$view" = 'new' ]
+        then
+          echo "<li>$each_links_ <strong class=\"data\">$alinks</strong> $__articles.</li>"
+          echo '</ul>'
+        else
+          echo "$each_links_ $alinks $__articles."
+          echo '</div></center>'
+        fi
       fi
+    fi
+
+    if [ "$view" = 'new' ]
+    then
+      echo "</div>"
     fi
   fi
 }
@@ -236,20 +413,52 @@ tochrono ()
 
   if no_sql_error "$clratio $linksc"
   then
+    if [ "$view" = 'new' ]
+    then
+      echo "<div class=\"content-block\">"
+    fi
+
     if [ "$clratio" != "0.000" ] && [ $linksc -ne 0 ]
     then
+      if [ "$view" = 'new' ]
+      then
+        echo "<div class=\"aside\">"
+      fi
+
       echo "<p>$par4</p>"
 
-      echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
-
-      echo "$clratio % $_of_links_are_to_chrono.<br />"
-
       articles_flexies $linksc active
-      echo "$avg_chrono_is_linked_by_ $linksc $__articles."
 
-      echo '</div></center>'
+      if [ "$view" = 'new' ]
+      then
+        echo "</div>"
+        echo "<ul class=\"clean\">"
+        echo "<li><strong class=\"data\">$clratio %</strong> $_of_links_are_to_chrono.</li>"
+        echo "<li>$avg_chrono_is_linked_by_ <strong class=\"data\">$linksc</strong> $__articles.</li>"
+        echo '</ul>'
+      else
+        echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+        echo "$clratio % $_of_links_are_to_chrono.<br />"
+        echo "$avg_chrono_is_linked_by_ $linksc $__articles."
+        echo '</div></center>'
+      fi
     else
+      if [ "$view" = 'new' ]
+      then
+        echo "<div class=\"aside\">"
+      fi
+
       echo "<p>$par4a</p>"
+
+      if [ "$view" = 'new' ]
+      then
+        echo "</div>"
+      fi
+    fi
+
+    if [ "$view" = 'new' ]
+    then
+      echo "</div>"
     fi
   fi
 }
@@ -258,20 +467,49 @@ isoarticles ()
 {
   local ia=$1
   local iatc=$2
+  local da=$3
+  local chrono=$4
 
   if no_sql_error "$ia $iatc"
   then
-    if [ "$ia" != "0.000" ] && [ $iatc -ne 0 ]
+    if [ "$view" = 'new' ]
     then
-      echo "<p>$par5</p>"
+      echo "<div class=\"content-block\">"
+      echo "<div class=\"aside\">"
+    fi
 
+    echo "<p>$par5</p>"
+
+    if [ "$view" = 'new' ]
+    then
+      if [ "$chrono" != '0' ]
+      then
+        echo "<p>$par4</p>"
+      else
+        echo "<p>$par4a</p>"
+      fi
+
+      echo "</div>"
+      echo "<ul class=\"clean\">"
+    else
       echo '<center><div style="align: center; border: 1px solid black; padding: 3px;">'
+    fi
 
-      local iaratio=$( echo "scale=3; 100*$ia/$global_articles" | bc )
+    local iaratio=$( echo "scale=3; 100*$ia/$global_articles" | bc )
 
-      types_flexies $iatc
+    types_flexies $iatc
+
+    if [ "$view" = 'new' ]
+    then
+      deadend_flexies $da passive
+      articles_flexies $da passive
+
+      echo "<li><strong class=\"data\">$iaratio %</strong> $_of_articles_are_isolated_of <strong class=\"data\">$iatc</strong> $__types.</li>"
+      echo "<li>$determined_ <strong class=\"data\">$da</strong> $__deadend $__articles.</li>"
+      echo "</ul>"
+      echo "</div>"
+    else
       echo "$iaratio % $_of_articles_are_isolated_of $iatc $__types."
-
       echo '</div></center>'
     fi
   fi
@@ -282,11 +520,17 @@ resume ()
     {
       echo SELECT \* \
                   FROM zns\;
-      echo SELECT count\(distinct id\), \
-                  count\(distinct cat\) \
-                  FROM orcat0, \
-                       ruwiki0 \
-                  WHERE coolcat=cat\;
+      if [ "$view" = 'new' ]
+      then
+        echo SELECT \* \
+                    FROM inda\;
+      else
+        echo SELECT count\(distinct id\), \
+                    count\(distinct cat\) \
+                    FROM orcat0,          \
+                         ruwiki0          \
+                    WHERE coolcat=cat\;
+      fi
       echo SELECT \* \
                   FROM fch\;
       echo SELECT \* \
@@ -294,18 +538,26 @@ resume ()
     } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       read -r line
                       zns $line
-                      read -r line
-                      isoarticles $line
-                      read -r line
-                      fromchrono $line
-                      read -r line
-                      tochrono $line
+                      if [ "$view" = 'new' ]
+                      then
+                        line=( $line )
+                        chrono=${line[1]}
+                        read -r line
+                        isoarticles $line $chrono
+                        line=''
+                        read -r line
+                        read -r line1
+                        onchrono $line $line1
+                      else
+                        read -r line
+                        isoarticles $line
+                        read -r line
+                        fromchrono $line
+                        read -r line
+                        tochrono $line
+                      fi
                     }
 }
-
-echo "<p>$par1</p>"
-
-echo "<p>$par2</p>"
 
 ####################################################################
 #                                                                  #

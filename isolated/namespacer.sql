@@ -622,6 +622,16 @@ CREATE PROCEDURE store_paraphrases ()
     INSERT INTO zns
     VALUES ( @articles_count, @chrono_articles_count, @disambiguation_pages_count, @collaborative_lists_count );
 
+    #
+    # FCH, from chrono articles
+    #
+
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS fch (
+      clinks INT(8) unsigned NOT NULL default '0',
+      alinks INT(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
     # no need to keep old data because the action has performed
     DELETE FROM fch;
 
@@ -646,6 +656,17 @@ CREATE PROCEDURE store_paraphrases ()
     INSERT INTO tch
     VALUES ( ch_links_prc, ch_lnks_per_ch );
 
+    # permanent storage for inter-run data created here if not exists
+    CREATE TABLE IF NOT EXISTS inda (
+      isolated INT(8) unsigned NOT NULL default '0',
+      isotypes INT(8) unsigned NOT NULL default '0',
+      deadend INT(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
+    DELETE FROM inda;
+
+    INSERT INTO inda
+    VALUES ( @isolated_articles_count, @isolated_articles_types_count, @deadend_articles_count );
   END;
 //
 
@@ -839,16 +860,6 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
         DROP TABLE IF EXISTS ti;
 
         #
-        # FCH, from chrono articles
-        #
-
-        # permanent storage for inter-run data created here if not exists
-        CREATE TABLE IF NOT EXISTS fch (
-          clinks INT(8) unsigned NOT NULL default '0',
-          alinks INT(8) unsigned NOT NULL default '0'
-        ) ENGINE=MyISAM;
-
-        #
         # Gives us l and some others: wr, mr, r filtered, r2nr.
         #
         CALL throwNhull4subsets( 0, 'articles' );
@@ -905,7 +916,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
         DROP TABLE chrono;
 
         #
-        # Three paraphrases for titlepage.
+        # Four paraphrases for titlepage.
         #
         CALL store_paraphrases();
 
