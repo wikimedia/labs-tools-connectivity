@@ -681,7 +681,7 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
     #
     # Lost hope
     #
-    IF @massive_links_recognition_alive='NULL'
+    IF @massive_links_recognition_alive IS NULL
       THEN
         SET @massive_links_recognition_alive='';
     END IF;

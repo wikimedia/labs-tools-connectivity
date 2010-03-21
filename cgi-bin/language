@@ -1,0 +1,310 @@
+handle_a_table ()
+{
+  local count=$1
+  local str=$2
+
+  if no_sql_error "$str"
+  then
+    str=( $str )
+    local lang=${str[0]}
+    local art=${str[1]}
+    local dsmbg=${str[2]}
+    local ambg=${str[3]}
+    local drdi=${str[4]}
+    local core=${str[5]}
+    local iso=${str[6]}
+    local isor=${str[7]}
+    local isocr=${str[8]}
+    local chr=${str[9]}
+    local de=${str[10]}
+    local nc=${str[11]}
+    local cr=${str[12]}
+    local ncc=${str[13]}
+    local tmst=${str[14]}
+    local art_diff=${str[15]}
+    local iso_diff=${str[16]}
+    local iso_cr_diff=${str[17]}
+    local dsmbg_diff=${str[18]}
+    local drdi_diff=${str[19]}
+    local lang_name=${str[20]}
+
+    tmst=${tmst//_/ }
+
+    lang_name=${lang_name//_/ }
+    lang_name=${lang_name//\"/\'}
+
+    local bld=''
+    local bldc=''
+    if [ "$chr" = '0' ] || [ "$chr" = '?' ]
+    then
+      chr='?'
+    else
+      bld='<b>'
+      bldc='</b>'
+    fi
+
+    isor_diff=$( echo "scale=4; $isor-100*($iso-(${iso_diff}))/($art-(${art_diff}))" | bc )
+    if [ "${isor_diff:0:1}" = '.' ]
+    then
+      isor_diff="+0${isor_diff}"
+    else
+      if [ "${isor_diff:0:2}" = '-.' ]
+      then
+        isor_diff="-0.${isor_diff:2}"
+      else
+        if [ "${isor_diff:0:1}" != '-' ]
+        then
+          isor_diff="+${isor_diff}"
+        fi
+      fi
+    fi
+
+    ambg_diff=$( echo "scale=4; $ambg-100*($dsmbg-(${dsmbg_diff}))/($dsmbg-(${dsmbg_diff})+$art-(${art_diff}))" | bc )
+    if [ "${ambg_diff:0:1}" = '.' ]
+    then
+      ambg_diff="+0${ambg_diff}"
+    else
+      if [ "${ambg_diff:0:2}" = '-.' ]
+      then
+        ambg_diff="-0.${ambg_diff:2}"
+      else
+        if [ "${ambg_diff:0:1}" != '-' ]
+        then
+          ambg_diff="+${ambg_diff}"
+        fi
+      fi
+    fi
+
+    if [ $art_diff -ge 0 ]
+    then
+      art_diff="+${art_diff}"
+    fi
+
+    if [ $iso_diff -ge 0 ]
+    then
+      iso_diff="+${iso_diff}"
+    fi
+
+    if [ $iso_cr_diff -ge 0 ]
+    then
+      iso_cr_diff="+${iso_cr_diff}"
+    fi
+
+    if [ $dsmbg_diff -ge 0 ]
+    then
+      dsmbg_diff="+${dsmbg_diff}"
+    fi
+
+    if [ "${drdi_diff:0:1}" != '-' ]
+    then
+      drdi_diff="+${drdi_diff}"
+    fi
+
+    echo "<tr>"
+
+    echo "<td>$bld<a href=\"http://${lang}.wikipedia.org\" target=\"_blank\" title=\"${lang}.wikipedia.org\">$count</a>$bldc</td>"
+
+    if [ "$tmst" = 'never processed yet' ]
+    then
+      echo "<td><span title=\"${lang_name}\">$bld$lang$bldc</span></td>"
+    else
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=zns\" title=\"${lang_name}\">$lang</a>$bldc</td>"
+    fi
+
+    if [ "$dsmbg" = '?' ]
+    then
+      echo "<td><center>$bld$art$bldc</center></td>"
+    else
+      echo "<td><span title=\"${art_diff}\">$bld$art$bldc</span></td>"
+      echo "<td><span title=\"${dsmbg_diff}\">$bld$dsmbg$bldc</span></td>"
+    fi
+
+    if [ "$tmst" = 'never processed yet' ]
+    then
+      echo "<td>$bld$ambg$bldc</td>"
+      echo "<td>$bld$drdi$bldc</td>"
+    else
+      echo "<td><span title=\"${ambg_diff}\">$bld$ambg$bldc</span></td>"
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=disambig\" title=\"${drdi_diff}\">$drdi</a>$bldc</td>"
+    fi
+
+    if [ "$iso" = '?' ]
+    then
+      echo "<td><b>$core</b></td>"
+    else
+      local core_diff=$(( (${art_diff}) - (${iso_diff}) ))
+      if [ $core_diff -ge 0 ]
+      then
+        core_diff="+${core_diff}"
+      fi
+      echo "<td><span title=\"${core_diff}\"><b>$core</b></span></td>"
+    fi
+    echo "<td><span title=\"${iso_diff}\">$bld$iso$bldc</span></td>"
+
+    if [ "$iso" = '?' ]
+    then
+      echo "<td>$bld$isor$bldc</td>"
+    else
+      echo "<td><span title=\"${isor_diff}\"><b>$isor</b></span></td>"
+    fi
+
+    if [ "$tmst" = 'never processed yet' ]
+    then
+      echo "<td>$bld$isocr$bldc</td>"
+    else
+      echo "<td><span title=\"${iso_cr_diff}\">$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=creator\">$isocr</a>$bldc</span></td>"
+    fi
+    if [ "$chr" = '?' ]
+    then
+      if [ "$tmst" = 'never processed yet' ]
+      then
+        echo "<td>$bld$chr$bldc</td>"
+      else
+        echo "<td>$bld<a href=\"http://ru.wikipedia.org/wiki/Википедия:ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks\">$chr</a>$bldc</td>"
+      fi
+    else
+      echo "<td>$bld$chr$bldc</td>"
+    fi
+    echo "<td>$bld$de$bldc</td>"
+    echo "<td>$bld$nc$bldc</td>"
+    if [ "$tmst" = 'never processed yet' ]
+    then
+      echo "<td>$bld$cr$bldc</td>"
+      echo "<td>$bld$ncc$bldc</td>"
+    else
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=categoryspruce\">$cr</a>$bldc</td>"
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=categoryspruce&networkpath=_1\">$ncc</a>$bldc</td>"
+    fi
+    echo "<td>$bld$tmst$bldc</td>"
+    echo "</tr>"
+  else
+    echo $str
+  fi
+}
+
+table_opens ()
+{
+  local dsmbg=$1
+
+  echo "<table class=\"sortable infotable\">"
+  echo "<tr><th>&#8470;</th>"
+  echo "<th>$lang_text</th>"
+  if [ "$dsmbg" = '?' ]
+  then
+    echo "<th>$article_and_disambig_text</th>"
+  else
+    echo "<th>$article_text</th>"
+    echo "<th>$disambig_text</th>"
+  fi
+  echo "<th>$ambig_text</th>"
+  echo "<th>$drdi_text</th>"
+  echo "<th><b class=\"data\">$main_text</b></th>"
+  echo "<th>$iso_text</b></th>"
+  echo "<th>$iso_rat_text</th>"
+  echo "<th>$iso_cr_text</th>"
+  echo "<th>$chrono_text</th>"
+  echo "<th>$deadend_text</th>"
+  echo "<th>$nocat_text</th>"
+  echo "<th>$catring_text</th>"
+  echo "<th>$nocatcat_text</th>"
+  echo "<th>$time_text</th>"
+  echo "</tr>"
+}
+
+table_closes ()
+{
+  echo "</table>"
+}
+
+echo "<center>"
+
+table_opens
+
+handle_a_table 1 "en lots many ? ? huge ? ? ? ? ? ? ? ? never_processed_yet ? ? ? ? ? English"
+
+table_closes
+
+table_opens
+
+{
+  echo SELECT language_stats.lang,                                               \
+              article_count,                                                     \
+              disambig_count,                                                    \
+              disambig_count*100\/\(disambig_count\+article_count\),             \
+              drdi,                                                              \
+              article_count-isolated_count as main,                              \
+              isolated_count,                                                    \
+              isolated_count\*100\/article_count,                                \
+              creator_count,                                                     \
+              chrono_count,                                                      \
+              deadend_count,                                                     \
+              nocat_count,                                                       \
+              catring_count,                                                     \
+              nocatcat_count,                                                    \
+              REPLACE\(ts,\' \',\'_\'\),                                         \
+              article_diff,                                                      \
+              isolated_diff,                                                     \
+              creator_diff,                                                      \
+              disambig_diff,                                                     \
+              drdi_diff,                                                         \
+              CONCAT\(REPLACE\(native_name,\' \',\'_\'\),\'_\/_\',REPLACE\(english_name,\' \',\'_\'\)\) \
+              FROM language_stats,                                               \
+                   toolserver.language                                           \
+              WHERE disambig_recognition\!\=0 and                                \
+                    language_stats.lang=LOWER\(language.lang\)                   \
+              ORDER BY main DESC, article_count DESC\;
+
+  echo SELECT \'change\'\;
+
+  echo SELECT language_stats.lang,                                               \
+              size,                                                              \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              catring_count,                                                     \
+              nocatcat_count,                                                    \
+              REPLACE\(ts,\' \',\'_\'\),                                         \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              \'\?\',                                                            \
+              CONCAT\(REPLACE\(native_name,\' \',\'_\'\),\'_\/_\',REPLACE\(english_name,\' \',\'_\'\)\) \
+              FROM language_stats,                                               \
+                   toolserver.wiki,                                              \
+                   toolserver.language                                           \
+              WHERE disambig_recognition\=0 and                                  \
+                    family\=\'wikipedia\' and                                    \
+                    domain\=CONCAT\(language_stats.lang,\'.wikipedia.org\'\) and \
+                    is_closed\=0 and                                             \
+                    language_stats.lang=LOWER\(language.lang\)                   \
+              ORDER BY size DESC\;
+
+} | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | { 
+                  count=1
+                  while read -r line
+                  do 
+                    if [ "$line" = 'change' ]
+                    then
+                      table_closes
+
+                      table_opens '?'
+                    else
+                      handle_a_table $((count+1)) "$line"
+                      count=$((count+1))
+                    fi
+                  done
+                 }
+
+table_closes
+
+echo '<script type="text/javascript" src="../sortable.js"></script>'
+
+echo "</center>"

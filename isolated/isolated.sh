@@ -185,12 +185,12 @@ time {
     #
     # Prepare a shared log table with actuality data for languages.
     #
-    echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+    echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, disambig_recognition TINYINT UNSIGNED NOT NULL DEFAULT '0', article_count INT UNSIGNED NOT NULL DEFAULT '0', chrono_count INT UNSIGNED NOT NULL DEFAULT '0', disambig_count INT UNSIGNED NOT NULL DEFAULT '0', isolated_count INT UNSIGNED NOT NULL DEFAULT '0', creator_count INT UNSIGNED NOT NULL DEFAULT '0', deadend_count INT UNSIGNED NOT NULL DEFAULT '0', nocat_count INT UNSIGNED NOT NULL DEFAULT '0', drdi REAL(5,3) NOT NULL DEFAULT '0', nocatcat_count INT UNSIGNED NOT NULL DEFAULT '0', catring_count INT UNSIGNED NOT NULL DEFAULT '0', article_diff INT SIGNED NOT NULL DEFAULT '0', isolated_diff INT SIGNED NOT NULL DEFAULT '0', creator_diff INT SIGNED NOT NULL DEFAULT '0', disambig_diff INT SIGNED NOT NULL DEFAULT '0', drdi_diff REAL(5,3) NOT NULL DEFAULT '0', PRIMARY KEY (lang) ) ENGINE=MyISAM;"
 
     #
-    # remove closed ng language
+    # Switch to the language database back to share its data.
     #
-    echo "delete from language_stats where lang='ng';"
+    echo "use u_${usr}_golem_s${dbserver}_${language_sql};"
 
     #
     # Signed record to the public log on analysis actuality.

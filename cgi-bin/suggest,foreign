@@ -30,16 +30,16 @@ then
     echo "<table class=\"sortable infotable\">"
     echo "<tr><th>&#8470;</th><th>$languagename</th><th>$towhat</th><th>$linkableisolates</th></tr>"
     {
-      echo SELECT DISTINCT language.lang,                                                         \
+      echo SELECT DISTINCT LOWER\(language.lang\),                                                \
                   REPLACE\(english_name,\' \',\'_\'\),                                            \
                   REPLACE\(native_name,\' \',\'_\'\),                                             \
                   a_amnt,                                                                         \
                   i_amnt                                                                          \
                   FROM toolserver.wiki                                                            \
                        LEFT JOIN toolserver.language                                              \
-                                 ON TRIM\(TRAILING \'.wikipedia.org\' FROM domain\)=language.lang \
+                                 ON TRIM\(TRAILING \'.wikipedia.org\' FROM domain\)=LOWER\(language.lang\) \
                        LEFT JOIN $ntablename                                                      \
-                                 ON language.lang=$ntablename.lang                                \
+                                 ON LOWER\(language.lang\)=$ntablename.lang                       \
                   WHERE family=\'wikipedia\' AND                                                  \
                         is_closed=0 AND                                                           \
                         a_amnt\>0                                                                 \

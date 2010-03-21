@@ -16,7 +16,11 @@
  #
  # <pre>
 
-
+#
+# Bot may exit due to an error or be stopped manually.
+# For both cases, once it was run again, no reason to keep it to be stopped.
+#
+rm -f ./stop.please
 
 #
 # Later could be changed to any other constant or chosen
@@ -69,6 +73,13 @@ do
   then
     ./isolated.sh $line | tee ${sline[0]}.log
   fi
+
+  if [ -f ./stop.please ]
+  then
+    echo "Golem recognized a polite request for processing interruption"
+    exit 0
+  fi
+
 done < $1
 
 # </pre>

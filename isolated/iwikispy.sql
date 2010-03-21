@@ -527,6 +527,10 @@ CREATE PROCEDURE inter_langs( srv INT )
     SELECT CONCAT( ':: echo Totally, ', count(*), ' languages suggest on linking of isolates' )
            FROM nres;
 
+    ALTER TABLE nres ENGINE=MyiSAM;
+    DROP TABLE IF EXISTS nisres;
+    RENAME TABLE nres TO nisres;
+
     #
     # Languages by articles to translate and isolates those articles could link.
     #
@@ -545,32 +549,27 @@ CREATE PROCEDURE inter_langs( srv INT )
     SELECT CONCAT( ':: echo Totally, ', count(*), ' languages suggest on articles translation for isolates linking' )
            FROM ntres;
 
+    ALTER TABLE ntres ENGINE=MyiSAM;
+    DROP TABLE IF EXISTS nistres;
+    RENAME TABLE ntres TO nistres;
+
     CALL categorystats( 'res', 'sglcatvolume' );
-
-    CALL categorystats( 'tres', 'sgtcatvolume' );
-
     CALL langcategorystats( 'res', 'sglflcatvolume' );
-
-    CALL langcategorystats( 'tres', 'sgtflcatvolume' );
-
-    DROP TABLE nrcatl0;
 
     # suggestor refresh
     ALTER TABLE res ENGINE=MyISAM;
     DROP TABLE IF EXISTS isres;
     RENAME TABLE res TO isres;
 
+
+    CALL categorystats( 'tres', 'sgtcatvolume' );
+    CALL langcategorystats( 'tres', 'sgtflcatvolume' );
+
+    DROP TABLE nrcatl0;
+
     ALTER TABLE tres ENGINE=MyISAM;
     DROP TABLE IF EXISTS istres;
     RENAME TABLE tres TO istres;
-
-    ALTER TABLE nres ENGINE=MyiSAM;
-    DROP TABLE IF EXISTS nisres;
-    RENAME TABLE nres TO nisres;
-
-    ALTER TABLE ntres ENGINE=MyiSAM;
-    DROP TABLE IF EXISTS nistres;
-    RENAME TABLE ntres TO nistres;
 
     # categorizer refresh
     DROP TABLE IF EXISTS sglcatvolume0;

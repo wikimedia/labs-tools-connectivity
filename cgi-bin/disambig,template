@@ -17,8 +17,12 @@ handle_tmpllist ()
   fi
 }
 
-echo "<h3>$top1name</h3>"
-echo "$whatisit1<br><br>"
+echo "<ul class=disambigmenu>"
+echo "<li><a href=\"./go.sh?$stdurl&listby=disambig\">$top3name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,title\">$top2name</a></li>"
+echo "<li class=\"large\">$top1name</li>"
+echo "</ul>"
+echo "<br />$whatisit1<br /><br />"
 
 shifter
 echo "<table class=\"sortable infotable\">"

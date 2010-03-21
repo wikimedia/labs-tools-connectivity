@@ -251,6 +251,9 @@ handle ()
                    } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'emit')
+                   # split transmitted data to separate values
+                   emdata=( ${line:11} )
+
                    # handle dynamical request from sql job report loading
                    # on a given server
                    {
@@ -270,14 +273,9 @@ handle ()
                      # Current replication time and language are stored into
                      # a table readable by everyone.
                      #
-                     echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+                     echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, disambig_recognition TINYINT UNSIGNED NOT NULL DEFAULT '0', article_count INT UNSIGNED NOT NULL DEFAULT '0', chrono_count INT UNSIGNED NOT NULL DEFAULT '0', disambig_count INT UNSIGNED NOT NULL DEFAULT '0', isolated_count INT UNSIGNED NOT NULL DEFAULT '0', creator_count INT UNSIGNED NOT NULL DEFAULT '0', deadend_count INT UNSIGNED NOT NULL DEFAULT '0', nocat_count INT UNSIGNED NOT NULL DEFAULT '0', drdi REAL(5,3) NOT NULL DEFAULT '0', nocatcat_count INT UNSIGNED NOT NULL DEFAULT '0', catring_count INT UNSIGNED NOT NULL DEFAULT '0', article_diff INT SIGNED NOT NULL DEFAULT '0', isolated_diff INT SIGNED NOT NULL DEFAULT '0', creator_diff INT SIGNED NOT NULL DEFAULT '0', disambig_diff INT SIGNED NOT NULL DEFAULT '0', drdi_diff REAL(5,3) NOT NULL DEFAULT '0', PRIMARY KEY (lang) ) ENGINE=MyISAM;"
 
-                     #
-                     # remove closed ng language
-                     #
-                     echo "delete from language_stats where lang='ng';"
-
-                     echo "INSERT INTO language_stats SELECT '$language' as lang, '${line:11}' as ts ON DUPLICATE KEY UPDATE ts='${line:11}';"
+                     echo "INSERT INTO language_stats SELECT '$language' as lang, ${emdata[0]} as disambig_recognition, ${emdata[1]} as article_count, ${emdata[2]} as chrono_count, ${emdata[3]} as disambig_count, ${emdata[4]} as isolated_count, ${emdata[5]} as deadend_count, ${emdata[6]} as nocat_count, ${emdata[7]} as drdi, ${emdata[8]} as nocatcat_count, ${emdata[9]} as catring_count, ${emdata[10]} as creator_count, 0 as article_diff, 0 as isolated_diff, 0 as creator_diff, 0 as disambig_diff, 0 as drdi_diff, '${emdata[11]}' as ts ON DUPLICATE KEY UPDATE disambig_recognition=${emdata[0]}, article_diff=CAST(${emdata[1]}-language_stats.article_count AS SIGNED), article_count=${emdata[1]}, chrono_count=${emdata[2]}, disambig_diff=CAST(${emdata[3]}-language_stats.disambig_count AS SIGNED), disambig_count=${emdata[3]}, isolated_diff=CAST(${emdata[4]}-language_stats.isolated_count AS SIGNED), isolated_count=${emdata[4]}, deadend_count=${emdata[5]}, nocat_count=${emdata[6]}, drdi_diff=${emdata[7]}-language_stats.drdi, drdi=${emdata[7]}, nocatcat_count=${emdata[8]}, catring_count=${emdata[9]}, creator_diff=CAST(${emdata[10]}-language_stats.creator_count AS SIGNED), creator_count=${emdata[10]}, ts='${emdata[11]}';"
                    } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
                    ;;
                 'drop')
@@ -403,9 +401,14 @@ handle ()
          then
            echo user database does not exist for some reason, need to be examined\; nothing will be applied
          else
-           if [ "$line" != '' ]
+           if [ "${line:0:18}" = 'ERROR 1290 (HY000)' ]
            then
-             echo -ne $line\\r\\n >> ${language}.debug.log
+             echo server is not allowed for writing\; nothing can be run
+           else
+             if [ "$line" != '' ]
+             then
+               echo -ne $line\\r\\n >> ${language}.debug.log
+             fi
            fi
          fi
        fi
@@ -413,6 +416,7 @@ handle ()
        do_stat=0
        echo "$do_stat" > ${language}.no_stat.log
        echo "$do_templates" > ${language}.no_templates.log
+       echo "$line" > stop.please
        ;;
     1) echo -ne $line\\r\\n >> $out
        ;;

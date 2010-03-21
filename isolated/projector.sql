@@ -27,7 +27,7 @@ CREATE PROCEDURE get_connectivity_project_root (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    IF @connectivity_project_root='NULL'
+    IF @connectivity_project_root IS NULL
       THEN
         SET @connectivity_project_root='';
     END IF;
@@ -67,7 +67,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    IF @isolated_category_name='NULL'
+    IF @isolated_category_name IS NULL
       THEN
         SET @isolated_category_name='';
     END IF;
@@ -84,7 +84,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        IF @orphan_param_name='NULL'
+        IF @orphan_param_name IS NULL
           THEN
             SET @orphan_param_name='';
         END IF;
@@ -102,7 +102,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        IF @isolated_ring_param_name='NULL'
+        IF @isolated_ring_param_name IS NULL
           THEN
             SET @isolated_ring_param_name='';
         END IF;
@@ -120,7 +120,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        IF @isolated_cluster_param_name='NULL'
+        IF @isolated_cluster_param_name IS NULL
           THEN
             SET @isolated_cluster_param_name='';
         END IF;
@@ -138,7 +138,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        IF @old_orphan_category='NULL'
+        IF @old_orphan_category IS NULL
           THEN
             SET @old_orphan_category='';
         END IF;
@@ -172,7 +172,7 @@ CREATE PROCEDURE get_deadend_category_name (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    IF @deadend_category_name='NULL'
+    IF @deadend_category_name IS NULL
       THEN
         SET @deadend_category_name='';
     END IF;
@@ -201,7 +201,7 @@ CREATE PROCEDURE get_nca_category_name (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    IF @non_categorized_articles_category='NULL'
+    IF @non_categorized_articles_category IS NULL
       THEN
         SET @non_categorized_articles_category='';
     END IF;
@@ -233,7 +233,7 @@ CREATE PROCEDURE get_template_documentation_subpage_name (targetlang VARCHAR(32)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    IF @template_documentation_subpage_name='NULL'
+    IF @template_documentation_subpage_name IS NULL
       THEN
         SET @template_documentation_subpage_name='';
     END IF;
@@ -267,7 +267,7 @@ CREATE PROCEDURE count_disambiguation_templates (targetlang VARCHAR(32))
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    IF @disambiguation_templates_initialized='NULL'
+    IF @disambiguation_templates_initialized IS NULL
       THEN
         SET @disambiguation_templates_initialized=0;
     END IF;

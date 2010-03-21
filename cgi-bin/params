@@ -47,8 +47,14 @@ parse_query language interface listby shift view
 
 if [ "$language" = '' ]
 then
-  language='ru'
-  language_url=$( url "$language" )
+  if [ "$view" != 'new' ]
+  then
+    language='ru'
+    language_url=$( url "$language" )
+    listby='zns'
+  else
+    listby='language'
+  fi
 fi
 language_sql=${language//\-/_}
 
@@ -59,12 +65,15 @@ anysrv=1
 source ./ts ${anysrv}
 anydbserver=$anysrv
 
-#
-# Sorry, could you please tell me which server runs wikipedia for $language?
-#
-dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 )
+if [ "$language" != '' ]
+then
+  #
+  # Sorry, could you please tell me which server runs wikipedia for $language?
+  #
+  dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 )
 
-source ./ts $dbserver
+  source ./ts $dbserver
+fi
 
 translation_required=0
 
@@ -75,7 +84,12 @@ then
 fi
 interface_url=$( url "$interface" )
 
-stdurl="language=${language_url}&interface=${interface_url}"
+if [ "$language" != '' ]
+then
+  stdurl="language=${language_url}&interface=${interface_url}"
+else
+  stdurl="interface=${interface_url}"
+fi
 
 if [ "$view" != '' ]
 then
@@ -117,7 +131,7 @@ if [ "$foreign" != '' ]
 then
   foreignname=$(
                  {
-                    echo "SELECT CONCAT( REPLACE(english_name,' ','_'), ' / ', REPLACE(native_name,' ','_') ) FROM toolserver.language WHERE lang='${foreign}';"
+                    echo "SELECT CONCAT( REPLACE(english_name,' ','_'), ' / ', REPLACE(native_name,' ','_') ) FROM toolserver.language WHERE LOWER(lang)='${foreign}';"
                  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | {
                                    while read -r line
                                      do echo $line

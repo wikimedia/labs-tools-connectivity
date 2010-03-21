@@ -378,6 +378,12 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
         DROP TABLE cnar;
     END IF;
 
+    #
+    # One more infinite loop prevention step.
+    #
+    DELETE FROM r2r
+           WHERE r2r_to=r2r_from;
+
     CALL nr2X2nr();
 
     DROP TABLE nr2r;

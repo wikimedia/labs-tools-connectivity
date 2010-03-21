@@ -42,11 +42,38 @@ ul.clean li {
     padding: 0;
 }
 
+ul.list {
+  list-style-type: square;
+  margin:0 0 0 1.5em;
+  line-height: 1.4em;
+  padding: 0;
+  list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/QSicon_Formatierung_Grey.svg/16px-QSicon_Formatierung_Grey.svg.png');
+  font-size: 12pt;
+}
+
+ul.disambig {
+  list-style-type: square;
+  margin:0 0 0 1.5em;
+  line-height: 1.4em;
+  padding: 0;
+  list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/12px-Disambig.svg.png');
+}
+
+ul.disambigmenu {
+  list-style-type: square;
+  margin:0 0 0 1.5em;
+  line-height: 1.4em;
+  padding: 0;
+  list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/16px-Disambig.svg.png');
+  font-size: 12pt;
+}
+
 #updated {
     float: left;
     position: absolute;
     color: #AAA;
     font-size: 85%;
+    width: 30em;
 }
 
 #powered-by {
@@ -108,10 +135,41 @@ a:active {
     white-space: nowrap;
 }
 
+.widelanggroup {
+    float: left;
+    width: 100%;
+    margin-right: 0;
+}
+
+.widelanggroup h6 {
+    font-weight: normal;
+    font-size: 110%;
+    margin: 0 0 1em;
+    color: #888;
+}
+
+.widelanggroup ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5em;
+}
+
+.widelanggroup ul li {
+    display: inline-block;
+    padding: 0 0.4em;
+    white-space: nowrap;
+}
+
 #wrapper {
     margin-top: 4em;
     margin-bottom: 2em;
-    overflow: hidden;
+    width: 100%;
+}
+
+#widecontent {
+    float: right;
+    width: 100%;
 }
 
 #content {
@@ -171,6 +229,17 @@ a:active {
 #navigation a {
     padding: 0 3px;
     display: inline-block;
+}
+
+#navigation em {
+    font-style: normal;
+    font-weight: normal;
+    padding-left: 3px;
+}
+
+a.bolded {
+    font-size: 110%;
+    font-weight: bold;
 }
 
 a.current {
@@ -233,12 +302,16 @@ table.infotable th {
   text-align: center;
 }
 
+table.infotable td {
+  text-align: right;
+}
+
 table.infotable .bright {
   background-color: #fff9e6;
 }
 
 table.infotable .linkexistent {
-  background-color: burlywood;
+  background-color: #deb887;
 }
 
 table.infotable .translateandlink {
@@ -257,58 +330,4 @@ fieldset {
 
 th img {
   vertical-align:bottom;
-}
-
-.v-near, .v-near:hover {
-  background-image:url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Yes_check.svg/11px-Yes_check.svg.png');
-}
-
-.v-good, .v-good:hover {
-  background-image:url('http://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Green_check.svg/11px-Orange_check.svg.png');
-}
-
-.v-fail {
-  color:#AAA;
-}
-
-.v-good, .v-near, .v-fail {
-  background-position: 5px center;
-  background-repeat: no-repeat;
-  padding-left:20px !important;
-}
-
-table.e-table {
-  font-size:7.5pt;
-}
-
-table.e-table td {
-  padding:0;
-}
-
-table.e-table th {
-  padding:0 1px 0 0;
-}
-
-table.e-table td.user, table.e-table td.e-right {
-  padding:1px 4px;
-}
-
-table.e-table td.e-supp {
-  background:#66CC44;
-}
-
-table.e-table td.e-opp {
-  background:#EE6633;
-}
-
-table.e-table tr:hover td.e-supp {
-  background:#93D974;
-}
-
-table.e-table tr:hover td.e-opp {
-  background:#F39168;
-}
-
-table.e-table td.e-right {
-  text-align:right
 }

@@ -16,11 +16,44 @@ source ./allyouneed
   echo "SELECT @template_documentation_subpage_name;"
   echo "SELECT @disambiguation_templates_initialized;"
 
-  echo "CALL langwiki();"
+  if [ "$view" = 'new' ]
+  then
+    echo "CALL langwiki2();"
+  else
+    echo "CALL langwiki();"
+  fi
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
   read -r wiknspref
-  if [ "$wiknspref" != "$noudb" ]
-  then
+
+  case "${wiknspref:0:20}" in
+  'ERROR 2005 (HY000): ' )
+    errorstring=$nodata
+    ;;
+  'ERROR 2003 (HY000): ' )
+    errorstring="$dbhost $nohost"
+    ;;
+  'ERROR 2013 (HY000): ' )
+    errorstring="$dbhost $nohost"
+    ;;
+  'ERROR 1049 (42000): ' )
+    errorstring="$noudb"
+    ;;
+  'ERROR 1045 (28000): ' )
+    errorstring="$hostisnotallowed"
+    ;;
+  'ERROR 1130 (00000): ' )
+    errorstring="$hostisnotallowed"
+    ;;
+  'ERROR 1146 (42S02) a')
+    errorstring="$dbjustcreated"
+    ;;
+  'ERROR 1054 (42S22) a')
+    errorstring="$dbjustcreated"
+    ;;
+  'ERROR 1129 (HY000): ')
+    errorstring="$dbhostblocked"
+    ;;
+  *)
     read -r catnspref
     read -r project_page
     read -r isolated_category
@@ -37,9 +70,14 @@ source ./allyouneed
     read -r languages1
     read -r languages2
     read -r languages3
-  else
-    errorstring=$noudb
-  fi
+    if [ "$view" = 'new' ]
+    then
+      read -r languages4
+      read -r avgupd4missconf
+    fi
+    ;;
+  esac
+
 
   #
   # Standard page header
@@ -47,35 +85,36 @@ source ./allyouneed
   the_header
 
 #
-# For debugging
+# For debugging output a variable here
 #
 #  echo "<br>$anysrv"
-#  echo "<br>$dbserver"
 #  echo "<br>$wiknspref"
-#  echo "<br>$catnspref"
-#  echo "<br>$project_page"
-#  echo "<br>$isolated_category"
-#  echo "<br>$orphan_param"
-#  echo "<br>$deadend_category"
-#  echo "<br>$nca_category"
-#  echo "<br>$template_doc"
-#  echo "<br>$disambiguating_templates"
 
-  if [ "$neverrun" = '' ]
+  if [ "$errorstring" = '' ]
   then
-    if [ "$listby" = 'categoryspruce' ] || [ $disambiguating_templates -gt 0 ]
+    if [ "$language" = '' ]
     then
-      if [ "$listby" != 'disambig,template' ] || [ "$template_doc" != '' ]
-      then
-        the_content
-      else
-        echo "<h2><font color=red>$templatedoc_improperly_configured <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/TemplateDoc'>[[${wiknspref}${prjp}/TemplateDoc]]</a>.</font></h2>"
-      fi
+      the_content
     else
-      echo "<h2><font color=red>$disambiguationspage_improperly_configured</font></h2>"
+      if [ "$neverrun" = '' ]
+      then
+        if [ "$listby" = 'categoryspruce' ] || [ $disambiguating_templates -gt 0 ]
+        then
+          if [ "$listby" != 'disambig,template' ] || [ "$template_doc" != '' ]
+          then
+            the_content
+          else
+            echo "<h2><font color=red>$templatedoc_improperly_configured <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/TemplateDoc'>[[${wiknspref}${prjp}/TemplateDoc]]</a>.</font></h2>"
+          fi
+        else
+          echo "<h2><font color=red>$disambiguationspage_improperly_configured</font></h2>"
+        fi
+      else
+        echo "<h2><font color=red>$neverrun</font></h2>"
+      fi
     fi
   else
-    echo "<h2><font color=red>$neverrun</font></h2>"
+    echo "<h2><font color=red>$errorstring</font></h2>"
   fi
 
   #

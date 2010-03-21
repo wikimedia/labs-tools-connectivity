@@ -153,9 +153,32 @@ deadend_flexies ()
 
   __deadend=$_deadend1
 
-  if [ "$deadend" != '1' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
   then
-    __deadend=$_deadend
+    if [ "$deadend" != '1' ]
+    then
+      __deadend=$_deadend
+    fi
+  else
+    if [ "${deadend:(-1)}" != '1' ]
+    then
+      __deadend=$_deadend
+    fi
+  fi
+}
+
+determined_flexies ()
+{
+  local determined=$1
+
+  __determined=$_determined1
+
+  if [ "$interface" = 'ru' ] || [ "$interface" = 'uk' ]
+  then
+    if [ "${determined:(-1)}" != '1' ] || [ "${determined:(-2)}" = '11' ]
+    then
+      __determined=$_determined
+    fi
   fi
 }
 
@@ -501,11 +524,12 @@ isoarticles ()
 
     if [ "$view" = 'new' ]
     then
-      deadend_flexies $da passive
-      articles_flexies $da passive
+      determined_flexies $da
+      deadend_flexies $da
+      articles_flexies $da active
 
       echo "<li><strong class=\"data\">$iaratio %</strong> $_of_articles_are_isolated_of <strong class=\"data\">$iatc</strong> $__types.</li>"
-      echo "<li>$determined_ <strong class=\"data\">$da</strong> $__deadend $__articles.</li>"
+      echo "<li>$also_ $__determined <strong class=\"data\">$da</strong> $__deadend $__articles.</li>"
       echo "</ul>"
       echo "</div>"
     else

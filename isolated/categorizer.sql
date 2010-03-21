@@ -124,10 +124,10 @@ CREATE PROCEDURE notcategorized ()
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SELECT count(*) INTO cnt
+    SELECT count(*) INTO @not_categorized_articles_count
            FROM nocat;
 
-    SELECT CONCAT( ':: echo ', cnt, ' articles with no regular categories' );
+    SELECT CONCAT( ':: echo ', @not_categorized_articles_count, ' articles with no regular categories' );
 
     DROP TABLE visible_categories;
 
@@ -141,7 +141,7 @@ CREATE PROCEDURE notcategorized ()
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        IF cnt>0
+        IF @not_categorized_articles_count>0
           THEN
             SELECT count( * ) INTO cnt
                FROM nocat
