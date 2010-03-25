@@ -145,7 +145,7 @@ handle_a_table ()
     then
       echo "<td>$bld$isor$bldc</td>"
     else
-      echo "<td><span title=\"${isor_diff}\"><b>$isor</b></span></td>"
+      echo "<td><span title=\"${isor_diff}\">$bld$isor$bldc</span></td>"
     fi
 
     if [ "$tmst" = 'never processed yet' ]

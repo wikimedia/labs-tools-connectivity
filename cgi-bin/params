@@ -47,14 +47,7 @@ parse_query language interface listby shift view
 
 if [ "$language" = '' ]
 then
-  if [ "$view" != 'new' ]
-  then
-    language='ru'
-    language_url=$( url "$language" )
-    listby='zns'
-  else
-    listby='language'
-  fi
+  listby='language'
 fi
 language_sql=${language//\-/_}
 

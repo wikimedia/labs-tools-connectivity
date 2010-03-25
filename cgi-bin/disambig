@@ -22,8 +22,27 @@ paraphrase ()
 
   if no_sql_error "$l_rate $d_rate $drdi"
   then
-    echo "$l_rate % ($lamnt) $_of_X_does_ $d_rate % $_of_X.<br /><br />"
-    echo "<h3>$drdi_text: $drdi %.</h3><br />"
+    echo "<div class=\"content-block\">"
+
+    echo "<div class=\"aside\">"
+
+    echo "<p>$par1</p>"
+
+    echo "<p>$par2</p>"
+
+    echo "</div>"
+
+    echo "<ul class=\"clean\">"
+
+    echo "<li><strong class=\"data\">$l_rate&nbsp;%</strong> ($lamnt) $_of_X_does_ <strong class=\"data\">$d_rate&nbsp;%</strong> $_of_X.</li>"
+
+    echo "<li><br /></li>"
+
+    echo "<li class=\"large\">$drdi_text: <strong class=\"data\">$drdi&nbsp;%</strong>.</li>"
+
+    echo "</ul>"
+
+    echo "</div>"
   fi
 }
 

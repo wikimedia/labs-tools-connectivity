@@ -16,12 +16,7 @@ source ./allyouneed
   echo "SELECT @template_documentation_subpage_name;"
   echo "SELECT @disambiguation_templates_initialized;"
 
-  if [ "$view" = 'new' ]
-  then
-    echo "CALL langwiki2();"
-  else
-    echo "CALL langwiki();"
-  fi
+  echo "CALL langwiki2();"
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
   read -r wiknspref
 
@@ -70,11 +65,8 @@ source ./allyouneed
     read -r languages1
     read -r languages2
     read -r languages3
-    if [ "$view" = 'new' ]
-    then
-      read -r languages4
-      read -r avgupd4missconf
-    fi
+    read -r languages4
+    read -r avgupd4missconf
     ;;
   esac
 

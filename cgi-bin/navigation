@@ -127,12 +127,7 @@ handle_dates ()
     run=$( dateDiff "$run" )
     actual=$( dateDiff "$actual" )
 
-    if [ "$view" = 'new' ]
-    then
-      echo "<div id=\"updated\"><ul class=\"clean\"><li>$reptext: $rep $agotext</li><li>$runtext: $run $agotext</li><li>$acttext: $actual $agotext</li></ul></div>"
-    else
-      echo "<div style=\"float:left; clear:left; text-align:left; margin: -.5em -2em 0 0; color:#AAA\"><small>$reptext: $rep $agotext<br /> $runtext: $run $agotext<br /> $acttext: $actual $agotext</small></div>"
-    fi
+    echo "<div id=\"updated\"><ul class=\"clean\"><li>$reptext: $rep $agotext</li><li>$runtext: $run $agotext</li><li>$acttext: $actual $agotext</li></ul></div>"
   fi
 }
 
@@ -182,29 +177,18 @@ handle_interlingues ()
 {
   for item in $1
   do
-    if [ "$view" = 'new' ]
+    local bold=0
+    if [ "${item:0:1}" = '!' ]
     then
-      local bold=0
-      if [ "${item:0:1}" = '!' ]
-      then
-        item=${item:1}
-        bold=1
-      fi
-      lswch=$( url_params $item $interface_url $listby_url $shift_url )
-      if [ "$bold" = '1' ]
-      then
-        echo "<li><a href=\"./go.sh?${lswch}\" class=\"bolded\">${item}</a></li>"
-      else
-        echo "<li><a href=\"./go.sh?${lswch}\">${item}</a></li>"
-      fi
+      item=${item:1}
+      bold=1
+    fi
+    lswch=$( url_params $item $interface_url $listby_url $shift_url )
+    if [ "$bold" = '1' ]
+    then
+      echo "<li><a href=\"./go.sh?${lswch}\" class=\"bolded\">${item}</a></li>"
     else
-      if [ "$language" != "$item" ]
-      then
-        lswch=$( url_params $item $interface_url $listby_url $shift_url )
-        echo -ne "<a href=\"./go.sh?${lswch}\">[[${item}:]]</a> "
-      else
-        echo -ne "<font color=red>[[${item}:]]</font> "
-      fi
+      echo "<li><a href=\"./go.sh?${lswch}\">${item}</a></li>"
     fi
   done
 }
@@ -340,51 +324,30 @@ shifter ()
 #
 if_lang ()
 {
-  if [ "$view" = 'new' ]
+  local lswch=''
+  local native_str=''
+  local english_str=''
+  if [ "$interface" = "$language" ]
   then
-    local lswch=''
-    local native_str=''
-    local english_str=''
-    if [ "$interface" = "$language" ]
-    then
-      native_str='<strong>native</strong>'
-    else
-      if [ "$translation_required" != '1' ]
-      then
-        lswch=$( url_params $language_url $language_url $listby_url $shift_url )
-        native_str="<a href=\"./go.sh?$lswch\">native</a>"
-      else
-        native_str="<a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/toolserver_texts\" target=\"_blank\">how to translate</a>"
-      fi
-    fi
-    if [ "$interface" = 'en' ]
-    then
-      english_str="<strong>English</strong>"
-    else
-      lswch=$( url_params $language_url en $listby_url $shift_url )
-      english_str="<a href=\"./go.sh?$lswch\">English</a>"
-    fi
-
-    echo "<h4>Interface: ${english_str} - ${native_str}</h4>"
+    native_str='<strong>native</strong>'
   else
-    echo '<div style="border: 0px; text-align:right; float:right; margin: -.55em 2em 0 0; padding:0px; color:#AAA">'
-
-    local lswch=''
-    if [ "$interface" = "$language" ]
+    if [ "$translation_required" != '1' ]
     then
-      lswch=$( url_params $language_url en $listby_url $shift_url )
-      echo "<a href=\"./go.sh?$lswch\">english version</a>"
+      lswch=$( url_params $language_url $language_url $listby_url $shift_url )
+      native_str="<a href=\"./go.sh?$lswch\">native</a>"
     else
-      if [ "$translation_required" != '1' ]
-      then
-        lswch=$( url_params $language_url $language_url $listby_url $shift_url )
-        echo "<a href=\"./go.sh?$lswch\">native version</a>"
-      else
-        echo "<a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/toolserver_texts\" target=\"_blank\">how to translate</a>"
-      fi
+      native_str="<a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:%D0%A1%D0%B2%D1%8F%D0%B7%D0%BD%D0%BE%D1%81%D1%82%D1%8C/toolserver_texts\" target=\"_blank\">how to translate</a>"
     fi
-    echo '</div>'
   fi
+  if [ "$interface" = 'en' ]
+  then
+    english_str="<strong>English</strong>"
+  else
+    lswch=$( url_params $language_url en $listby_url $shift_url )
+    english_str="<a href=\"./go.sh?$lswch\">English</a>"
+  fi
+
+  echo "<h4>Interface: ${english_str} - ${native_str}</h4>"
 }
 
 the_menu_part ()
@@ -457,9 +420,6 @@ the_menu_part ()
 #
 the_menu ()
 {
-
-if [ "$view" = 'new' ]
-then
   local cur=''
 
   echo "<ul>"
@@ -830,530 +790,6 @@ then
 
   # end of top menu level
   echo "</ul>"
-
-else
-
-  local iterator='1'
-
-  if [ "${disambiguating_templates}" != '0' ]
-  then
-#
-#  1) scope
-#
-    if [ "$listby" = 'zns' ]
-    then
-      echo "<b>${iterator}) <font color=red>$motivation</font></b><br />"
-    else
-      echo -ne "<b>${iterator}) <a href=\"./go.sh?$stdurl&listby=zns\">$motivation</a></b><br />"
-    fi
-    echo "<ul>"
-
-#
-#  * articles to improve
-#
-    echo "<li><b>$articlestoimprove</b></li>"
-
-    echo "<ul>"
-
-#
-#   ** <article title>
-#
-    if [ "$listby" = 'suggest,title' ] && [ "$isotype" = '' ]
-    then
-      echo "<li><font color=red>$title</font></li>"
-    fi
-#
-#  ** articles for links disambiguation
-#
-    if [ "$listby" = 'disambig,title' ]
-    then
-      echo "<li><b><font color=red>$links_disambiguation_for_articles</font></b></li>"
-    else
-      echo "<li><b><a href=\"./go.sh?$stdurl&listby=disambig,title\">$links_disambiguation_for_articles</a></b></li>"
-    fi
-
-    if [ "$template_doc" != '' ]
-    then
-#
-#  ** for templates
-#
-      echo "<ul>"
-      if [ "$listby" = 'disambig,template' ]
-      then
-        echo "<li><font color=red>$for_templates</font></li>"
-      else
-        echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,template\">$for_templates</a></li>"
-      fi
-#
-#  *** <template name>
-#
-      if [ "$listby" = 'suggest,template' ]
-      then
-        echo "<ul>"
-        echo "<li><font color=red>$template</font></li>"
-        echo "</ul>"
-      fi
-
-      echo "</ul>"
-    fi
-#
-#  ** spied wikification <draft>
-#
-    if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'interlink' ] && [ "$foreign" = '' ] && [ "$category" = '' ]
-    then
-      echo "<li><b><font color=red>$spiedwikification</font></b><font color=grey> &lt;draft&gt;</font></li>"
-    else
-      echo "<li><b><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=interlink\">$spiedwikification</a></b><font color=grey> &lt;draft&gt;</font></li>"
-    fi
-#
-#   *** <foreign language name>
-#
-    if [ "$foreign" != '' ]
-    then
-      echo "<ul>"
-      if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'interlink' ] && [ "$category" = '' ]
-      then
-        echo "<li><font color=red>$foreignname</font></li>"
-      else
-        echo "<li><a id=\"seealsolang\" href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=interlink&foreign=$foreign\">$foreignname</a></li>"
-      fi
-#
-#   **** by category
-#
-#
-#   ***** <category name>
-#
-      echo "<ul>"
-      if [ "$category" != '' ]
-      then
-        echo "<li><a id=\"seealsocat\" href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign\">$bycategory</a></li>"
-        echo "<ul>"
-        if [ "$suggest" = 'interlink' ] && [ $listby = 'suggest,foreign,category' ]
-        then
-          echo "<li><font color=red>${catns}:$category</font></li>"
-        else
-          echo "<li><a id=\"seealsocat\" href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign&category=$category_url\">${catns}:$category</a></li>"
-        fi
-        echo "</ul>"
-      else
-        if [ "$suggest" = 'interlink' ] && [ $listby = 'suggest,foreign,category' ]
-        then
-          echo "<li><font color=red>$bycategory</font></li>"
-        else
-          echo "<li><a id=\"seealsocat\" href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign\">$bycategory</a></li>"
-        fi
-      fi
-      echo "</ul>"
-      echo "</ul>"
-    fi
-
-#
-#  ** dead-end articles
-#
-    if [ "$deadend_category" != "$catnspref" ]
-    then
-      echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${deadend_category}\">$deadend</a></b></li>"
-    fi
-
-#
-#  ** non-categorized articles
-#
-    if [ "$nca_category" != "$catnspref" ]
-    then
-      echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${nca_category}\">$nca</a></b></li>"
-    fi
-
-    echo "</ul>"
-
-#
-#  * isolated articles
-#
-    if [ "$isolated_category" != "$catnspref" ]
-    then
-      echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}\">$isolatedarticles</a></b></li>"
-    else
-      echo "<li><b>$isolatedarticles</b></li>"
-    fi
-    echo "<ul>"
-
-    if [ "${project_page}" = '' ]
-    then
-#
-#   ** orphaned articles
-#
-      if [ "$isolated_category" != "$catnspref" ] && [ "$orphan_param" != '' ]
-      then
-        echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}/${orphan_param}0\">$orphanes</a></b></li>"
-      fi
-    else
-#
-#   ** by claster type
-#
-      echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}/bytypes\">$byclastertype</a></b></li>"
-      if [ "$isolated_category" != "$catnspref" ] && [ "$orphan_param" != '' ]
-      then
-#
-#   *** orphaned articles
-#
-        echo "<ul><li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}/${orphan_param}0\">$orphanes</a></li></ul>"
-      fi
-    fi
-
-#
-#   ** by category
-#
-    if [ "$category" = '' ] && [ "$listby" = 'category' ]
-    then
-      echo "<li><b><font color=red>$bycategory</font></b></li>"
-    else
-      echo "<li><b><a href=\"./go.sh?$stdurl&listby=category\">$bycategory</a></b></li>"
-    fi
-    echo "<ul>"
-#
-#   *** <category name>
-#
-    if [ "$category" != '' ]
-    then
-      if [ "$listby" = 'category' ]
-      then
-        echo "<li><font color=red>${catns}:$category</font></li>"
-      else
-        echo "<li><a id=seealsocat href=\"./go.sh?$stdurl&listby=category&category=${category_url}\">${catns}:$category</a></li>"
-      fi
-    fi
-
-#
-#   *** with suggestions
-#
-    if [ "$listby$category$title$suggest" = 'suggest' ]
-    then
-      echo "<li><font color=red>$allsuggestions</font></li>"
-      echo "<ul>"
-    else
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest\">$allsuggestions</a></li>"
-      echo "<ul>"
-#
-#   *** <article title>
-#
-      if [ "$listby" = 'suggest,title' ] && [ "$isotype" != '' ]
-      then
-        echo "<li>$fortext <font color=red>$title</font></li>"
-      fi
-    fi
-
-#
-#   **** disambigue links
-#
-    if [ "$listby" = 'suggest,category' ] && [ "$suggest" = 'disambig' ] && [ "$category" = '' ]
-    then
-      echo "<li><font color=red>$resolvedisambigs</font></li>"
-    else
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=disambig\">$resolvedisambigs</a></li>"
-    fi
-#
-#   ***** <category name>
-#
-    if [ "$category" != '' ]
-    then
-      if [ "$listby" = 'suggest,category' ] && [ "$suggest" = 'disambig' ]
-      then
-        echo "<ul><li><font color=red>${catns}:$category</font></li></ul>"
-      else
-        echo "<ul><li><a id=seealsocat href=\"./go.sh?$stdurl&listby=suggest,category&suggest=disambig&category=${category_url}\">${catns}:$category</a></li></ul>"
-      fi
-    fi
-
-#
-#   *** iwiki spy
-#
-    echo "<li>$justlink</li>"
-    echo "<ul>"
-#
-#   ***** spy links
-#
-    if [ "$listby" = 'suggest,category' ] && [ "$suggest" = 'interlink' ] && [ "$category" = '' ]
-    then
-      echo "<li><font color=red>$parttranslate</font></li>"
-    else
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=interlink\">$parttranslate</a></li>"
-    fi
-#
-#   ****** <category name>
-#
-    if [ "$category" != '' ]
-    then
-      echo "<ul>"
-      if [ "$listby" = 'suggest,category' ] && [ "$suggest" = 'interlink' ]
-      then
-        echo "<li><font color=red>${catns}:$category</font></li>"
-      else
-        echo "<li><a id=seealsocat href=\"./go.sh?$stdurl&listby=suggest,category&suggest=interlink&category=${category_url}\">${catns}:$category</a></li>"
-      fi
-#
-#   ******* by language
-#
-      if [ "$listby" = 'suggest,category,foreign' ]
-      then
-        echo "<ul>"
-        if [ "$suggest" = 'interlink' ] && [ "$foreign" = '' ]
-        then
-          echo "<li><font color=red>$bylanguagespied</font></li>"
-        else
-          echo "<li><a id=seealsolang href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=interlink&category=${category_url}\">$bylanguagespied</a></li>"
-        fi
-#
-#   ******** <foreign language name>
-#
-        if [ "$foreign" != '' ]
-        then
-          echo "<ul>"
-          if [ "$suggest" = 'interlink' ]
-          then
-            echo "<li><font color=red>$foreignname</font></li>"
-          else
-            echo "<li><a id=\"seealsolang\" href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=interlink&category=${category_url}&foreign=$foreign\">$foreignname</a></li>"
-          fi
-          echo "</ul>"
-        fi
-
-        echo "</ul>"
-      fi
-
-      echo "</ul>"
-    fi
-
-#
-#   ***** translate & link
-#
-    if [ "$listby" = 'suggest,category' ] && [ "$suggest" = 'translate' ] && [ "$category" = '' ]
-    then
-      echo "<li><font color=red>$translatenlink</font></li>"
-    else
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=translate\">$translatenlink</a></li>"
-    fi
-#
-#   ****** <category name>
-#
-
-    if [ "$category" != '' ]
-    then
-      echo "<ul>"
-      if [ "$listby" = 'suggest,category' ] && [ "$suggest" = 'translate' ]
-      then
-        echo "<li><font color=red>${catns}:$category</font></li>"
-      else
-        echo "<li><a id=seealsocat href=\"./go.sh?$stdurl&listby=suggest,category&suggest=translate&category=${category_url}\">${catns}:$category</a></li>"
-      fi
-#
-#   ******* by language
-#
-      if [ "$listby" = 'suggest,category,foreign' ]
-      then
-        echo "<ul>"
-        if [ "$suggest" = 'translate' ] && [ "$foreign" = '' ]
-        then
-          echo "<li><font color=red>$bylanguagespied</font></li>"
-        else
-          echo "<li><a id=seealsolang href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=translate&category=${category_url}\">$bylanguagespied</a></li>"
-        fi
-#
-#   ******** <foreign language name>
-#
-        if [ "$foreign" != '' ]
-        then
-          echo "<ul>"
-          if [ "$suggest" = 'translate' ]
-          then
-            echo "<li><font color=red>$foreignname</font></li>"
-          else
-            echo "<li><a id=\"seealsolang\" href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=translate&category=${category_url}&foreign=$foreign\">$foreignname</a></li>"
-          fi
-          echo "</ul>"
-        fi
-
-        echo "</ul>"
-      fi
-
-      echo "</ul>"
-    fi
-
-    echo "</ul>"
-    echo "</ul>"
-    echo "</ul>"
-
-#
-#   ** by creator
-#
-    if [ "$listby" = 'creator' ] && [ "$user" = '' ] && [ "$registered" != '0' ]
-    then
-      echo "<li><b><font color=red>$bycreator</font></b></li>"
-    else
-      echo "<li><b><a href=\"./go.sh?$stdurl&listby=creator\">$bycreator</a></b></li>"
-#
-#   *** <user name>
-#
-      if [ "$user" != '' ]
-      then
-        echo "<ul><li><font color=red>${usrns}:$user</font></li></ul>"
-      fi
-    fi
-
-#
-#   ** lists
-#
-    if [ "$listby" = 'lists' ]
-    then
-      echo "<li><b><font color=red>$wholelist</font></b></li>"
-    else
-      echo -ne "<li><b><a href=\"./go.sh?$stdurl&listby=lists\">$wholelist</a></b></li>"
-    fi
-
-    case "$listby,$suggest" in
-     'suggest,disambig')
-#
-#   *** disambigue links
-#
-       echo "<ul><li><font color=red>$resolvedisambigs</font></li></ul>"
-       ;;
-     'suggest,interlink')
-#
-#   *** spy links
-#
-       echo "<ul><li><font color=red>$parttranslate</font></li></ul>"
-       ;;
-     'suggest,translate')
-#
-#   *** translate & link
-#
-       echo "<ul><li><font color=red>$translatenlink</font></li></ul>"
-       ;;
-    *) ;;
-    esac
-
-    if [ "$listby" = 'creator' ] && [ "$user" = '' ] && [ "$registered" = '0' ]
-    then
-      echo "<ul><li><font color=red>$anonymiso</font></li></ul>"
-    fi
-
-    if [ "${project_page}" != '' ]
-    then
-#
-#  ** graphs
-#
-      echo "<li><b><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}/cltgdata\">$graphdata</a></b></li>"
-    fi
-
-    echo "</ul>"
-
-#
-#  * articles to translate <draft>
-#
-    if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'translate' ] && [ "$foreign" = '' ] && [ "$category" = '' ]
-    then
-      echo "<li><b><font color=red>$articlestotranslate</font></b><font color=grey> &lt;draft&gt;</font></li>"
-    else
-      echo "<li><b><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=translate\">$articlestotranslate</a></b><font color=grey> &lt;draft&gt;</font></li>"
-    fi
-#
-#   ** <foreign language name>
-#
-    if [ "$foreign" != '' ]
-    then
-      echo "<ul>"
-      if [ "$suggest" = 'translate' ] && [ "$category" = '' ]
-      then
-        echo "<li><font color=red>$foreignname</font></li>"
-      else
-        echo "<li><a id=\"seealsolang\" href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=translate&foreign=$foreign\">$foreignname</a></li>"
-      fi
-#
-#   *** <category name>
-#
-      if [ "$category" != '' ]
-      then
-        echo "<ul>"
-        if [ "$suggest" = 'translate' ] && [ $listby = 'suggest,foreign,category' ]
-        then
-          echo "<li><font color=red>$category</font></li>"
-        else
-          echo "<li><a id=\"seealsocat\" href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign&category=$category_url\">$category</a></li>"
-        fi
-        echo "</ul>"
-      fi
-      echo "</ul>"
-    else
-      echo "<br />"
-    fi
-
-    echo "</ul>"
-
-    iterator=$((iterator+1))
-
-#
-#  2) disambiguate links
-#
-    if [ "$listby" = 'disambig' ]
-    then
-      echo "<b>${iterator}) <font color=red>$disambig</font></b><br />"
-    else
-      echo "<b>${iterator}) <a href=\"./go.sh?$stdurl&listby=disambig\">$disambig</a></b><br />"
-    fi
-
-    echo "<br />"
-
-    iterator=$((iterator+1))
-  fi
-
-#
-#  3) categorytree connectivity
-#
-    if [ "$listby" = 'categoryspruce' ] && [ "$networkpath" = '' ]
-  then
-    echo "<b>${iterator}) <font color=red>$cattreecon</font></b><br />"
-  else
-    echo "<b>${iterator}) <a href=\"./go.sh?$stdurl&listby=categoryspruce\">$cattreecon</a></b><br />"
-#
-#   * <network path>
-#
-    if [ "$networkpath" != '' ]
-    then
-      echo "<ul><li><font color=red><small>$networkpath</small></font></li></ul>"
-    fi
-  fi
-  echo "<br />"
-
-  iterator=$((iterator+1))
-
-#
-#  4) contacts
-#
-  echo "<b>${iterator}) $contactme</b><br />"
-  echo "<ul>"
-  echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
-  echo "<li>mashiah $attext <a href="irc://irc.freenode.net/wikipedia-connectivity">#wikipedia-connectivity</a></li>"
-  echo "</ul>"
-  echo "<p>$srclocation <a href="https://fisheye.toolserver.org/browse/golem">toolserver fisheye</a>.</p>"
-
-#
-# [[:<interlingues>]]
-#
-  echo "<hr />"
-
-  echo -ne "<h2>"
-
-  handle_interlingues "$languages1"
-
-  echo '</h2><h3>'
-
-  handle_interlingues "$languages2"
-
-  echo '</h3><h4>'
-
-  handle_interlingues "$languages3"
-
-  echo -ne "</h4>"
-
-fi
 }
 
 #
@@ -1422,16 +858,12 @@ the_header ()
      ;;
   esac
 
-  if [ "$view" = 'new' ]
-  then
-
-#﻿<?xml version="1.0" encoding="UTF-8" ?>
-    cat << EOM
+  cat << EOM
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 EOM
-    echo "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"$language\" xml:lang=\"$language\">"
-    cat << EOM
+  echo "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"$language\" xml:lang=\"$language\">"
+  cat << EOM
  <!--
 
    Designed by [[:ru:user:Kalan]]
@@ -1441,116 +873,66 @@ EOM
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 EOM
 
-    echo "<title>$pagetitle</title>"
+  echo "<title>$pagetitle</title>"
 
-    cat << EOM
+  cat << EOM
   <link rel="stylesheet" type="text/css" href="../everything.css" /> 
  </head> 
  <body> 
 EOM
 
-    echo "<div id="heading">"
+  echo "<div id="heading">"
 
+  if [ "$language" != '' ]
+  then
+    how_actual $actcode
+  fi
+
+  echo "<div id=\"powered-by\">Powered&nbsp;by <a href=\"/\">Wikimedia&nbsp;Toolserver</a></div>"
+
+  #
+  # The page header at the center
+  #
+  if [ "${project_page}" = '' ]
+  then
+    echo "<h1>[[$mainh1]]"
     if [ "$language" != '' ]
     then
-
-      how_actual $actcode
-
+      echo " <a id="language" href="#languages">$language</a>"
     fi
+    echo "</h1>"
+  else
+    echo "<h1>[[<a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">$mainh1</a>]] <a id="language" href="#languages">$language</a></h1>"
+  fi
 
-    echo "<div id=\"powered-by\">Powered&nbsp;by <a href=\"/\">Wikimedia&nbsp;Toolserver</a></div>"
+  if [ "$language" != '' ]
+  then
 
-    #
-    # The page header at the center
-    #
-    if [ "${project_page}" = '' ]
-    then
-      echo "<h1>[[$mainh1]]"
-      if [ "$language" != '' ]
-      then
-        echo " <a id="language" href="#languages">$language</a>"
-      fi
-      echo "</h1>"
-    else
-      echo "<h1>[[<a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">$mainh1</a>]] <a id="language" href="#languages">$language</a></h1>"
-    fi
+    if_lang
 
-    if [ "$language" != '' ]
-    then
+  fi
 
-      if_lang
+  echo "</div>"
 
-    fi
+  echo "<div id=\"wrapper\">"
+
+  if [ "$language" != '' ]
+  then
+
+    echo "<div id=\"navigation\">"
+
+    the_menu
 
     echo "</div>"
 
-    echo "<div id=\"wrapper\">"
-
-    if [ "$language" != '' ]
-    then
-
-      echo "<div id=\"navigation\">"
-
-      the_menu
-
-      echo "</div>"
-
-      echo "<div id=\"content\">"
-
-    fi
-
-  else
-
-    cat << EOM
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
- <head>
-  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-EOM
-
-    echo "<title>$pagetitle</title>"
-
-    cat << EOM
-  <link rel="stylesheet" type="text/css" href="../main.css" media="all" />
- </head>
- <body>
-<a href="/"><img id="poweredbyicon" src="../wikimedia-toolserver-button.png" alt="Powered by Wikimedia-Toolserver" /></a>
-EOM
-
-    how_actual $actcode
-
-    #
-    # Switching between interface languages at the top right
-    #
-    if_lang
-
-    #
-    # The page header at the center
-    #
-    if [ "${project_page}" = '' ]
-    then
-      echo "<h1>[[$mainh1]] .$language</h1>"
-    else
-      echo "<h1><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">[[$mainh1]] .$language</a></h1>"
-    fi
-
-    echo "<table><tr><td width=30% border=10>"
-
-    #
-    # The menu
-    #
-    the_menu
-
-    echo "</td><td width=70%>"
+    echo "<div id=\"content\">"
 
   fi
 }
 
 the_content ()
 {
-  if [ "$view" != 'new' ] || [ "$listby" != 'zns' ]
+  if [ "$listby" != 'zns' ]
   then
     echo "<h1>$thish1</h1>"
   fi
@@ -1596,39 +978,23 @@ the_content ()
 
 the_footer ()
 {
-  if [ "$view" = 'new' ]
+  if [ "$language" != '' ]
   then
-
-    if [ "$language" != '' ]
-    then
-      # closes the content open in the_header
-      echo "</div>"
-    fi
-
-    # closes the wrapper open in the_header
+    # closes the content open in the_header
     echo "</div>"
-
-    if [ "$view" = 'new' ] && [ "$language" != '' ]
-    then
-      interlingues
-    fi
-
-    cat << EOM
-
- </body>
-</html>
-EOM
-
-  else
-
-    cat << EOM
-</td>
-</tr>
-</table>
-
- </body>
-</html>
-EOM
-
   fi
+
+  # closes the wrapper open in the_header
+  echo "</div>"
+
+  if [ "$language" != '' ]
+  then
+    interlingues
+  fi
+
+  cat << EOM
+
+ </body>
+</html>
+EOM
 }
