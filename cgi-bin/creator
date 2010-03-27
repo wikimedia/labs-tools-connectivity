@@ -20,15 +20,18 @@ handle_userlist ()
   fi
 }
 
-if [ "$user" = '' ] || [ "$registered" = '' ]
-then
-  if [ "$registered" = '0' ] && [ "$user" = '' ]
-  then
-    echo "<br />$anonymous_s<br />"
-  else
-    echo "<br>$whatisit<br>"
-  fi
-fi
+search_form ()
+{
+  local de=$1
+
+  echo $example $1
+  echo "<FORM action=\"./go.sh\" method=\"get\">"
+  echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
+  echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
+  echo "<INPUT type=hidden name=\"listby\" value=\"$listby\">"
+  echo "<P><font color=red>$unamereq: <INPUT name=user type=\"text\"> $activateform</font></P>"
+  echo "</FORM>"
+}
 
 UPPERFIRST=`echo "$user" | cut -c 1  |tr '[a-z]' '[A-Z]'`
 user=$( echo "$user" | sed 's/./'$UPPERFIRST'/'1)
@@ -42,6 +45,9 @@ then
     user_sql=''
   fi
   usersql=${user//\"/\"\'\"\'\"}
+
+  search_form "$user"
+
   echo -ne "<br />$list1expl "
   if [ "$registered" = '0' ]
   then
@@ -72,6 +78,10 @@ then
 else
   if [ "$registered" = '0' ]
   then
+    search_form "$default_example"
+
+    echo "<br />$anonymous_s<br />"
+
     echo "<table class=\"sortable infotable\">"
     echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
     {
@@ -94,10 +104,6 @@ else
   else
     if [ "$registered" = '' ]
     then
-      echo "<h4>$list2name</h4>"
-
-      shifter
-      echo "<ol start=$((shift+1))>"
       {
         echo SELECT CONCAT\( \'\"\', REPLACE\(user_text,\' \',\'\_\'\), \'\"\' \), \
                     sign\(user\),                      \
@@ -107,12 +113,30 @@ else
                     ORDER BY cnt DESC                  \
                     LIMIT $((shift)),100\;
       } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                        count=0
                         while read -r line
-                          do handle_userlist "$line"
+                        do 
+                          data[$count]=$( handle_userlist "$line" )
+                          count=$((count+1))
                         done
+
+                        line=${data[$(($RANDOM*100/32768))]}
+                        line=${line%\<\/a*\>}
+
+                        search_form "${line#\<*\'\>}"
+
+                        echo "<br />$whatisit<br />"
+
+                        echo "<h4>$list2name</h4>"
+
+                        shifter
+                        echo "<ol start=$((shift+1))>"
+
+                        echo ${data[@]}
+
+                        echo "</ol>"
+                        shifter
                       }
-      echo "</ol>"
-      shifter
 #
 #    this could be for the list of all isolated articles
 #    created by registered users

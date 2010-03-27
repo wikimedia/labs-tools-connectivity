@@ -1,0 +1,46 @@
+handle_isoage ()
+{
+  local line=$1
+
+  if no_sql_error "$line"
+  then
+    line=( $line )
+    local nm=${line[0]}
+    nm=${nm//_/ }
+    local ts=${line[1]}
+    local nm_url=url $nm
+
+    local ldate=''
+
+    if [ "$interface" = 'ru' ] || [ "$interface" = 'uk' ]
+    then
+      ldate=${ts:6:2}/${ts:4:2}/${ts:0:4}
+    else
+      ldate=${ts:0:4}/${ts:4:2}/${ts:6:2}
+    fi
+
+    echo "<li><a href='./go.sh?$stdurl&listby=suggest,title&title=$nm'>$nm</a>&lrm; <span>$ldate ${ts:8:2}:${ts:10:2}:${ts:12:2}</span></li>"
+  fi
+}
+
+echo "<br />$whatisit<br />"
+
+echo "<h4>$list2name</h4>"
+
+shifter
+echo "<ol class=\"dated\" start=$((shift+1))>"
+{
+  echo SELECT title,                             \
+              stamp                              \
+              FROM creators0,                    \
+                   ruwiki0                       \
+              WHERE iid=id                       \
+              ORDER BY stamp ASC                 \
+              LIMIT $((shift)),100\;
+} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                  while read -r line
+                    do handle_isoage "$line"
+                  done
+                }
+echo "</ol>"
+shifter

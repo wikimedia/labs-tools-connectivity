@@ -1,6 +1,7 @@
 pagetitle="Isolated article creators for ${language}wiki"
 thish1="isolated article creators for ${language}wiki"
-example="Example: [placeholder]"
+example="Example:"
+default_example="[placeholder]"
 unamereq="Enter a user name"
 list1expl="this is the list of isolated articles created by"
 list2name="users on amount of isolated articles created"

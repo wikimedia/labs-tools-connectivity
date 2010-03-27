@@ -99,80 +99,124 @@ suggestions ()
 
   convertedtitle=${titlesql// /_}
 
-  echo "<h3>$sggclause8</h3>"
-  echo "$sggclause9<br />"
 
-  echo "<ul class=disambig>"
-  {
-    echo CALL suggestd\(\"$convertedtitle\"\, \'${language}\', 0\)\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+  local data=$(
+                {
+                  echo CALL suggestd\(\"$convertedtitle\"\, \'${language}\', 0\)\;
+                } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
                       do handle_dlist "$line"
                     done
                   }
-  echo "</ul><br />"
-  echo $listend
+              )
+
+  if [ "$data" != '' ]
+  then
+    echo "<h3>$sggclause8</h3>"
+    echo "$sggclause9<br />"
+
+    echo "<ul class=disambig>"
+
+    echo $data
+    echo "</ul><br />"
+    echo $listend
+  fi
 
   if [ "$isotype" != '' ]
   then
-    echo "<h3>$sggclause0</h3>"
-    echo "$sggclause1<br />"
-    echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
-
-    echo "<ol>"
-    {
-      echo CALL dsuggest\(\"$convertedtitle\"\, \'${language}\'\)\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+    data=$(
+            {
+              echo CALL dsuggest\(\"$convertedtitle\"\, \'${language}\'\)\;
+            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
                         do handle_dsmbg "$line"
                       done
                     }
-    echo "</ol>"
-    echo $listend
+          )
 
-    echo "<h3>$sggclause4</h3>"
-    echo "$sggclause5<br />"
+    if [ "$data" != '' ]
+    then 
+      echo "<h3>$sggclause0</h3>"
+      echo "$sggclause1<br />"
+      echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
 
-    echo "<ol>"
-    {
-      echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+      echo "<ol>"
+
+      echo $data
+
+      echo "</ol>"
+      echo $listend
+    fi
+
+    data=$(
+            {
+              echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
+            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
                         do handle_lnk "$line"
                       done
                     }
-    echo "</ol>"
-    echo $listend
+          )
 
-    echo "<h3>$sggclause6</h3>"
-    echo "$sggclause7<br />"
+    if [ "$data" != '' ]
+    then 
+      echo "<h3>$sggclause4</h3>"
+      echo "$sggclause5<br />"
 
-    echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
+      echo "<ol>"
 
-    echo "<ol>"
-    {
-      echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+      echo $data
+
+      echo "</ol>"
+      echo $listend
+    fi
+
+    data=$(
+            {
+              echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
+            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       lang=''
                       while read -r line
                         do handle_trns "$line"
                       done
                     }
-    echo "</ol>"
-    echo $listend
-  else
-    echo "<h3>$sggclause10</h3>"
-    echo "$sggclause11<br />"
+          )
 
-    {
-      echo CALL interwiki_suggest_wikify\(\"$convertedtitle\"\)\;
-    } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+    if [ "$data" != '' ]
+    then 
+      echo "<h3>$sggclause6</h3>"
+      echo "$sggclause7<br />"
+
+      echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
+
+      echo "<ol>"
+
+      echo $data
+
+      echo "</ol>"
+      echo $listend
+    fi
+  else
+    data=$(
+            {
+              echo CALL interwiki_suggest_wikify\(\"$convertedtitle\"\)\;
+            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
                         do handle_wikify "$line"
                       done
                     }
-    echo "<br />"
-    echo $listend
+          )
+
+    if [ "$data" != '' ]
+    then 
+      echo "<h3>$sggclause10</h3>"
+      echo "$sggclause11<br />"
+
+      echo $data
+
+      echo "<br />"
+      echo $listend
+    fi
   fi
 }
 

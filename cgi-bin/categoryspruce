@@ -56,44 +56,62 @@ echo "</small></td></tr></table></center>"
 
 if [ "$networkpath" = '' ]
 then
-  echo "<h4>$queryname1</h4>"
-  echo "<font color=red>"
-  echo $query1note1
-  echo $query1note2
-  echo "</font>"
-  
-  echo "<ol>"
-  {
-    echo SELECT r_title  \
-                FROM r14 \
-                ORDER BY r_title ASC\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-                    while read -r line
-                      do handle_crlist "$line"
-                    done
-                  }
-  echo "</ol>"
-  echo $listend
 
-  echo "<h4>$queryname2</h4>"
-  echo "<font color=red>"
-  echo $query2note1
-  echo "<ul>"
-  echo "<li>$query2note2</li>"
-  echo "<li>$query2note3</li>"
-  echo "</ul>"
-  echo "</font>"
-  
-  echo "<ol>"
-  {
-    echo SELECT wr_title  \
-                FROM wr14 \
-                ORDER BY wr_title ASC\;
-  } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+  data=$(
+          {
+            echo SELECT r_title  \
+                        FROM r14 \
+                        ORDER BY r_title ASC\;
+          } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
                       do handle_crlist "$line"
                     done
                   }
-  echo "</ol>"
-  echo $listend
+        )
+
+  if [ "$data" != '' ]
+  then
+    echo "<h4>$queryname1</h4>"
+    echo "<font color=red>"
+    echo $query1note1
+    echo $query1note2
+    echo "</font>"
+  
+    echo "<ol>"
+
+    echo $data
+
+    echo "</ol>"
+    echo $listend
+  fi
+
+  data=$(
+          {
+            echo SELECT wr_title  \
+                        FROM wr14 \
+                        ORDER BY wr_title ASC\;
+          } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                    while read -r line
+                      do handle_crlist "$line"
+                    done
+                  }
+        )
+
+  if [ "$data" != '' ]
+  then
+    echo "<h4>$queryname2</h4>"
+    echo "<font color=red>"
+    echo $query2note1
+    echo "<ul>"
+    echo "<li>$query2note2</li>"
+    echo "<li>$query2note3</li>"
+    echo "</ul>"
+    echo "</font>"
+    echo "<ol>"
+
+    echo $data
+
+    echo "</ol>"
+    echo $listend
+  fi
 fi

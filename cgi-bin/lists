@@ -1,4 +1,10 @@
 echo "<ul class=list>"
+
+if [ "$isolated_category" != "$catnspref" ]
+then
+  echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}\">$fl</a>"
+fi
+
 echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=disambig\">$fl_disambig</a></li>"
 
 echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=interlink\">$fl_interlink</a></li>"
@@ -7,20 +13,4 @@ echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=translate\">$fl_trans
 
 echo "<li><a href=\"./go.sh?$stdurl&listby=creator&registered=0\">$fl_anonym</a></li>"
 
-echo "<li class=\"large\">$fl_wr</li>"
-
 echo "</ul>"
-
-echo "<br /><font color=red>$fl_wr_desc</font><br />"
-echo "<ol>"
-{
-  echo SELECT wr_title \
-              FROM wr0 \
-              ORDER BY wr_title ASC\;
-} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-                  while read -r line
-                    do handle_rlist "$line"
-                  done
-                }
-echo "</ol>"
-echo $listend

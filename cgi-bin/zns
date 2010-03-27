@@ -471,3 +471,29 @@ resume ()
 ####################################################################
 
 resume
+
+
+data=$(
+        {
+          echo SELECT wr_title \
+                      FROM wr0 \
+                      ORDER BY wr_title ASC\;
+        } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                 while read -r line
+                    do handle_rlist "$line"
+                  done
+                }
+       )
+
+if [ "$data" != '' ]
+then
+  echo "<h3>$fl_wr</h3>"
+
+  echo "<font color=red>$fl_wr_desc</font><br />"
+  echo "<ol>"
+
+  echo $data
+
+  echo "</ol>"
+  echo $listend
+fi

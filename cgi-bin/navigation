@@ -547,12 +547,26 @@ the_menu ()
     # end of articles to improve in menu
     echo "</li>"
 
-    if [ "$isolated_category" != "$catnspref" ]
+
+    cur=''
+    if [ "$listby" = 'lists' ]
     then
-      echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}\">$isolatedarticles</a>"
-    else
-      echo "<li><em>$isolatedarticles</em>"
+      cur=' class="current"'
     fi
+    echo "<li><a href=\"./go.sh?$stdurl&listby=lists\"$cur>$isolatedarticles</a>"
+
+    case "$listby,$suggest" in
+     'suggest,disambig')
+       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=disambig\" class=\"current\">$resolvedisambigs</a></li></ul>"
+       ;;
+     'suggest,interlink')
+       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=interlink\" class=\"current\">$parttranslate</a></li></ul>"
+       ;;
+     'suggest,translate')
+       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=translate\" class=\"current\">$translatenlink</a></li></ul>"
+       ;;
+    *) ;;
+    esac
 
     echo "<ul>"
 
@@ -667,32 +681,18 @@ the_menu ()
     # end of isolated articles creators in menu
     echo "</li>"
 
-    cur=''
-    if [ "$listby" = 'lists' ]
-    then
-      cur=' class="current"'
-    fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=lists\"$cur>$wholelist</a>"
-
-    case "$listby,$suggest" in
-     'suggest,disambig')
-       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=disambig\" class=\"current\">$resolvedisambigs</a></li></ul>"
-       ;;
-     'suggest,interlink')
-       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=interlink\" class=\"current\">$parttranslate</a></li></ul>"
-       ;;
-     'suggest,translate')
-       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=translate\" class=\"current\">$translatenlink</a></li></ul>"
-       ;;
-    *) ;;
-    esac
-
     if [ "$listby" = 'creator' ] && [ "$user" = '' ] && [ "$registered" = '0' ]
     then
       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=creator&registered=0\" class=\"current\">$anonymiso</a></li></ul>"
     fi
 
-    echo "</li>"
+    cur=''
+    if [ "$listby" = 'age' ]
+    then
+      cur=' class="current"'
+    fi
+    echo "<li><a href=\"./go.sh?$stdurl&listby=age\"$cur>$byage</a></li>"
+
 
     if [ "${project_page}" != '' ]
     then
@@ -812,7 +812,7 @@ the_header ()
    'categoryspruce')
      actcode='categoryspruce'
      ;;
-   'creator')
+   'creator' | 'age')
      actcode='creatorizer'
      ;;
    'disambig' | 'disambig,title' | 'disambig,template' )
@@ -952,15 +952,6 @@ the_content ()
       echo "<INPUT type=hidden name=\"shift\" value=\"$shift\">"
     fi
     echo "<P><font color=red>$catnamereq: <INPUT name=category type=\"text\"> $activateform</font></P>"
-    echo "</FORM>"
-    ;;
-   'creator')
-    echo $example
-    echo "<FORM action=\"./go.sh\" method=\"get\">"
-    echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
-    echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
-    echo "<INPUT type=hidden name=\"listby\" value=\"$listby\">"
-    echo "<P><font color=red>$unamereq: <INPUT name=user type=\"text\"> $activateform</font></P>"
     echo "</FORM>"
     ;;
    'suggest' | 'suggest,category' | 'suggest,category,foreign' | 'suggest,foreign' | 'suggest,foeign,category' | 'suggest,title')
