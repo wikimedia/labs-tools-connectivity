@@ -9,7 +9,7 @@ handle_isoage ()
     local nm=${line[0]}
     nm=${nm//_/ }
     local ts=${line[1]}
-    local nm_url=url $nm
+    local nm_url=$( url "$nm")
 
     local ldate=''
 
