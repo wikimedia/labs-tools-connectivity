@@ -6,10 +6,10 @@ then
     if [ "$category" = '' ]
     then
       echo "<h3>$subclause1name</h3>"
-      echo "$subclause1<br /><br />"
+      echo "<p>$subclause1</p><br />"
 
       shifter
-      echo "<ol start=$((shift+1))>"
+      echo "<table class=\"listlike\">"
       {
 #
 # Use of sglflcatvolume0 is not well defined.
@@ -17,15 +17,18 @@ then
 #
         echo CALL ordered_cat_list_for_lang\( \"sglflcatvolume0\", \"$foreign\", $((shift)) \)\;
       } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                        count=$((shift))
                         while read -r line
-                          do handle_catlist "$line" 'interlink'
+                        do
+                          handle_catlist $((count+1)) "$line" 'interlink'
+                          count=$((count+1))
                         done
                       }
-      echo "</ol>"
+      echo "</table>"
       shifter
     else
       echo "<h3>$subclause2name</h3>"
-      echo "$subclause2<br /><br />"
+      echo "<p>$subclause2</p><br />"
       towhat=$articlestoimprove
 
       shifter

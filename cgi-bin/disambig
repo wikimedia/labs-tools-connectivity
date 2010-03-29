@@ -1,6 +1,7 @@
 handle_dsglist ()
 {
-  local line=$1
+  local id=$1
+  local line=$2
 
   if no_sql_error "$line"
   then
@@ -9,7 +10,8 @@ handle_dsglist ()
     local volume=${line[1]}
     name=${name//_/ }
     local cname=$( url "$name" )
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=green>[[${linkshere}]]</font></a></small></li>"
+
+    echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>&rlm;</td><td class=\"sortkey\">$volume <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=\"green\">[[${linkshere}]]</font></a></small></td></tr>"
   fi
 }
 
@@ -56,14 +58,14 @@ paraphrase ()
                 }
 
 echo "<ul class=disambigmenu>"
-echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,template\">$top3name</a></li>"
-echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,title\">$top2name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\">$top3name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,title\">$top2name</a></li>"
 echo "<li class=\"large\">$top1name</li>"
 echo "</ul>"
 echo "<br />$whatisit1<br /><br />"
 
 shifter
-echo "<ol start=$((shift+1))>"
+echo "<table class=\"listlike\">"
 {
   echo SELECT d_title,            \
               d_cnt               \
@@ -71,9 +73,12 @@ echo "<ol start=$((shift+1))>"
               ORDER BY d_cnt DESC \
               LIMIT $((shift)),100\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                  count=$((shift))
                   while read -r line
-                    do handle_dsglist "$line"
+                  do
+                    handle_dsglist $((count+1)) "$line"
+                    count=$((count+1))
                   done
                 }
-echo "</ol>"
+echo "</table>"
 shifter

@@ -108,7 +108,7 @@ handle_a_table ()
     then
       echo "<td><span title=\"${lang_name}\">$bld$lang$bldc</span></td>"
     else
-      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=zns\" title=\"${lang_name}\">$lang</a>$bldc</td>"
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=zns\" title=\"${lang_name}\">$lang</a>$bldc</td>"
     fi
 
     if [ "$dsmbg" = '?' ]
@@ -125,7 +125,7 @@ handle_a_table ()
       echo "<td>$bld$drdi$bldc</td>"
     else
       echo "<td><span title=\"${ambg_diff}\">$bld$ambg$bldc</span></td>"
-      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=disambig\" title=\"${drdi_diff}\">$drdi</a>$bldc</td>"
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=disambig\" title=\"${drdi_diff}\">$drdi</a>$bldc</td>"
     fi
 
     if [ "$iso" = '?' ]
@@ -152,7 +152,7 @@ handle_a_table ()
     then
       echo "<td>$bld$isocr$bldc</td>"
     else
-      echo "<td><span title=\"${iso_cr_diff}\">$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=creator\">$isocr</a>$bldc</span></td>"
+      echo "<td><span title=\"${iso_cr_diff}\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</span></td>"
     fi
     if [ "$chr" = '?' ]
     then
@@ -172,8 +172,8 @@ handle_a_table ()
       echo "<td>$bld$cr$bldc</td>"
       echo "<td>$bld$ncc$bldc</td>"
     else
-      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=categoryspruce\">$cr</a>$bldc</td>"
-      echo "<td>$bld<a href=\"./go.sh?$stdurl&language=$lang&listby=categoryspruce&networkpath=_1\">$ncc</a>$bldc</td>"
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce\">$cr</a>$bldc</td>"
+      echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce&amp;networkpath=_1\">$ncc</a>$bldc</td>"
     fi
     echo "<td>$bld$tmst$bldc</td>"
     echo "</tr>"

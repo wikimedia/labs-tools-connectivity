@@ -96,17 +96,17 @@ source ./allyouneed
           then
             the_content
           else
-            echo "<h2><font color=red>$templatedoc_improperly_configured <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/TemplateDoc'>[[${wiknspref}${prjp}/TemplateDoc]]</a>.</font></h2>"
+            echo "<h2><font color=\"red\">$templatedoc_improperly_configured <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/TemplateDoc'>[[${wiknspref}${prjp}/TemplateDoc]]</a>.</font></h2>"
           fi
         else
-          echo "<h2><font color=red>$disambiguationspage_improperly_configured</font></h2>"
+          echo "<h2><font color=\"red\">$disambiguationspage_improperly_configured</font></h2>"
         fi
       else
-        echo "<h2><font color=red>$neverrun</font></h2>"
+        echo "<h2><font color=\"red\">$neverrun</font></h2>"
       fi
     fi
   else
-    echo "<h2><font color=red>$errorstring</font></h2>"
+    echo "<h2><font color=\"red\">$errorstring</font></h2>"
   fi
 
   #

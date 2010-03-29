@@ -79,14 +79,14 @@ interface_url=$( url "$interface" )
 
 if [ "$language" != '' ]
 then
-  stdurl="language=${language_url}&interface=${interface_url}"
+  stdurl="language=${language_url}&amp;interface=${interface_url}"
 else
   stdurl="interface=${interface_url}"
 fi
 
 if [ "$view" != '' ]
 then
-  stdurl="${stdurl}&view=${view}"
+  stdurl="${stdurl}&amp;view=${view}"
 fi
 
 shiftnext=$((shift+100))

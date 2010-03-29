@@ -271,7 +271,7 @@ onchrono ()
     else
       echo "<div class=\"aside\">"
 
-      echo "<p>$par3a <small><a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=red></small>; $par3b.</p>"
+      echo "<p>$par3a <small><a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=\"red\"></small>; $par3b.</p>"
 
       echo "</div>"
 
@@ -326,7 +326,7 @@ fromchrono ()
     else
       echo "<div class=\"aside\">"
 
-      echo "<p>$par3a <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=red>; $par3b.</p>"
+      echo "<p>$par3a <a href='http://$language.wikipedia.org/wiki/${wiknspref}${prjp}/ArticlesNotFormingValidLinks'>[[${wiknspref}${prjp}/ArticlesNotFormingValidLinks]]</a><font color=\"red\">; $par3b.</p>"
 
       echo "</div>"
 
@@ -489,11 +489,10 @@ if [ "$data" != '' ]
 then
   echo "<h3>$fl_wr</h3>"
 
-  echo "<font color=red>$fl_wr_desc</font><br />"
+  echo "<p><font color=\"red\">$fl_wr_desc</font></p>"
   echo "<ol>"
 
   echo $data
 
   echo "</ol>"
-  echo $listend
 fi

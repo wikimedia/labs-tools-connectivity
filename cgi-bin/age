@@ -1,6 +1,7 @@
 handle_isoage ()
 {
-  local line=$1
+  local id=$1
+  local line=$2
 
   if no_sql_error "$line"
   then
@@ -19,7 +20,7 @@ handle_isoage ()
       ldate=${ts:0:4}/${ts:4:2}/${ts:6:2}
     fi
 
-    echo "<li><a href='./go.sh?$stdurl&listby=suggest,title&title=$nm'>$nm</a>&lrm; <span>$ldate ${ts:8:2}:${ts:10:2}:${ts:12:2}</span></li>"
+    echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"./go.sh?$stdurl&amp;listby=suggest,title&amp;title=$nm\">$nm</a>&rlm;</td><td class=\"sortkey\">$ldate&nbsp;${ts:8:2}:${ts:10:2}:${ts:12:2}</td></tr>"
   fi
 }
 
@@ -28,7 +29,7 @@ echo "<br />$whatisit<br />"
 echo "<h4>$list2name</h4>"
 
 shifter
-echo "<ol class=\"dated\" start=$((shift+1))>"
+echo "<table class=\"listlike\">"
 {
   echo SELECT title,                             \
               stamp                              \
@@ -38,9 +39,12 @@ echo "<ol class=\"dated\" start=$((shift+1))>"
               ORDER BY stamp ASC                 \
               LIMIT $((shift)),100\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                  count=$((shift))
                   while read -r line
-                    do handle_isoage "$line"
+                  do
+                    handle_isoage $((count+1)) "$line"
+                    count=$((count+1))
                   done
                 }
-echo "</ol>"
+echo "</table>"
 shifter

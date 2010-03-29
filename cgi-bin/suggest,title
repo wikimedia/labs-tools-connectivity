@@ -11,7 +11,7 @@ handle_dsmbg ()
     then
       test=${test//_/ }
       local ctest=$( url "$test" )
-      echo "</ol><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$ctest\"><font color=green>[[${linkshere}]]</font></a></small></li><ol>"
+      echo "</ol><span><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$ctest\"><font color=\"green\">[[${linkshere}]]</font></a></small></span></li><ol>"
     else
       article=${article//_/ }
       local carticle=$( url "$article" )
@@ -28,7 +28,7 @@ handle_dlist ()
   then
     local name=${line//_/ }
     local cname=$( url "$name" )
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=green>[[${linkshere}]]</font></a></small></li>"
+    echo "<li><span><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=\"green\">[[${linkshere}]]</font></a></small></span></li>"
   fi
 }
 
@@ -43,7 +43,7 @@ handle_lnk ()
 
     if [ "${test:0:2}" != '::' ]
     then
-      echo "</ol><b><a href=\"http://$test.wikipedia.org\" target=\"_blank\">$test</a></b><ol>"
+      echo "</ol><span><b><a href=\"http://$test.wikipedia.org\" target=\"_blank\">$test</a></b></span><ol>"
     else
       article=${article//_/ }
       local carticle=$( url "$article" )
@@ -64,7 +64,7 @@ handle_trns ()
     if [ "${test:0:2}" != '::' ]
     then
       lang=$test;
-      echo "</ol><b><a href=\"http://${lang}.wikipedia.org\" target=\"_blank\">$lang</a></b><ol>"
+      echo "</ol><span><b><a href=\"http://${lang}.wikipedia.org\" target=\"_blank\">$lang</a></b></span><ol>"
     else
       article=${article//_/ }
       local carticle=$( url "$article" )
@@ -99,7 +99,6 @@ suggestions ()
 
   convertedtitle=${titlesql// /_}
 
-
   local data=$(
                 {
                   echo CALL suggestd\(\"$convertedtitle\"\, \'${language}\', 0\)\;
@@ -113,13 +112,12 @@ suggestions ()
   if [ "$data" != '' ]
   then
     echo "<h3>$sggclause8</h3>"
-    echo "$sggclause9<br />"
+    echo "<p>$sggclause9</p>"
 
-    echo "<ul class=disambig>"
+    echo "<ul class=\"disambig\">"
 
     echo $data
     echo "</ul><br />"
-    echo $listend
   fi
 
   if [ "$isotype" != '' ]
@@ -137,15 +135,14 @@ suggestions ()
     if [ "$data" != '' ]
     then 
       echo "<h3>$sggclause0</h3>"
-      echo "$sggclause1<br />"
-      echo "<font color=red><ul><li>$sggclause2 $sggclause3</li></ul></font>"
+      echo "<p>$sggclause1</p>"
+      echo "<ul class=\"warning\"><li>$sggclause2 $sggclause3</li></ul>"
 
       echo "<ol>"
 
       echo $data
 
       echo "</ol>"
-      echo $listend
     fi
 
     data=$(
@@ -161,14 +158,13 @@ suggestions ()
     if [ "$data" != '' ]
     then 
       echo "<h3>$sggclause4</h3>"
-      echo "$sggclause5<br />"
+      echo "<p>$sggclause5</p>"
 
       echo "<ol>"
 
       echo $data
 
       echo "</ol>"
-      echo $listend
     fi
 
     data=$(
@@ -185,16 +181,15 @@ suggestions ()
     if [ "$data" != '' ]
     then 
       echo "<h3>$sggclause6</h3>"
-      echo "$sggclause7<br />"
+      echo "<p>$sggclause7</p>"
 
-      echo "<font color=red><ul><li>$sggclause2</li></ul></font>"
+      echo "<ul class=\"warning\"><li>$sggclause2</li></ul>"
 
       echo "<ol>"
 
       echo $data
 
       echo "</ol>"
-      echo $listend
     fi
   else
     data=$(
@@ -210,12 +205,11 @@ suggestions ()
     if [ "$data" != '' ]
     then 
       echo "<h3>$sggclause10</h3>"
-      echo "$sggclause11<br />"
+      echo "<p>$sggclause11</p>"
 
       echo $data
 
       echo "<br />"
-      echo $listend
     fi
   fi
 }
@@ -234,21 +228,23 @@ echo "<h2><a href=\"http://$language.wikipedia.org/wiki/${title_url}\">$title</a
 
 case "$isotype" in
  '')
-  echo $r_notrecognized
+  echo "<p>$r_notrecognized</p>"
   ;;
  '_1')
-  echo $r_orphaned
+  echo "<p>$r_orphaned</p>"
   ;;
  *)
   echo "<h4>$isotype</h4>"
-  echo $r_isolated
+  echo "<p>$r_isolated</p>"
   ;;
 esac
+
+echo "&nbsp;<br />"
 
 suggestions $isotype
 #                }
                
 echo "<h3>$googleonwikipedia</h3>"
-echo "<IFRAME src=\"http://www.google.com/custom?hl=$interface&domains=$language.wikipedia.org&q=${title_url//_/%20}&sitesearch=$language.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
-echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <A href=\"http://www.google.com/custom?hl=$interface&domains=$language.wikipedia.org&q=${title_url//_/%20}&sitesearch=$language.wikipedia.org\">seach with this link</A>."
-echo "</IFRAME>"
+echo "<iframe src=\"http://www.google.com/custom?hl=$interface&amp;domains=$language.wikipedia.org&amp;q=${title_url//_/%20}&amp;sitesearch=$language.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
+echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <a href=\"http://www.google.com/custom?hl=$interface&amp;domains=$language.wikipedia.org&amp;q=${title_url//_/%20}&amp;sitesearch=$language.wikipedia.org\">seach with this link</a>."
+echo "</iframe>"

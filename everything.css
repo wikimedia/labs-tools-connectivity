@@ -31,6 +31,22 @@ body {
     letter-spacing: 0;
 }
 
+#curlang {
+  color: white;
+  padding: 0 0.3em;
+  background: #F60;
+  text-decoration: none;
+  letter-spacing: 0;
+}
+
+p.lookat {
+  color: red;
+}
+
+ul.warning {
+  color: red;
+}
+
 ul.clean {
     list-style-type: none;
     margin: 0;
@@ -57,6 +73,8 @@ ul.disambig {
   line-height: 1.4em;
   padding: 0;
   list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/12px-Disambig.svg.png');
+  float: left;
+  clear: both;
 }
 
 ul.disambigmenu {
@@ -66,10 +84,6 @@ ul.disambigmenu {
   padding: 0;
   list-style-image: url('http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/16px-Disambig.svg.png');
   font-size: 12pt;
-}
-
-ol.dated span {
-  float: right;
 }
 
 #updated {
@@ -87,6 +101,11 @@ ol.dated span {
     width: 12em;
     position: absolute;
     right: 0;
+}
+
+div.shifter {
+  border-bottom: 10px solid #FFFFFF;
+  border-top: 10px solid #FFFFFF;
 }
 
 a {
@@ -107,6 +126,13 @@ a:active {
 }
 
 #languages {
+    clear: both;
+    margin-top: 1em;
+    padding: 1em 0;
+    border-top: 3px solid #CCC;
+}
+
+#languages2 {
     clear: both;
     margin-top: 1em;
     padding: 1em 0;
@@ -287,6 +313,58 @@ img {
   border:none;
 }
 
+table.listlike {
+  border: none;
+  border-spacing: 0;
+}
+
+table.listlike tr {
+  padding:0;
+  margin:0;
+}
+
+table.listlike td {
+  vertical-align:top;
+  text-align:top;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+table.listlike td.numerator {
+  text-align: right;
+  padding-left: 8pt;
+  padding-right: 6pt;
+}
+
+table.listlike td.sortkey {
+  padding-left: 6pt;
+  text-align: right;
+}
+
+table.cite {
+  border-collapse:collapse;
+  background-color:transparent;
+  margin:0 auto;
+  clear:left;
+  float: left;
+}
+
+table.cite td.left {
+  vertical-align:top;
+  color:#B4B6F6;
+  font-size:400%;
+  font-family:serif;
+  padding:0 0.2em
+}
+
+table.cite td.right {
+  vertical-align:bottom;
+  color:#B4B6F6;
+  font-size:400%;
+  font-family:serif;
+  padding:0 0.2em
+}
+
 table.infotable {
   margin: 1em 1em 1em 0;
   background: #fdfdfd;
@@ -294,6 +372,8 @@ table.infotable {
   border-collapse: collapse;
   font-size: 8pt;
   white-space:nowrap;
+  float:left;
+  clear:left;
 }
 
 table.infotable th, table.infotable td {

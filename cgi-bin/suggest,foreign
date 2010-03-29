@@ -16,11 +16,11 @@ then
   case "$suggest" in
    'interlink')
     echo "<h3>$subclause1name</h3>"
-    echo "$subclause1<br /><br />"
+    echo "<p>$subclause1</p><br />"
     ;;
    'translate')
     echo "<h3>$subclause2name</h3>"
-    echo "$subclause2<br /><br />"
+    echo "<p>$subclause2</p><br />"
     ;;
   *) ;;
   esac
@@ -58,11 +58,11 @@ else
   case "$suggest" in
    'interlink')
     echo "<h3>$subclause3name</h3>"
-    echo "$subclause3<br /><br />"
+    echo "<p>$subclause3</p><br />"
     ;;
    'translate')
     echo "<h3>$subclause4name</h3>"
-    echo "$subclause4<br /><br />"
+    echo "<p>$subclause4</p><br />"
     ;;
   *) ;;
   esac

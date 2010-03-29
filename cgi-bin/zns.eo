@@ -3,7 +3,7 @@ scope='strukturo de la ĉefa nomspaco'
 par1='<strong>Artikolo</strong> estas nomita teksto en la ĉefa nomspaco, kies enhavo priskribas unu terminon, uzitan por nomi la tekston.'
 par2='Apartigiloj priskribas kelkajn diversajn signifojn de termino, dum kunordigaj listoj kaj alidirektiloj entute ne enhavas unuecan tekston. Nek unuj, nek aliaj povas esti nomataj artikoloj.'
 par3='Ligiloj el ĥronologiaj artikoloj ne estas kalkulataj dum serĉado de izolitaj artikoloj.'
-par3a="All links considered as equivalent, however links from chrono articles are insufficient for making articles connected, thus <font color=red>it is necessary to configure categories for chronological articles on page</font>"
+par3a="All links considered as equivalent, however links from chrono articles are insufficient for making articles connected, thus <font color=\"red\">it is necessary to configure categories for chronological articles on page</font>"
 par3b="configuration example can be found</font> <a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks\">here</a>"
 par4='<strong>Sakvoja artikolo</strong> estas artikolo, en kiu forestas ligiloj al ekzistanta neĥronologia paĝo. Do, pli larĝe ol postulo pri ligilo al ie ajn.'
 par4a="<strong>Dead-end articles</strong> do not contain any links to other existent articles. This defines a wider set than just \"no links at all\" not taking into account where those link go to."

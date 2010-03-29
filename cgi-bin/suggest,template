@@ -6,7 +6,7 @@ handle_dlist ()
   then
     local name=${line//_/ }
     local cname=$( url "$name" )
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=green>[[${linkshere}]]</font></a></small></li>"
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=\"green\">[[${linkshere}]]</font></a></small></li>"
   fi
 }
 
@@ -15,7 +15,7 @@ echo "<h2><a href=\"http://$language.wikipedia.org/wiki/Template:${template_url}
 convertedtemplate=${templatesql// /_}
 
 echo "<h3>$sggclause1</h3>"
-echo "$sggclause2<br />"
+echo "<p>$sggclause2</p>"
 
 echo "<ul class=disambig>"
 {
@@ -26,4 +26,3 @@ echo "<ul class=disambig>"
                   done
                 }
 echo "</ul><br />"
-echo $listend

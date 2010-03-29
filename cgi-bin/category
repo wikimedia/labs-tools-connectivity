@@ -19,21 +19,24 @@ else
   echo "<h3>$top1name</h3>"
 
   shifter
-  echo "<ol start=$((shift+1))>"
+  echo "<table class=\"listlike\">"
   {
     echo CALL ordered_cat_list\( \"isocatvolume0\", $((shift)) \)\;
   } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                    count=$((shift))
                     while read -r line
-                      do handle_catlist "$line"
+                    do
+                      handle_catlist $((count+1)) "$line"
+                      count=$((count+1))
                     done
                   }
-  echo "</ol>"
+  echo "</table>"
   shifter
 
   echo "<h3>$top2name</h3>"
 
   shifter
-  echo "<ol start=$((shift+1))>"
+  echo "<table class=\"listlike\">"
   {
     echo SELECT title,                                        \
                 isocatvolume0.cnt,                            \
@@ -46,10 +49,12 @@ else
                 ORDER BY pcnt DESC, isocatvolume0.cnt DESC    \
                 LIMIT $((shift)),100\;
   } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                    count=$((shift))
                     while read -r line
-                      do handle_catlist "$line"
+                      do handle_catlist $((count+1)) "$line"
+                      count=$((count+1))
                     done
                   }
-  echo "</ol>"
+  echo "</table>"
   shifter
 fi

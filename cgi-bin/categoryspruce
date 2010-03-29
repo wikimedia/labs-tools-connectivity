@@ -4,7 +4,7 @@ then
 
   if [ "$networkpath" = '_1' ]
   then
-    echo "<font color=red>"
+    echo "<font color=\"red\">"
     echo $rootcatnote1
     echo $rootcatnote2
     echo "</font>"
@@ -12,7 +12,7 @@ then
 
   if [[ "$networkpath" =~ '^.*\_([1-9][1-90]+|[2-9])$' ]]
   then
-    echo "<font color=red>"
+    echo "<font color=\"red\">"
     echo "$clsizenote1 ${BASH_REMATCH[1]}.<br />"
     echo $clsizenote2
     echo "</font>"
@@ -30,7 +30,6 @@ then
                     done
                   }
   echo "</ol>"
-  echo $listend
 else
   echo $cattreedesc1
   echo $cattreedesc2
@@ -72,7 +71,7 @@ then
   if [ "$data" != '' ]
   then
     echo "<h4>$queryname1</h4>"
-    echo "<font color=red>"
+    echo "<font color=\"red\">"
     echo $query1note1
     echo $query1note2
     echo "</font>"
@@ -82,7 +81,6 @@ then
     echo $data
 
     echo "</ol>"
-    echo $listend
   fi
 
   data=$(
@@ -100,7 +98,7 @@ then
   if [ "$data" != '' ]
   then
     echo "<h4>$queryname2</h4>"
-    echo "<font color=red>"
+    echo "<font color=\"red\">"
     echo $query2note1
     echo "<ul>"
     echo "<li>$query2note2</li>"
@@ -112,6 +110,5 @@ then
     echo $data
 
     echo "</ol>"
-    echo $listend
   fi
 fi

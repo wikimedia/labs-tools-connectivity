@@ -1,6 +1,7 @@
 handle_adlist ()
 {
-  local line=$1
+  local id=$1
+  local line=$2
 
   if no_sql_error "$line"
   then
@@ -9,20 +10,20 @@ handle_adlist ()
     local volume=${line[1]}
     name=${name//_/ }
     local cname=$( url "$name" )
-#    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>: $volume</li>"
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,title&title=$cname\">$name</a>: $volume</li>"
+
+    echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"./go.sh?$stdurl&amp;listby=suggest,title&amp;title=$cname\">$name</a>&rlm;</td><td class=\"sortkey\">$volume</td></tr>"
   fi
 }
 
 echo "<ul class=disambigmenu>"
-echo "<li><a href=\"./go.sh?$stdurl&listby=disambig\">$top3name</a></li>"
-echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,template\">$top2name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig\">$top3name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\">$top2name</a></li>"
 echo "<li class=\"large\">$top1name</li>"
 echo "</ul>"
 echo "<br />$whatisit1<br /><br />"
 
 shifter
-echo "<ol start=$((shift+1))>"
+echo "<table class=\"listlike\">"
 
 {
   echo SELECT d_title,            \
@@ -31,9 +32,12 @@ echo "<ol start=$((shift+1))>"
               ORDER BY d_cnt DESC \
               LIMIT $((shift)),100\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                  count=$((shift))
                   while read -r line
-                    do handle_adlist "$line"
+                  do
+                    handle_adlist $((count+1)) "$line"
+                    count=$((count+1))
                   done
                 }
-echo "</ol>"
+echo "</table>"
 shifter

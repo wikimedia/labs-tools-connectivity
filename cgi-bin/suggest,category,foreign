@@ -21,13 +21,13 @@ then
       towhat=$articlestoimprove
       tablename='sglflcatvolume0'
       echo "<h3>$subclause3name</h3>"
-      echo "$subclause3<br /><br />"
+      echo "<p>$subclause3</p><br />"
       ;;
      'translate')
       towhat=$articlestotranslate
       tablename='sgtflcatvolume0'
       echo "<h3>$subclause4name</h3>"
-      echo "$subclause4<br /><br />"
+      echo "<p>$subclause4</p><br />"
       ;;
     esac
 
@@ -63,7 +63,7 @@ then
     case $suggest in
      'interlink')
       echo "<h3>$subclause1name</h3>"
-      echo "$subclause1<br /><br />"
+      echo "<p>$subclause1</p><br />"
 
       echo "<table class=\"sortable infotable\">"
       echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
@@ -81,7 +81,7 @@ then
       ;;
      'translate')
       echo "<h3>$subclause2name</h3>"
-      echo "$subclause2<br /><br />"
+      echo "<p>$subclause2</p><br />"
 
       echo "<table class=\"sortable infotable\">"
       echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"

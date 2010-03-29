@@ -186,9 +186,19 @@ handle_interlingues ()
     lswch=$( url_params $item $interface_url $listby_url $shift_url )
     if [ "$bold" = '1' ]
     then
-      echo "<li><a href=\"./go.sh?${lswch}\" class=\"bolded\">${item}</a></li>"
+      if [ "$item" = "$language" ]
+      then
+        echo "<li><a href=\"./go.sh?${lswch}\" class=\"bolded\" id=\"curlang\">${item}</a></li>"
+      else
+        echo "<li><a href=\"./go.sh?${lswch}\" class=\"bolded\">${item}</a></li>"
+      fi
     else
-      echo "<li><a href=\"./go.sh?${lswch}\">${item}</a></li>"
+      if [ "$item" = "$language" ]
+      then
+        echo "<li><a href=\"./go.sh?${lswch}\" id=\"curlang\">${item}</a></li>"
+      else
+        echo "<li><a href=\"./go.sh?${lswch}\">${item}</a></li>"
+      fi
     fi
   done
 }
@@ -201,33 +211,42 @@ interlingues ()
   echo "<div class=\"langgroup\">"
 
   echo "<h6>$freshtext ($updatedtext &lt;24 $hourstext $agotext)</h6>"
-  echo "<ul>"
+  if [ "$languages1" != '' ]
+  then
+    echo "<ul>"
 
-  handle_interlingues "$languages1"
+    handle_interlingues "$languages1"
 
-  echo "</ul>"
+    echo "</ul>"
+  fi
   echo "</div>"
   echo "<div class=\"langgroup\">"
   echo "<h6>$acceptabletext ($updatedtext 24 &#151; 48 $hourstext $agotext)</h6>"
-  echo "<ul>"
+  if [ "$languages2" != '' ]
+  then
+    echo "<ul>"
 
-  handle_interlingues "$languages2"
+    handle_interlingues "$languages2"
 
-  echo "</ul>"
+    echo "</ul>"
+  fi
   echo "</div>"
   echo "<div class=\"langgroup\">"
   echo "<h6>$rottentext &gt;48 $hourstext</h6>"
-  echo "<ul>"
+  if [ "$languages3" != '' ]
+  then
+    echo "<ul>"
 
-  handle_interlingues "$languages3"
+    handle_interlingues "$languages3"
 
-  echo "</ul>"
+    echo "</ul>"
+  fi
   echo "</div>"
 
   echo "</div>"
 
   # second row of languages: misconfigured
-  echo "<div id=\"languages\">"
+  echo "<div id=\"languages2\">"
 
   echo "<div class=\"widelanggroup\">"
   hrs=$( hours_ago "$avgupd4missconf" )
@@ -237,11 +256,14 @@ interlingues ()
   else
     echo "<h6>$misscfgtext</h6>"
   fi
-  echo "<ul>"
+  if [ "$languages4" != '' ]
+  then
+    echo "<ul>"
 
-  handle_interlingues "$languages4"
+    handle_interlingues "$languages4"
 
-  echo "</ul>"
+    echo "</ul>"
+  fi
   echo "</div>"
 
   echo "</div>"
@@ -262,7 +284,7 @@ optional_params ()
     eval "tmp=\${${opt[$i]}_url}"
     if [ "$tmp" != '' ]
     then
-      res="$res&${opt[$i]}=$tmp"
+      res="$res&amp;${opt[$i]}=$tmp"
     fi
   done
   echo $res
@@ -282,16 +304,16 @@ url_params ()
   local interface=$2
   local listby=$3
   local shift=$4
-  local res="language=$language&interface=$interface"
+  local res="language=$language&amp;interface=$interface"
 
   if [ "$view" != '' ]
   then
-    res="${res}&view=${view}"
+    res="${res}&amp;view=${view}"
   fi
 
   if [ "$listby" != '' ]
   then
-    res="$res&listby=$listby"
+    res="$res&amp;listby=$listby"
     local opt=$( optional_params "$listby" )
     if [ "$opt" != '' ]
     then
@@ -301,7 +323,7 @@ url_params ()
 
   if [ "$shift" != '' ]
   then
-    res="$res&shift=$shift"
+    res="$res&amp;shift=$shift"
   fi
 
   echo $res
@@ -312,11 +334,13 @@ url_params ()
 #
 shifter ()
 {
+  echo "<div class=\"shifter\">"
   if [ $((shift)) -gt 0 ]
   then
     echo "<a href=\"./go.sh?$( url_params $language_url $interface_url $listby_url $shiftprev )\">$previous 100</a> "
   fi
   echo "<a href=\"./go.sh?$( url_params $language_url $interface_url $listby_url $shiftnext )\">$next 100</a>"
+  echo "</div>"
 }
 
 #
@@ -347,7 +371,7 @@ if_lang ()
     english_str="<a href=\"./go.sh?$lswch\">English</a>"
   fi
 
-  echo "<h4>Interface: ${english_str} - ${native_str}</h4>"
+  echo "<h4 class=\"interface\">$interface_text: ${english_str} - ${native_str}</h4>"
 }
 
 the_menu_part ()
@@ -360,7 +384,7 @@ the_menu_part ()
   then
     cur=' class="current"'
   fi
-  echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=${sg_type}\"$cur>${sg_text}</a>"
+  echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,category&amp;suggest=${sg_type}\"$cur>${sg_text}</a>"
 
   if [ "$category" != '' ]
   then
@@ -371,7 +395,7 @@ the_menu_part ()
     then
       cur=' current'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=${sg_type}&category=${category_url}\" class=\"category$cur\">${catns}:$category</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,category&amp;suggest=${sg_type}&amp;category=${category_url}\" class=\"category$cur\">${catns}:$category</a>"
 
     if [ "$listby" = 'suggest,category,foreign' ]
     then
@@ -382,7 +406,7 @@ the_menu_part ()
       then
         cur=' class="current"'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=${sg_type}&category=${category_url}\"$cur>$bylanguagespied</a>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=${sg_type}&amp;category=${category_url}\"$cur>$bylanguagespied</a>"
 
       if [ "$foreign" != '' ]
       then
@@ -391,7 +415,7 @@ the_menu_part ()
         then
           cur=' current'
         fi
-        echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=${sg_type}&category=${category_url}&foreign=$foreign\" class=\"language$cur\">$foreignname</a></li></ul>"
+        echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=${sg_type}&amp;category=${category_url}&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a></li></ul>"
       fi
 
       # end of links spying suggestions for isolates for given cat by lang
@@ -431,7 +455,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=zns\"$cur>$motivation</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=zns\"$cur>$motivation</a>"
 
     echo "<ul>"
     echo "<li><em>$articlestoimprove</em>"
@@ -440,7 +464,7 @@ the_menu ()
     
     if [ "$listby" = 'suggest,title' ] && [ "$isotype" = '' ]
     then
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,title&title=${title_url}\" class=\"title current\">$title</a></li>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,title&amp;title=${title_url}\" class=\"title current\">$title</a></li>"
     fi
 
     cur=''
@@ -448,7 +472,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,title\"$cur>$links_disambiguation_for_articles</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,title\"$cur>$links_disambiguation_for_articles</a>"
 
     if [ "$template_doc" != '' ]
     then
@@ -459,11 +483,11 @@ the_menu ()
       then
         cur=' class="current"'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,template\"$cur>$for_templates</a>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\"$cur>$for_templates</a>"
 
       if [ "$listby" = 'suggest,template' ]
       then
-        echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest,template&template=${template_url}\" class=\"title current\">$template</a></li></ul>"
+        echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=suggest,template&amp;template=${template_url}\" class=\"title current\">$template</a></li></ul>"
       fi
 
       # end of article links disambiguation via templates in menu
@@ -480,7 +504,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=interlink\"$cur>$spiedwikification</a> <span class="beta">beta</span>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=interlink\"$cur>$spiedwikification</a> <span class=\"beta\">beta</span>"
 
     if [ "$foreign" != '' ]
     then
@@ -491,13 +515,13 @@ the_menu ()
       then
         cur=' current'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=interlink&foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=interlink&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
 
       echo "<ul>"
 
       if [ "$category" != '' ]
       then
-        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign\">$bycategory</a>"
+        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign\">$bycategory</a>"
 
         echo "<ul>"
 
@@ -506,7 +530,7 @@ the_menu ()
         then
           cur=' current'
         fi
-        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign&category=$category_url\" class=\"category$cur\">${catns}:$category</a></li>"
+        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign&amp;category=$category_url\" class=\"category$cur\">${catns}:$category</a></li>"
 
         echo "</ul>"
 
@@ -518,7 +542,7 @@ the_menu ()
         then
           cur=' class="current"'
         fi
-        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign\"$cur>$bycategory</a></li>"
+        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign\"$cur>$bycategory</a></li>"
       fi
 
       echo "</ul>"
@@ -553,17 +577,17 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=lists\"$cur>$isolatedarticles</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=lists\"$cur>$isolatedarticles</a>"
 
     case "$listby,$suggest" in
      'suggest,disambig')
-       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=disambig\" class=\"current\">$resolvedisambigs</a></li></ul>"
+       echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=disambig\" class=\"current\">$resolvedisambigs</a></li></ul>"
        ;;
      'suggest,interlink')
-       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=interlink\" class=\"current\">$parttranslate</a></li></ul>"
+       echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=interlink\" class=\"current\">$parttranslate</a></li></ul>"
        ;;
      'suggest,translate')
-       echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=translate\" class=\"current\">$translatenlink</a></li></ul>"
+       echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=translate\" class=\"current\">$translatenlink</a></li></ul>"
        ;;
     *) ;;
     esac
@@ -593,7 +617,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=category\"$cur>$bycategory</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=category\"$cur>$bycategory</a>"
 
     echo "<ul>"
 
@@ -604,7 +628,7 @@ the_menu ()
       then
         cur=' current'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&listby=category&category=${category_url}\" class=\"category$cur\">${catns}:$category</a></li>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=category&amp;category=${category_url}\" class=\"category$cur\">${catns}:$category</a></li>"
     fi
 
     cur=''
@@ -612,13 +636,13 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest\"$cur>$allsuggestions</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest\"$cur>$allsuggestions</a>"
 
     echo "<ul>"
 
     if [ "$listby" = 'suggest,title' ] && [ "$isotype" != '' ]
     then
-      echo "<li><em>$fortext <a href=\"./go.sh?$stdurl&listby=suggest,title&title=${title_url}\" class=\"title current\">$title</a></em></li>"
+      echo "<li><em>$fortext <a href=\"./go.sh?$stdurl&amp;listby=suggest,title&amp;title=${title_url}\" class=\"title current\">$title</a></em></li>"
     fi
 
     cur=''
@@ -626,7 +650,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=disambig\"$cur>$resolvedisambigs</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,category&amp;suggest=disambig\"$cur>$resolvedisambigs</a>"
 
     if [ "$category" != '' ] 
     then
@@ -635,7 +659,7 @@ the_menu ()
       then
         cur=' current'
       fi
-      echo "<ul><li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=disambig&category=${category_url}\" class=\"category$cur\">${catns}:$category</a></li></ul>"
+      echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=suggest,category&amp;suggest=disambig&amp;category=${category_url}\" class=\"category$cur\">${catns}:$category</a></li></ul>"
     fi
 
     # end of categorized suggestions for isolates resolving via disambiguation
@@ -671,11 +695,11 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=creator\"$cur>$bycreator</a>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=creator\"$cur>$bycreator</a>"
 
     if [ "$user" != '' ]
     then
-      echo "<ul><li><a href=\"./go.sh?$stdurl&listby=creator&$user=$user&registered=$registered\" class=\"creator current\">${usrns}:$user</a></li></ul>"
+      echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=creator&amp;$user=$user&amp;registered=$registered\" class=\"creator current\">${usrns}:$user</a></li></ul>"
     fi
 
     # end of isolated articles creators in menu
@@ -683,7 +707,7 @@ the_menu ()
 
     if [ "$listby" = 'creator' ] && [ "$user" = '' ] && [ "$registered" = '0' ]
     then
-      echo "<ul><li><a href=\"./go.sh?$stdurl&listby=creator&registered=0\" class=\"current\">$anonymiso</a></li></ul>"
+      echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=creator&amp;registered=0\" class=\"current\">$anonymiso</a></li></ul>"
     fi
 
     cur=''
@@ -691,7 +715,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=age\"$cur>$byage</a></li>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=age\"$cur>$byage</a></li>"
 
 
     if [ "${project_page}" != '' ]
@@ -709,7 +733,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=translate\"$cur>$articlestotranslate</a> <span class="beta">beta</span>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=translate\"$cur>$articlestotranslate</a> <span class=\"beta\">beta</span>"
 
     if [ "$foreign" != '' ]
     then
@@ -720,7 +744,7 @@ the_menu ()
       then
         cur=' current'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=translate&foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=translate&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
 
       if [ "$category" != '' ]
       then
@@ -731,7 +755,7 @@ the_menu ()
         then
           cur=' current'
         fi
-        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$foreign&category=$category_url\" class=\"category$cur\">$category</a></li>"
+        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign&amp;category=$category_url\" class=\"category$cur\">$category</a></li>"
 
         echo "</ul>"
       fi
@@ -755,7 +779,7 @@ the_menu ()
     then
       cur=' class="current"'
     fi
-    echo "<li><a href=\"./go.sh?$stdurl&listby=disambig\"$cur>$disambig</a></li>"
+    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig\"$cur>$disambig</a></li>"
   fi
 
   cur=''
@@ -763,12 +787,12 @@ the_menu ()
   then
     cur=' class="current"'
   fi
-  echo "<li><a href=\"./go.sh?$stdurl&listby=categoryspruce\"$cur>$cattreecon</a>"
+  echo "<li><a href=\"./go.sh?$stdurl&amp;listby=categoryspruce\"$cur>$cattreecon</a>"
 
 
   if [ "$networkpath" != '' ]
   then
-    echo "<ul><li><a href=\"./go.sh?$stdurl&listby=categoryspruce&networkpath=$networkpath\" class=\"current\"><small>$networkpath</small></a></li></ul>"
+    echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=categoryspruce&amp;networkpath=$networkpath\" class=\"current\"><small>$networkpath</small></a></li></ul>"
   fi
 
   # end of categorytree connectivity in menu
@@ -780,13 +804,13 @@ the_menu ()
 
   echo "<ul>"
   echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
-  echo "<li><em>mashiah $attext <a href="irc://irc.freenode.net/wikipedia-connectivity">#wikipedia-connectivity</a></em></li>"
+  echo "<li><em>mashiah $attext <a href=\"irc://irc.freenode.net/wikipedia-connectivity\">#wikipedia-connectivity</a></em></li>"
   echo "</ul>"
 
   # end of contacts in menu
   echo "</li>"
 
-  echo "<li><em>$srclocation <a href="https://fisheye.toolserver.org/browse/golem">toolserver fisheye</a></em></li>"
+  echo "<li><em>$srclocation <a href=\"https://fisheye.toolserver.org/browse/golem\">toolserver fisheye</a></em></li>"
 
   # end of top menu level
   echo "</ul>"
@@ -858,10 +882,18 @@ the_header ()
      ;;
   esac
 
-  cat << EOM
+  if [ "$listby" != 'suggest,title' ]
+  then
+    cat << EOM
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 EOM
+  else
+    cat << EOM
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+EOM
+  fi
   echo "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"$language\" xml:lang=\"$language\">"
   cat << EOM
  <!--
@@ -881,7 +913,7 @@ EOM
  <body> 
 EOM
 
-  echo "<div id="heading">"
+  echo "<div id=\"heading\">"
 
   if [ "$language" != '' ]
   then
@@ -898,11 +930,11 @@ EOM
     echo "<h1>[[$mainh1]]"
     if [ "$language" != '' ]
     then
-      echo " <a id="language" href="#languages">$language</a>"
+      echo " <a id=\"language\" href=\"#languages\">$language</a>"
     fi
     echo "</h1>"
   else
-    echo "<h1>[[<a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">$mainh1</a>]] <a id="language" href="#languages">$language</a></h1>"
+    echo "<h1>[[<a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">$mainh1</a>]] <a id=\"language\" href=\"#languages\">$language</a></h1>"
   fi
 
   if [ "$language" != '' ]
@@ -943,24 +975,28 @@ the_content ()
   case $listby in
    'category')
     echo $example
-    echo "<FORM action=\"./go.sh\" method=\"get\">"
-    echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
-    echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
-    echo "<INPUT type=hidden name=\"listby\" value=\"$listby\">"
+    echo "<fieldset title=\"hidden\">"
+    echo "<form action=\"./go.sh\" method=\"get\">"
+    echo "<input type=\"hidden\" name=\"language\" value=\"$language\" />"
+    echo "<input type=\"hidden\" name=\"interface\" value=\"$interface\" />"
+    echo "<input type=\"hidden\" name=\"listby\" value=\"$listby\" />"
     if [ "$shift_url" != '' ]
     then
-      echo "<INPUT type=hidden name=\"shift\" value=\"$shift\">"
+      echo "<input type=\"hidden\" name=\"shift\" value=\"$shift\" />"
     fi
-    echo "<P><font color=red>$catnamereq: <INPUT name=category type=\"text\"> $activateform</font></P>"
-    echo "</FORM>"
+    echo "</fieldset>"
+    echo "<p class=\"lookat\">$catnamereq: <input name=\"category\" type=\"text\" /> $activateform</p>"
+    echo "</form>"
     ;;
    'suggest' | 'suggest,category' | 'suggest,category,foreign' | 'suggest,foreign' | 'suggest,foeign,category' | 'suggest,title')
-    echo "<FORM action=\"./go.sh\" method=\"get\">"
-    echo "<INPUT type=hidden name=\"interface\" value=\"$interface\">"
-    echo "<INPUT type=hidden name=\"language\" value=\"$language\">"
-    echo "<INPUT type=hidden name=\"listby\" value=\"suggest,title\">"
-    echo "<P><font color=red>$ianamereq: <INPUT name=title type=\"text\"> $activateform</font></P>"
-    echo "</FORM>"
+    echo "<form action=\"./go.sh\" method=\"get\">"
+    echo "<fieldset title=\"hidden\">"
+    echo "<input type=\"hidden\" name=\"interface\" value=\"$interface\" />"
+    echo "<input type=\"hidden\" name=\"language\" value=\"$language\" />"
+    echo "<input type=\"hidden\" name=\"listby\" value=\"suggest,title\" />"
+    echo "</fieldset>"
+    echo "<p class=\"lookat\">$ianamereq: <input name=\"title\" type=\"text\" /> $activateform</p>"
+    echo "</form>"
     ;;
   esac
 

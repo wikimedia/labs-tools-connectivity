@@ -13,17 +13,18 @@ handle_isolates_as_table ()
     line=${line//_/ }
     local lineurl=$( url "$line" )
 
-    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=$lineurl\" target=\"_blank\">$line</a> <small><a href=\"./go.sh?$stdurl&listby=suggest,title&title=$lineurl\"><font color=green>[[$suggesttext]]</font></a></small></td><td>$type</td></tr>"
+    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=$lineurl\" target=\"_blank\">$line</a> <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,title&amp;title=$lineurl\"><font color=\"green\">[[$suggesttext]]</font></a></small></td><td>$type</td></tr>"
   fi
 }
 
 handle_catlist ()
 {
-  local line=$1
+  local id=$1
+  local line=$2
 
   if no_sql_error "$line"
   then
-    local suggest=$2
+    local suggest=$3
     line=( $line )
     local name=${line[0]}
     local volume=${line[1]}
@@ -32,18 +33,18 @@ handle_catlist ()
     local cname=$( url "$name" )
     case "$suggest" in
     'disambig')
-      echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>&lrm;: $volume ($percent%)</li>"
+      echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"./go.sh?$stdurl&amp;listby=suggest,category&amp;suggest=$suggest&amp;category=$cname\">$name</a>&rlm;</td><td class=\"sortkey\">$volume&nbsp;($percent%)</td></tr>"
       ;;
     'interlink' | 'translate')
       if [ "$foreign" = '' ]
       then
-        echo "<li><a href=\"./go.sh?$stdurl&listby=suggest,category&suggest=$suggest&category=$cname\">$name</a>&lrm;: $volume ($percent%) <small><a href=\"./go.sh?$stdurl&listby=$listby,foreign&suggest=$suggest&category=$cname\"><font color=green>[[$byforeignlang]]</font></a></small></li>"
+        echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"./go.sh?$stdurl&amp;listby=suggest,category&amp;suggest=$suggest&amp;category=$cname\">$name</a>&rlm;</td><td class=\"sortkey\">$volume&nbsp;($percent%)&nbsp;<small><a href=\"./go.sh?$stdurl&amp;listby=$listby,foreign&amp;suggest=$suggest&amp;category=$cname\"><font color=\"green\">[[${byforeignlang// /&nbsp;}]]</font></a></small></td></tr>"
       else
-        echo "<li><a href=\"./go.sh?$stdurl&listby=$listby&suggest=$suggest&foreign=$foreign&category=$cname\">$name</a>&lrm;: $volume ($percent%)</li>"
+        echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"./go.sh?$stdurl&amp;listby=$listby&amp;suggest=$suggest&amp;foreign=$foreign&amp;category=$cname\">$name</a>&rlm;</td><td class=\"sortkey\">$volume&nbsp;($percent%)</td></tr>"
       fi
       ;;
     '')
-      echo "<li><a href=\"./go.sh?$stdurl&listby=category&category=$cname\">$name</a>&lrm;: $volume ($percent%)</li>"
+      echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"./go.sh?$stdurl&amp;listby=category&amp;category=$cname\">$name</a>&rlm;</td><td class=\"sortkey\">$volume&nbsp;($percent%)</td></tr>"
       ;;
     *) ;;
     esac
@@ -68,7 +69,7 @@ handle_langlist ()
     local bywhat=''
     if [ "$suggest" = 'interlink' ]
     then
-      bywhat=" <small><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=$suggest&foreign=$code\"><font color=green>[[$bycategory]]</font></a></small>"
+      bywhat=" <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=$suggest&amp;foreign=$code\"><font color=\"green\">[[$bycategory]]</font></a></small>"
     fi
     local langtext="$code.wikipedia.org"
     if [ "$ename / $nname" != 'NULL / NULL' ]
@@ -77,9 +78,9 @@ handle_langlist ()
     fi
     if [ "$category" = '' ]
     then
-      echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td><td><a href=\"./go.sh?$stdurl&listby=suggest,foreign&suggest=$suggest&foreign=$code\">$aamount</a>$bywhat</td><td>$iamount <small><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=$suggest&foreign=$code\"><font color=green>[[$bycategory]]</font></a></small></td></tr>"
+      echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=$suggest&amp;foreign=$code\">$aamount</a>$bywhat</td><td>$iamount <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=$suggest&amp;foreign=$code\"><font color=\"green\">[[$bycategory]]</font></a></small></td></tr>"
     else
-      echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td><td>$aamount</td><td><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=$suggest&category=$category&foreign=$code\">$iamount</a></td></tr>"
+      echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td><td>$aamount</td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=$suggest&amp;category=$category&amp;foreign=$code\">$iamount</a></td></tr>"
     fi
   fi
 }
@@ -135,12 +136,12 @@ handle_langlist2 ()
     local twocolumn="<td>0</td><td>0</td>"
     if [  $iamount != 'NULL' ]
     then
-     twocolumn="<td>$aamount <small><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=interlink&foreign=$code\"><font color=green>[[$bycategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=interlink&foreign=$code\">$iamount</a></td>"
+     twocolumn="<td>$aamount <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$code\"><font color=\"green\">[[$bycategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=interlink&amp;foreign=$code\">$iamount</a></td>"
     fi
     local twocolumn2="<td>0</td><td>0</td>"
     if [  $iamount2 != 'NULL' ]
     then
-      twocolumn2="<td>$aamount2 <small><a href=\"./go.sh?$stdurl&listby=suggest,foreign,category&suggest=translate&foreign=$code\"><font color=green>[[$byisocategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&listby=suggest,category,foreign&suggest=translate&foreign=$code\">$iamount2</a></td>"
+      twocolumn2="<td>$aamount2 <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=translate&amp;foreign=$code\"><font color=\"green\">[[$byisocategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=translate&amp;foreign=$code\">$iamount2</a></td>"
     fi
     echo "<tr><td>$count</td><td><a href=\"http://$code.wikipedia.org/\" target=\"blank\">$langtext</a></td>${twocolumn}${twocolumn2}</tr>"
   fi
@@ -167,7 +168,7 @@ handle_table ()
     local lname=${line[0]}
     local amnt=${line[1]}
 
-    echo "<a href='./go.sh?$stdurl&listby=categoryspruce&networkpath=$lname'>$lname</a>:&nbsp;$amnt<br />"
+    echo "<a href='./go.sh?$stdurl&amp;listby=categoryspruce&amp;networkpath=$lname'>$lname</a>:&nbsp;$amnt<br />"
   fi
 }
 
@@ -179,7 +180,7 @@ handle_crlist ()
   then
     line=${line//_/ }
     local name=$( url "$line" )
-    echo \<li\>\<a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$name\&redirect=no\" target=\"_blank\"\>$line\<\/a\>\<\/li\>
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=Category:$name&amp;redirect=no\" target=\"_blank\">$line</a></li>"
   fi
 }
 
@@ -191,7 +192,7 @@ handle_rlist ()
   then
     line=${line//_/ }
     local name=$( url "$line" )
-    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name&redirect=no&action=edit\" target=\"_blank\">$line</a></li>"
+    echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=$name&amp;redirect=no&amp;action=edit\" target=\"_blank\">$line</a></li>"
   fi
 }
 
@@ -209,7 +210,7 @@ handle_totranslate ()
     sgg_url=$( url "$sgg" )
     case $suggest in
      'interlink')
-      echo "<tr><td>$count</td><td><a href=\"./go.sh?$stdurl&listby=suggest,title&title=${sgg_url}\">$sgg</a></td><td>$cnt</td></tr>"
+      echo "<tr><td>$count</td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,title&amp;title=${sgg_url}\">$sgg</a></td><td>$cnt</td></tr>"
       ;;
      'translate')
       echo "<tr><td>$count</td><td><a href=\"http://$foreign.wikipedia.org/w/index.php?title=${sgg_url}\" target=\"_blank\">$sgg</a></td><td>$cnt</td></tr>"

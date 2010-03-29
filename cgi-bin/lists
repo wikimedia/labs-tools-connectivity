@@ -5,12 +5,12 @@ then
   echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}\">$fl</a>"
 fi
 
-echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=disambig\">$fl_disambig</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=disambig\">$fl_disambig</a></li>"
 
-echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=interlink\">$fl_interlink</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=interlink\">$fl_interlink</a></li>"
 
-echo "<li><a href=\"./go.sh?$stdurl&listby=suggest&suggest=translate\">$fl_translate</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=translate\">$fl_translate</a></li>"
 
-echo "<li><a href=\"./go.sh?$stdurl&listby=creator&registered=0\">$fl_anonym</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=creator&amp;registered=0\">$fl_anonym</a></li>"
 
 echo "</ul>"

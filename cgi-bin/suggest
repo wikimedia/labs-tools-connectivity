@@ -1,11 +1,11 @@
 case $suggest in
  '')
-  echo "<br />$clause1<br /><br />"
-  echo "<font color=red>$clause2</font><br />"
+  echo "<p>$clause1</p><br />"
+  echo "<p><font color=\"red\">$clause2</font></p>"
   echo "<ul><li>$clause3</li><li>$clause4</li></ul>"
   ;;
  'disambig')
-  echo "<br />$subclause1<br />"
+  echo "<p>$subclause1</p>"
 
   echo "<table class=\"sortable infotable\">"
   echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
@@ -26,7 +26,7 @@ case $suggest in
   echo '<script type="text/javascript" src="../sortable.js"></script>'
   ;;
  'interlink')
-  echo "<br />$subclause2<br />"
+  echo "<p>$subclause2</p>"
 
   echo "<table class=\"sortable infotable\">"
   echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
@@ -47,7 +47,7 @@ case $suggest in
   echo '<script type="text/javascript" src="../sortable.js"></script>'
   ;;
  'translate')
-  echo "<br />$subclause3<br />"
+  echo "<p>$subclause3</p>"
 
   echo "<table class=\"sortable infotable\">"
   echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"

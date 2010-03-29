@@ -13,13 +13,13 @@ handle_tmpllist ()
     name=${name//_/ }
     local cname=$( url "$name" )
 
-    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=Template:$cname\" target=\"blank\">$name</a> <small><a href=\"./go.sh?$stdurl&listby=suggest,template&template=$cname\"><font color=green>[[$dlink <img src='http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/10px-Disambig.svg.png'>]]</font></a></small></td><td>$adlink</td><td>$alink</td></tr>"
+    echo "<tr><td>$count</td><td><a href=\"http://$language.wikipedia.org/w/index.php?title=Template:$cname\" target=\"blank\">$name</a> <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,template&amp;template=$cname\"><font color=\"green\">[[$dlink <img src='http://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Disambig.svg/10px-Disambig.svg.png'>]]</font></a></small></td><td>$adlink</td><td>$alink</td></tr>"
   fi
 }
 
 echo "<ul class=disambigmenu>"
-echo "<li><a href=\"./go.sh?$stdurl&listby=disambig\">$top3name</a></li>"
-echo "<li><a href=\"./go.sh?$stdurl&listby=disambig,title\">$top2name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig\">$top3name</a></li>"
+echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,title\">$top2name</a></li>"
 echo "<li class=\"large\">$top1name</li>"
 echo "</ul>"
 echo "<br />$whatisit1<br /><br />"

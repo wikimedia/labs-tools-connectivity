@@ -3,7 +3,7 @@ thish1='scope'
 par1="Let define <strong>articles</strong> as named connected texts in main namespace with content about one of possible meanings of the term used as the text name."
 par2="Disambiguation pages describe multiple term meanings, collaborative lists and redirection pages contain no connected text, so they all cannot be treated as articles according to the definition above."
 par3="Links from chronological articles are not enough as providing low achievability to articles they link. Thus we do not take them into account doing orphaned and other isolated articles analysis."
-par3a="All links considered as equivalent, however links from chrono articles are insufficient for making articles connected, thus <font color=red>it is necessary to configure categories for chronological articles on page</font>"
+par3a="All links considered as equivalent, however links from chrono articles are insufficient for making articles connected, thus <font color=\"red\">it is necessary to configure categories for chronological articles on page</font>"
 par3b="configuration example can be found</font> <a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks\">here</a>"
 par4="<strong>Dead-end articles</strong> do not contain any links to other existent non-chronological articles. This defines a wider set than just \"no links at all\" not taking into account where those link go to."
 par4a="<strong>Dead-end articles</strong> do not contain any links to other existent articles. This defines a wider set than just \"no links at all\" not taking into account where those link go to."
