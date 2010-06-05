@@ -64,7 +64,7 @@ server=$( ./toolserver.sh "$language" skip_infecting )
 #
 source ../cgi-bin/ts $server
 
-rm -f ./*.info ./*.txt ./*.stat ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log stats_done.log
+rm -f ./${language}.*.info ./${language}.*.txt ./${language}.*.stat ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log ${language}.no_mr.log ${language}.stats_done.log
 
 echo "PROCESSING LANGUAGE $language"
 

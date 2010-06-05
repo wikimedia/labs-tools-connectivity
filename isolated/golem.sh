@@ -58,6 +58,8 @@ source ../cgi-bin/ts $server
 
 } | $( sql $server ) 2>&1 | ./handle.sh $cmdl
 
+count=0
+
 #
 # Read language configuration file and run the analysis for each
 # language defined there.
@@ -72,6 +74,7 @@ do
   if [ "$line" != '' ] && [ ${line:0:1} != '#' ] && [ ${line:0:1} != ' ' ]
   then
     ./isolated.sh $line | tee ${sline[0]}.log
+    count=$((count+1))
   fi
 
   if [ -f ./stop.please ]
@@ -81,5 +84,10 @@ do
   fi
 
 done < $1
+
+if [ "$count" = '0' ]
+then
+  echo "Golem found an empty script and have nothing to process"
+fi
 
 # </pre>

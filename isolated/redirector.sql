@@ -52,22 +52,22 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-    SET @st=CONCAT( 'CREATE TABLE wr', namespace, ' (wr_title varchar(255) binary NOT NULL default ', "''", ', PRIMARY KEY (wr_title)) ENGINE=MyISAM;' );
+    SET @st=CONCAT( 'CREATE TABLE wr', namespace, ' (wr_title varchar(255) binary NOT NULL default ', "''", ', wr_id int(8) unsigned NOT NULL default ', "'0'", ', PRIMARY KEY (wr_title)) ENGINE=MyISAM;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;   
 
-    SET @st=CONCAT( 'INSERT IGNORE INTO wr', namespace, ' SELECT r_title as wr_title FROM r', namespace, ', rlc WHERE rlc_cnt>1 and rlc_id=r_id;' );
+    SET @st=CONCAT( 'INSERT IGNORE INTO wr', namespace, ' SELECT r_title as wr_title, r_id as wr_id FROM r', namespace, ', rlc WHERE rlc_cnt>1 and rlc_id=r_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     DROP TABLE rlc;
 
-    CALL outifexists( CONCAT( 'wr', namespace ), 'wrong redirects', 'wr.txt', 'wr_title', 'out' );
+    CALL outcolifexists( CONCAT( 'wr', namespace ), 'wrong redirects', 'wr.txt', 'wr_title', 'wr_title', 'out' );
 
     # prevent taking wrong redirects into account
-    SET @st=CONCAT( 'DELETE FROM r', namespace, ' WHERE r_title IN ( SELECT wr_title FROM wr', namespace, ' );' );
+    SET @st=CONCAT( 'DELETE r', namespace, ' FROM r', namespace, ', wr', namespace, ' WHERE r_id=wr_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -180,6 +180,8 @@ DROP PROCEDURE IF EXISTS throw_multiple_redirects//
 CREATE PROCEDURE throw_multiple_redirects (namespace INT)
   BEGIN
     DECLARE st VARCHAR(255);
+    DECLARE cnt INT;
+    DECLARE res VARCHAR(255);
 
     #
     # Long redirects like double and triple do not work in web API,
@@ -201,10 +203,25 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       PRIMARY KEY (l_to,l_from)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO l SELECT r_id as l_to, pl_from as l_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT r_id FROM r', namespace, ' ) and pl_to=r_id;' );
+    DROP TABLE IF EXISTS rrr;
+    CREATE TABLE rrr (
+      rrr_id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (rrr_id)
+    ) ENGINE=MEMORY;
+    
+    SET @st=CONCAT( 'INSERT INTO rrr SELECT r_id as rrr_id FROM r', namespace, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
+
+    INSERT INTO l
+    SELECT pl_to as l_to,
+           pl_from as l_from
+           FROM pl,
+                rrr as rrr1,
+                rrr as rrr2
+           WHERE pl_from=rrr1.rrr_id and
+                 pl_to=rrr2.rrr_id;
 
     #
     # Names of redirect pages linking other redirects.
@@ -256,7 +273,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
            FROM orcatr,
                 ruwikir
            WHERE coolcat NOT RLIKE '\_1$' and
-                 cat=coolcat;
+                 cat=uid;
 
     # Claster _1 is of nothing to do with, regular redirects.
     # Clasters like _X, X>1 are rings and cannot point outside redirects set.
@@ -273,21 +290,48 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       PRIMARY KEY (r2r_to,r2r_from)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO r2r SELECT id as r2r_to, pl_from as r2r_from FROM pl, ruwikir WHERE pl_from in ( SELECT r_id FROM r', namespace, ' ) and pl_to=id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    INSERT INTO r2r 
+    SELECT id as r2r_to,
+           pl_from as r2r_from
+           FROM pl,
+                ruwikir
+           WHERE pl_from in (
+                              SELECT rrr_id
+                                     FROM rrr
+                            ) and
+                 pl_to=id;
 
     DROP TABLE orcatr;
     DROP TABLE ruwikir;
 
+    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM pl, r', namespace, ' WHERE pl_to=r_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT cry_for_memory( 32*@cnt ) INTO @res;
+    IF @res!=''
+      THEN
+        SELECT CONCAT( ':: echo ', @res );
+    END IF;
+    
     # All links from non-redirects to redirects for a given namespace.
     DROP TABLE IF EXISTS nr2r;
-    CREATE TABLE nr2r (
-      nr2r_to int(8) unsigned NOT NULL default '0',
-      nr2r_from int(8) unsigned NOT NULL default '0',
-      KEY (nr2r_to)
-    ) ENGINE=MEMORY;
+    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+      THEN
+        SELECT ':: echo MyISAM engine is chosen for non-redirects to redirects links table';
+        CREATE TABLE nr2r (
+          nr2r_to int(8) unsigned NOT NULL default '0',
+          nr2r_from int(8) unsigned NOT NULL default '0',
+          KEY (nr2r_to)
+        ) ENGINE=MyISAM;
+      ELSE
+        CREATE TABLE nr2r (
+          nr2r_to int(8) unsigned NOT NULL default '0',
+          nr2r_from int(8) unsigned NOT NULL default '0',
+          KEY (nr2r_to)
+        ) ENGINE=MEMORY;
+    END IF;
 
     SET @st=CONCAT( 'INSERT INTO nr2r SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id;' );
     PREPARE stmt FROM @st;
@@ -304,10 +348,12 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       r2nr_from int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO r2nr SELECT nr', namespace, '.id as r2nr_to, pl_from as r2nr_from FROM pl, nr', namespace, ' WHERE pl_from in ( SELECT r_id FROM r', namespace, ' ) and pl_to=nr', namespace, '.id;' );
+    SET @st=CONCAT( 'INSERT INTO r2nr SELECT nr', namespace, '.id as r2nr_to, pl_from as r2nr_from FROM pl, nr', namespace, ' WHERE pl_from in ( SELECT rrr_id FROM rrr ) and pl_to=nr', namespace, '.id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
+
+    DROP TABLE rrr;
 
     IF namespace=0
       THEN
@@ -364,13 +410,16 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
         #
         # Note: Redirects are being merged to articles,
-        #       so key violation impossible.
+        #       so key violation looks impossible.
+        #       However, better to prevent, because data is live and could
+        #       change during selection.
         #
         INSERT INTO iw_filter
         SELECT r_title as name
                FROM r0,
                     cnar
-               WHERE cnar_id=r_id;
+               WHERE cnar_id=r_id
+        ON DUPLICATE KEY UPDATE name=r_title;
 
         SELECT CONCAT( ':: echo ', count(*), ' distinct page titles correspond to pages not forming valid links' )
                FROM iw_filter;

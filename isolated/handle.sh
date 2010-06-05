@@ -55,6 +55,8 @@ maxlag=10
 # upload stat if replication time difference to the latest upload made
 # is greater then statintv minutes
 statintv=720
+# file output buffer size, lines
+fileportion=1024
 
 source ./isoinv
 
@@ -91,15 +93,35 @@ handle ()
   if [ "${line:0:3}" = ':: ' ]
   then
     # apply previous command if necessary
-    if [ "$state" = '2' ]
-    then
+    case $state in
+    '1')
+      elem=${#fcollection[*]}
+      {
+        iter=0
+        while (($iter < $elem))
+        do
+          echo -ne ${fcollection[$iter]}\\r\\n
+          iter=$(($iter+1))
+        done
+      } >> $out
+      unset fcollection
+      ;;
+    '2')
+      elem=${#collection[*]}
+      {
+        iter=0
+        while (($iter < $elem))
+        do
+          echo -ne ${collection[$iter]}\\r\\n
+          iter=$(($iter+1))
+        done
+      } >> $out
       if [ "$do_mr" = "1" ]
       then
         if [ -f no_mr.log ]
         then
           do_mr=0
         else
-          elem=${#collection[*]}
           {
             iter=0
             while (($iter < $elem))
@@ -109,10 +131,12 @@ handle ()
             done
             sync
           } | perl mr.pl $language $usr | ./handle.sh $cmdl &
-          unset collection
         fi
       fi
-    fi
+      unset collection
+      ;;
+    *) ;;
+    esac
 
     # now start new command parse
     state=0
@@ -139,7 +163,7 @@ handle ()
       else
         if [ "${line:3:4}" = 'out ' ]
         then
-          out=${line:7}
+          out=${language}.${line:7}
           state=1 # file output
           if [ ! -f $out ]
           then
@@ -152,7 +176,7 @@ handle ()
         else
           if [ "${line:3:7}" = 'upload ' ]
           then
-            out=${line:10}
+            out=${language}.${line:10}
             state=2 # upload and file output
             # need better way for url definition, maybe sql driven
             outpage=${out:15:2}
@@ -177,11 +201,11 @@ handle ()
                   if [ "$stats_store" != '/stat' ]
                   then
                     # cut 3 very first utf-8 bytes and upload the stats
-                    tail --bytes=+4 ./*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
+                    tail --bytes=+4 ./${language}.*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
                   fi
                 fi
               fi
-              echo -ne \\0357\\0273\\0277 > stats_done.log
+              echo -ne \\0357\\0273\\0277 > ${language}.stats_done.log
             else
               if [ "${line:3:1}" = 's' ]
               then
@@ -192,7 +216,7 @@ handle ()
                    {
                      echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
 
-                     echo "CALL allow_allocation( 4294967296 );"
+                     echo "SELECT cry_for_memory( 4294967296 ) INTO @res;"
                      echo "CALL ${line:11}();"
                    } | $( sql $params ) 2>&1 | ./handle.sh $cmdl
                    ;;
@@ -290,24 +314,24 @@ handle ()
               else
                 if [ "${line:3:2}" = '7z' ]
                 then
-                  while [ ! -f stats_done.log ]
+                  while [ ! -f ${language}.stats_done.log ]
                   do
                     sleep 2
                   done
 
                   # pack templates management info for delivery to AWB host
                   rm -f $language.today.7z
-                  7z a $language.today.7z ./*.txt >7z.log 2>&1
-                  rm -f ./*.txt
+                  7z a $language.today.7z ./${language}.*.txt >${language}.7z.log 2>&1
+                  rm -f ./${language}.*.txt
 
                   rm -f $language.info.7z
-                  7z a $language.info.7z ./*.info >>7z.log 2>&1
-                  rm -f ./*.info
+                  7z a $language.info.7z ./${language}.*.info >>${language}.7z.log 2>&1
+                  rm -f ./${language}.*.info
 
-                  7z a $language.stat.7z ./*.stat >>7z.log 2>&1
+                  7z a $language.stat.7z ./${language}.*.stat >>${language}.7z.log 2>&1
 
-                  todos 7z.log
-                  chmod 755 *.7z
+                  todos ${language}.7z.log
+                  chmod 755 ${language}.*.7z
                 else
                   if [ "${line:3:10}" = 'introduce ' ]
                   then
@@ -418,10 +442,22 @@ handle ()
        echo "$do_templates" > ${language}.no_templates.log
        echo "$line" > stop.please
        ;;
-    1) echo -ne $line\\r\\n >> $out
+    1) elem=${#fcollection[*]}
+       fcollection[$elem]=$line
+       if [ $elem -ge $fileportion ]
+       then
+         {
+           iter=0
+           while (($iter < $elem))
+           do
+             echo -ne ${fcollection[$iter]}\\r\\n
+             iter=$(($iter+1))
+           done
+         } >> $out
+         unset fcollection
+       fi
        ;;
-    2) echo -ne $line\\r\\n >> $out
-       collection[${#collection[*]}]=$line
+    2) collection[${#collection[*]}]=$line
        ;;
     *) echo state: $state, $line >> ${language}.debug.log
        ;;

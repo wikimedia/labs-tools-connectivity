@@ -65,12 +65,9 @@ CREATE PROCEDURE deadend (namespace INT)
         ) ENGINE=MEMORY AS
         SELECT l_to as a2cr_to,
                l_from as a2cr_from
-               FROM l
-               WHERE l_to IN
-                     (
-                      SELECT chr_id
-                             FROM chrono
-                     );
+               FROM l,
+                    chrono
+               WHERE l_to=chr_id;
 
         SELECT count(*) INTO @articles_to_chrono_links_count
                FROM a2cr;
@@ -78,12 +75,10 @@ CREATE PROCEDURE deadend (namespace INT)
         SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' to be excluded as links to chrono articles' );
 
         # deletion of links to timelines, recoverable, since we have a2cr
-        DELETE FROM l
-               WHERE l_to IN
-                     (
-                      SELECT DISTINCT a2cr_to
-                             FROM a2cr
-                     );
+        DELETE l 
+               FROM l,
+                    a2cr
+               WHERE l_to=a2cr_to;
 
         SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
                FROM l;
@@ -112,11 +107,20 @@ CREATE PROCEDURE deadend (namespace INT)
     # articles with links to articles
     DROP TABLE IF EXISTS lwl;
     CREATE TABLE lwl (
-      lwl_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (lwl_id)
-    ) ENGINE=MEMORY AS 
-    SELECT DISTINCT l_from as lwl_id
+      lwl_id int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
+    # 
+    # has been killed on s1 - look for distinct values may take long.
+    #
+    INSERT INTO lwl 
+    SELECT l_from as lwl_id
            FROM l;
+
+    # kill duplicates and make order
+    ALTER IGNORE TABLE lwl ADD PRIMARY KEY (lwl_id);
+    # make it fast, it is now not that huge
+    ALTER TABLE lwl ENGINE=MEMORY;
 
     # CURRENT DEAD-END ARTICLES
     INSERT INTO del
@@ -148,13 +152,12 @@ CREATE PROCEDURE deadend (namespace INT)
             IF cnt>0
               THEN
                 SELECT CONCAT(':: echo +: ', cnt ) as title;
+
                 SELECT CONCAT( ':: out ', @fprefix, 'deset.txt' );
-                SELECT title
-                       FROM del,
-                            articles
-                       WHERE act=1 AND
-                             del.id=articles.id
-                       ORDER BY title ASC;
+                SET @st=CONCAT( 'SELECT page_title FROM del, ', @dbname, '.page WHERE act=1 AND id=page_id ORDER BY page_title ASC;' );
+                PREPARE stmt FROM @st;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
             END IF;
         END IF;
     END IF;

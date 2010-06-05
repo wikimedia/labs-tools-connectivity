@@ -1,5 +1,6 @@
 pagetitle="Listoj de izolitaj artikoloj"
-thish1="atingeblaj listoj de izolitaj artikoloj"
+thish1=$isolatedarticles
+available_lists="atingeblaj listoj de izolitaj artikoloj"
 fl="full list of isolated articles"
 fl_disambig="plena listo de izolitaj artikoloj kun konsiloj pri kompreno de ligiloj"
 fl_interlink="plena listo de izolitaj artikoloj kun konsiloj pri pruntepreno de ligiloj"

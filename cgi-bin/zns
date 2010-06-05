@@ -411,6 +411,7 @@ isoarticles ()
     articles_flexies $da active
 
     echo "<li><strong class=\"data\">$iaratio %</strong> $_of_articles_are_isolated_of <strong class=\"data\">$iatc</strong> $__types.</li>"
+    echo "<li>&nbsp;</li>"
     echo "<li>$also_ $__determined <strong class=\"data\">$da</strong> $__deadend $__articles.</li>"
     echo "</ul>"
     echo "</div>"
@@ -472,12 +473,12 @@ resume ()
 
 resume
 
-
 data=$(
         {
-          echo SELECT wr_title \
-                      FROM wr0 \
-                      ORDER BY wr_title ASC\;
+          echo SELECT wr_title              \
+                      FROM wr0              \
+                      ORDER BY wr_title ASC \
+                      LIMIT $((shift)),100\;
         } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                  while read -r line
                     do handle_rlist "$line"
@@ -490,9 +491,11 @@ then
   echo "<h3>$fl_wr</h3>"
 
   echo "<p><font color=\"red\">$fl_wr_desc</font></p>"
-  echo "<ol>"
+  shifter
+  echo "<ol start=$((shift+1))>"
 
   echo $data
 
   echo "</ol>"
+  shifter
 fi

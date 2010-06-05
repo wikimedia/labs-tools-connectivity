@@ -58,7 +58,10 @@ paraphrase ()
                 }
 
 echo "<ul class=disambigmenu>"
-echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\">$top3name</a></li>"
+if [ "$template_doc" != '' ]
+then
+  echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\">$top3name</a></li>"
+fi
 echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,title\">$top2name</a></li>"
 echo "<li class=\"large\">$top1name</li>"
 echo "</ul>"

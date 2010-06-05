@@ -27,10 +27,12 @@ CREATE PROCEDURE a2a_templating ()
     ) ENGINE=MEMORY;
 
     #
-    # Articles encapsulated directly into other articles.
-    # Note: Fast when templating is completely unusual for articles.
-    #       Than more are templated than slower this selection is.
-    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and title=tl_title;' );
+    # Articles transcluded directly in other articles.
+    #
+    # Note: Fast when transclusion is completely unusual for articles titles.
+    #       The more are transcluded the slower this.
+    #
+    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, ', @dbname, '.page, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and page_title=tl_title and page_id=id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -39,12 +41,14 @@ CREATE PROCEDURE a2a_templating ()
            FROM pl;
 
     #
-    # This table contain info on templating of zero namespace redirects
+    # This table contains info on templating of zero namespace redirects
     # in articles.
     #
     # Note: Table name selection is dictated by nr2X2nr called below.
     #
     DROP TABLE IF EXISTS nr2r;
+
+    ALTER TABLE r0 ADD UNIQUE KEY rtitle (r_title);
 
     SET @st=CONCAT( 'CREATE TABLE nr2r ( nr2r_to int(8) unsigned NOT NULL default ', "'0'", ', nr2r_from int(8) unsigned NOT NULL default ', "'0'", ', KEY (nr2r_to) ) ENGINE=MEMORY AS SELECT r_id as nr2r_to, tl_from as nr2r_from FROM ', @dbname, '.templatelinks, r0 WHERE tl_namespace=0 and tl_from in ( SELECT id FROM articles ) and tl_title=r_title;' );
     PREPARE stmt FROM @st;

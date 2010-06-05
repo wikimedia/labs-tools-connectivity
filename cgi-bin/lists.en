@@ -1,5 +1,6 @@
 pagetitle="Lists of isolated articles"
-thish1="available lists of isolated articles"
+thish1=$isolatedarticles
+available_lists="available lists of isolated articles"
 fl="full list of isolated articles"
 fl_disambig="full list of articles with suggestions on links disambiguation"
 fl_interlink="full list of articles with suggestions on linking from interwiki spy"

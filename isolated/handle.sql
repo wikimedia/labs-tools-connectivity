@@ -50,6 +50,34 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
   END;
 //
       
+DROP PROCEDURE IF EXISTS outcolifexists//
+CREATE PROCEDURE outcolifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf VARCHAR(255), outcol VARCHAR(255), ordercol VARCHAR(255), rule VARCHAR(255) )
+  BEGIN
+    DECLARE cnt INT;
+    DECLARE st1 VARCHAR(255);
+    DECLARE st2 VARCHAR(255);
+
+    SET @st1=CONCAT( 'SELECT count(*) INTO @cnt FROM ', tablename );
+    PREPARE stmt FROM @st1;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    IF @cnt>0
+    THEN
+      SELECT CONCAT(':: echo ', outt, ': ', @cnt ) as title;
+      SELECT CONCAT(':: ', rule, ' ', @fprefix, outf ) as title;
+
+      #
+      # Note: no way to prepend rows with a namespace prefix here
+      #
+      SET @st2=CONCAT( 'SELECT ', outcol, ' FROM ', tablename, ' ORDER BY ', ordercol, ' ASC' );
+      PREPARE stmt FROM @st2;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+    END IF;
+  END;
+//
+
 #
 # Create a task with respect to edits count minimization. Not for AWB,
 # but for automated uploader, which is supposed to be implemented.
@@ -75,10 +103,25 @@ CREATE PROCEDURE combineandout ()
       deact int(8) signed NOT NULL default '0',
       isoact int(8) signed NOT NULL default '0',
       isocat varchar(255) binary NOT NULL default '',
-      title varchar(511) binary NOT NULL default '',
       importance int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (id)
     ) ENGINE=MEMORY;
+
+    SELECT max(length(ns_name)) INTO @cnt
+           FROM toolserver.namespace
+           WHERE dbname=@dbname;
+
+    IF @cnt>0
+      THEN
+        SET @st=CONCAT( 'ALTER TABLE task ADD COLUMN title VARCHAR( ', 256+@cnt, ' ) binary NOT NULL default ', "''", ';' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+      ELSE
+        ALTER TABLE task 
+              ADD COLUMN title VARCHAR(511) binary NOT NULL default '';
+    END IF;
 
     #
     # Initialize with isolated articles to be edited.
@@ -120,17 +163,15 @@ CREATE PROCEDURE combineandout ()
     # Add non-categorized articles to be edited updating existent rows.
     #
     INSERT INTO task
-    SELECT id,
+    SELECT nc_id,
            act as ncaact,
            0 as deact,
            0 as isoact,
            '' as isocat,
            '' as title,
            0 as importance
-           FROM nocat,
-                articles
-           WHERE act!=0 and
-                 nc_title=title
+           FROM nocat
+           WHERE act!=0
     ON DUPLICATE KEY UPDATE ncaact=nocat.act;
 
     SELECT count( * ) INTO cnt
@@ -147,7 +188,7 @@ CREATE PROCEDURE combineandout ()
         # I hope I prevent outer handler to be waiting for data in the next
         # query performing ':: out'.
         #
-        SET @st=CONCAT( 'INSERT INTO task SELECT id, ncaact, deact, isoact, isocat, CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, 0 as importance FROM task, ', @dbname, '.page WHERE id=page_id ON DUPLICATE KEY UPDATE title=VALUES(title), importance=values(ncaact)+values(deact)+values(deact)+values(isoact);' );
+        SET @st=CONCAT( 'INSERT INTO task SELECT id, ncaact, deact, isoact, isocat, CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, 0 as importance FROM task, ', @dbname, '.page WHERE id=page_id ON DUPLICATE KEY UPDATE title=CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ), importance=values(ncaact)+values(deact)+values(deact)+values(isoact);' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;

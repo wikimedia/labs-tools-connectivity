@@ -207,13 +207,12 @@ CREATE PROCEDURE disambiguator (namespace INT)
     CREATE TABLE disambigtop (
       d_title varchar(255) binary NOT NULL default '',
       d_cnt int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MyISAM AS
-    SELECT articles.title as d_title,
-           dss_cnt as d_cnt
-           FROM dsstat,
-                articles
-           WHERE articles.id=dss_id
-           ORDER BY dss_cnt DESC;
+    ) ENGINE=MyISAM;
+
+    SET @st=CONCAT( 'INSERT INTO disambigtop SELECT page_title as d_title, dss_cnt as d_cnt FROM dsstat, ', @dbname, '.page WHERE page_id=dss_id ORDER BY dss_cnt DESC;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     DROP TABLE dsstat;
 
@@ -282,7 +281,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
         INSERT INTO r2nr10
         SELECT id as r2nr_to,
                id as r2nr_from
-              FROM regular_templates;
+               FROM regular_templates;
 
         DROP TABLE IF EXISTS tmpldisambig;
         CREATE TABLE tmpldisambig (

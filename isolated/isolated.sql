@@ -114,6 +114,17 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
              count( * ) as otllc_amnt
              FROM otl
              GROUP BY otl_to;
+
+      #
+      # lc stores amount of links for articles belonging a component of size
+      #    above the limit (maxsize)
+      # otllc stores amount of links for articles, which may belog to
+      #       components of size < maxsize.
+      #
+      # Once the amount of links in lc and otllc is different
+      # (usually otllc_ambt < lc_amnt) it is time to consider link sources as
+      # linked from a large component  and and exclude it from otl.
+      #
       DELETE FROM todelete;
       INSERT INTO todelete
              SELECT lc_pid as id
@@ -128,14 +139,19 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
                            FROM todelete
                    );
 
+      DELETE FROM aset;
+      INSERT INTO aset
+      SELECT DISTINCT otl_from as id
+             FROM otl;
+
       DELETE FROM todelete;
       INSERT INTO todelete
              SELECT DISTINCT otl_to as id
                     FROM otl
                     WHERE otl_to NOT IN
                           (
-                           SELECT otl_from
-                                  FROM otl
+                           SELECT id
+                                  FROM aset
                           );
       DELETE FROM otl
              WHERE otl_to IN
@@ -144,14 +160,19 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
                            FROM todelete
                    );
 
+      DELETE FROM aset;
+      INSERT INTO aset
+      SELECT DISTINCT otl_to as id
+             FROM otl;
+
       DELETE FROM todelete;
       INSERT INTO todelete
              SELECT DISTINCT otl_from as id
                     FROM otl
                     WHERE otl_from NOT IN
                           (
-                           SELECT otl_to
-                                  FROM otl
+                           SELECT id
+                                  FROM aset
                           );
       DELETE FROM otl
              WHERE otl_from IN
@@ -572,16 +593,38 @@ CREATE FUNCTION smart_action(claster_size INT, acnt INT)
 DROP PROCEDURE IF EXISTS oscc//
 CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
   BEGIN
-    # all links to pages having no more than maxsize-1 parenting links
+    DECLARE lcnt INT;
+    DECLARE res VARCHAR(255);
+
+    SELECT sum(lc_amnt) INTO @lcnt
+           FROM lc
+           WHERE lc_amnt<maxsize;
+
+    SELECT cry_for_memory( 54*@lcnt ) INTO @res;
+    # @res could be reported up here but we would like to keep it silent
+
     DROP TABLE IF EXISTS otl;
-    CREATE TABLE otl(
-      otl_to int(8) unsigned NOT NULL default '0',
-      otl_from int(8) unsigned NOT NULL default '0',
-      KEY (otl_from),
-      KEY (otl_to)
-    ) ENGINE=MEMORY AS
-    SELECT DISTINCT lc_pid as otl_to,
-                    l_from as otl_from
+    # all links to pages having no more than maxsize-1 parenting links
+    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+      THEN
+        CREATE TABLE otl(
+          otl_to int(8) unsigned NOT NULL default '0',
+          otl_from int(8) unsigned NOT NULL default '0',
+          KEY (otl_from),
+          KEY (otl_to)
+        ) ENGINE=MyISAM;
+      ELSE
+        CREATE TABLE otl(
+          otl_to int(8) unsigned NOT NULL default '0',
+          otl_from int(8) unsigned NOT NULL default '0',
+          KEY (otl_from),
+          KEY (otl_to)
+        ) ENGINE=MEMORY;
+    END IF;
+
+    INSERT INTO otl /* SLOW OK */
+    SELECT l_to as otl_to,
+           l_from as otl_from
            FROM lc,
                 l
            WHERE lc_pid=l_to and
@@ -679,7 +722,8 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
         END IF;
 
         # used only for ..._1 clasters detection,
-        # provides the ability to use INSERT ... ON DUPLICATE KEY UPDATE ... there
+        # provides the ability to use INSERT ... ON DUPLICATE KEY UPDATE ...
+        # there
         # select from isolated maybe is too wide
         DELETE FROM parented
                WHERE pid IN
@@ -706,6 +750,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
     DECLARE cnt INT;
     DECLARE curcatuid INT;
     DECLARE actmaxsize INT DEFAULT '1';
+    DECLARE st VARCHAR(255);
 
     CALL isolated_layer(maxsize, claster_type);
 
@@ -800,13 +845,10 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
               IF cnt>0
                 THEN
                   SELECT CONCAT( ':: out ', @fprefix, tmp, '.txt' );
-                  SELECT title
-                         FROM isolated,
-                              articles
-                         WHERE cat=curcatuid AND
-                               act=1 AND
-                               isolated.id=articles.id
-                         ORDER BY title ASC;
+                  SET @st=CONCAT( 'SELECT page_title FROM isolated, ', @dbname, '.page WHERE cat=', curcatuid, ' AND act=1 AND id=page_id ORDER BY page_title ASC;' );
+                  PREPARE stmt FROM @st;
+                  EXECUTE stmt;
+                  DEALLOCATE PREPARE stmt;
               END IF;
           END IF;
 
@@ -905,6 +947,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DECLARE st VARCHAR(511);
     DECLARE rank INT;
     DECLARE cnt INT;
+    DECLARE res VARCHAR(255);
 
     SET @starttime=now();
 
@@ -932,18 +975,61 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
     # CREATING SOME TABLES FOR OUT AND FOR TEMPEMPORARY
 
+    # temporary table
+    DROP TABLE IF EXISTS parented;
+    CREATE TABLE parented(
+      pid int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (pid)
+    ) ENGINE=MEMORY;
+    IF targetset!='redirects'
+      THEN
+        INSERT INTO parented
+        SELECT id as pid
+               FROM articles
+               # not sure if sorting does help
+               ORDER by id ASC;
+      ELSE
+        SET @st=CONCAT( 'INSERT INTO parented SELECT r_id as pid FROM r', namespace, ';' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+
+    SELECT count(*) INTO cnt
+           FROM parented;
+
+    SELECT cry_for_memory( 62*cnt ) INTO @res;
+    IF @res!=''
+      THEN
+        SELECT CONCAT( ':: echo ', @res );
+    END IF;
+
     #
     # Main out table for isolated articles processing.
     #
     DROP TABLE IF EXISTS isolated;
-    CREATE TABLE isolated (
-      id int(8) unsigned NOT NULL default '0',
-      cat int(8) unsigned NOT NULL default '0',
-      act int(8) signed NOT NULL default '1',
-      KEY (id),
-      PRIMARY KEY ( id, cat ),
-      KEY (cat)
-    ) ENGINE=MEMORY;
+    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+      THEN
+        SELECT ':: echo MyISAM engine is chosen for isolates table';
+
+        CREATE TABLE isolated (
+          id int(8) unsigned NOT NULL default '0',
+          cat int(8) unsigned NOT NULL default '0',
+          act int(8) signed NOT NULL default '1',
+          KEY (id),
+          PRIMARY KEY ( id, cat ),
+          KEY (cat)
+        ) ENGINE=MyISAM;
+      ELSE
+        CREATE TABLE isolated (
+          id int(8) unsigned NOT NULL default '0',
+          cat int(8) unsigned NOT NULL default '0',
+          act int(8) signed NOT NULL default '1',
+          KEY (id),
+          PRIMARY KEY ( id, cat ),
+          KEY (cat)
+        ) ENGINE=MEMORY;
+    END IF;
 
     #
     # List of claster types (category based) for isolated articles.
@@ -1000,31 +1086,19 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     ) ENGINE=MEMORY;
 
     # temporary table
+    DROP TABLE IF EXISTS aset;
+    CREATE TABLE aset (
+      id int(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (id)
+    ) ENGINE=MEMORY;
+
+    # temporary table
     DROP TABLE IF EXISTS lc;
     CREATE TABLE lc(
       lc_pid int(8) unsigned NOT NULL default '0',
       lc_amnt int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (lc_pid)
     ) ENGINE=MEMORY;
-
-    # temporary table
-    DROP TABLE IF EXISTS parented;
-    CREATE TABLE parented(
-      pid int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (pid)
-    ) ENGINE=MEMORY;
-    IF targetset!='redirects'
-      THEN
-        INSERT INTO parented
-        SELECT id as pid
-               FROM articles
-               ORDER by id ASC;
-      ELSE
-        SET @st=CONCAT( 'INSERT INTO parented SELECT r_id as pid FROM r', namespace, ' ORDER by r_id ASC;' );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-    END IF;
 
     SET @principle_component_size=0;
 
@@ -1060,6 +1134,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DROP TABLE IF EXISTS otl;
 
     DROP TABLE todelete;
+    DROP TABLE aset;
     DROP TABLE lc;
     DROP TABLE parented;
 
@@ -1134,10 +1209,7 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
     DROP TABLE IF EXISTS ruwiki_ns;
     CREATE TABLE ruwiki_ns (
       id int(8) unsigned NOT NULL default '0',
-      cat varchar(255) binary NOT NULL default '',
-      title varchar(255) binary NOT NULL default '',
-      PRIMARY KEY (id),
-      KEY (cat)
+      PRIMARY KEY (id)
     ) ENGINE=MyISAM;
 
     IF postfix='r'
@@ -1145,29 +1217,29 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
         ALTER TABLE ruwiki_ns ENGINE=MEMORY;
         ALTER TABLE orcat_ns ENGINE=MEMORY;
 
+        ALTER TABLE ruwiki_ns ADD COLUMN cat int(8) unsigned NOT NULL default '0';
+
         #
         # Redirects as they belong to redirect chains.
         #
-        SET @st=CONCAT( 'INSERT INTO ruwiki_ns SELECT isolated.id, coolcat as cat, r_title FROM isolated, r', namespace, ', orcat_ns WHERE act>=0 and isolated.id=r_id and uid=isolated.cat;' );
+        SET @st=CONCAT( 'INSERT INTO ruwiki_ns SELECT isolated.id as id, uid as cat FROM isolated, r', namespace, ', orcat_ns WHERE act>=0 and isolated.id=r_id and uid=isolated.cat;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
       ELSE
+        ALTER TABLE ruwiki_ns ADD COLUMN cat varchar(255) binary NOT NULL default '';
+        ALTER TABLE ruwiki_ns ADD COLUMN title varchar(255) binary NOT NULL default '';
+        ALTER TABLE ruwiki_ns ADD KEY (cat);
+
         #
         # Isolated articles as they belong to different claster chains.
         # Categories as they belong to categorytree paths.
         #
         # isolated refresh
-        INSERT INTO ruwiki_ns
-        SELECT isolated.id,
-               coolcat as cat,
-               title
-               FROM isolated,
-                    articles,
-                    orcat_ns
-               WHERE act>=0 and
-                     isolated.id=articles.id and
-                     uid=isolated.cat;
+        SET @st=CONCAT( 'INSERT INTO ruwiki_ns SELECT isolated.id, coolcat as cat, page_title FROM isolated, ', @dbname, '.page, orcat_ns WHERE act>=0 and id=page_id and uid=isolated.cat;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
     END IF;
 
     #

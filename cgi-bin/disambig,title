@@ -17,7 +17,10 @@ handle_adlist ()
 
 echo "<ul class=disambigmenu>"
 echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig\">$top3name</a></li>"
-echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\">$top2name</a></li>"
+if [ "$template_doc" != '' ]
+then
+  echo "<li><a href=\"./go.sh?$stdurl&amp;listby=disambig,template\">$top2name</a></li>"
+fi
 echo "<li class=\"large\">$top1name</li>"
 echo "</ul>"
 echo "<br />$whatisit1<br /><br />"

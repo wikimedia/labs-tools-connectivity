@@ -218,11 +218,16 @@ CREATE PROCEDURE inter_langs( srv INT )
     DECLARE dsync INT DEFAULT 0;
     DECLARE dcnt INT DEFAULT 0;
     DECLARE st VARCHAR(511);
+    DECLARE res VARCHAR(255) DEFAULT '';
     DECLARE cur CURSOR FOR SELECT DISTINCT TRIM(TRAILING '.wikipedia.org' FROM domain), dbname FROM toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and is_closed=0 and server=sv_id and host_name=host_for_srv(srv) ORDER BY size DESC;
     DECLARE scur CURSOR FOR SELECT host_name, MIN(server) as sv FROM toolserver.wiki, u_mashiah_golem_p.server WHERE family='wikipedia' and is_closed=0 and sv_id=server and host_name!=host_for_srv(srv) GROUP BY host_name ORDER BY sv ASC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
-    CALL allow_allocation( 4294967296 );
+    SELECT cry_for_memory( 4294967296 ) INTO @res;
+    IF @res!=''
+      THEN
+        SELECT CONCAT( ':: echo ', @res );
+    END IF;
 
     #
     # Infect slave servers with this library code

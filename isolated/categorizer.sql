@@ -15,6 +15,21 @@
 ############################################################
 delimiter //
 
+DROP FUNCTION IF EXISTS nrcatuid//
+CREATE FUNCTION nrcatuid (name VARCHAR(255))
+  RETURNS INT
+  DETERMINISTIC
+  BEGIN
+    DECLARE res INT;
+
+    SELECT id INTO res
+           FROM categories
+           WHERE title=name;
+
+    RETURN res;
+  END;
+//
+
 #
 # Caches pages for ns=14 and prepares the categories table.
 #
@@ -28,8 +43,6 @@ CREATE PROCEDURE categories ()
     SET @starttime=now();
 
     CALL cache_namespace_pages( 14 );
-    # fortunately for this namespace we do not depend on temporary data
-    DROP TABLE p14;
 
     DROP TABLE IF EXISTS categories;
     CREATE TABLE categories (
@@ -45,12 +58,10 @@ CREATE PROCEDURE categories ()
     DROP TABLE IF EXISTS visible_categories;
     CREATE TABLE visible_categories (
       id int(8) unsigned NOT NULL default '0',
-      title varchar(255) binary NOT NULL default '',
-      PRIMARY KEY (id),
-      UNIQUE KEY title (title)
+      PRIMARY KEY (id)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO visible_categories SELECT id, title FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
+    SET @st=CONCAT( 'INSERT INTO visible_categories SELECT id FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -59,7 +70,7 @@ CREATE PROCEDURE categories ()
     # Some of redundant categories are visible, so we take such names from
     #    @i18n_page/VisibleAuxiliaryCategories
     #
-    SET @st=CONCAT( 'DELETE visible_categories FROM visible_categories, ', @dbname, '.page, ', @dbname, '.pagelinks WHERE title=pl_title and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/VisibleAuxiliaryCategories";' );
+    SET @st=CONCAT( 'DELETE visible_categories FROM visible_categories, ', @dbname, '.page, ', @dbname, '.pagelinks WHERE id=nrcatuid(pl_title) and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/VisibleAuxiliaryCategories";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -76,28 +87,34 @@ CREATE PROCEDURE categories ()
 //
 
 
-DROP FUNCTION IF EXISTS nrcatuid//
-CREATE FUNCTION nrcatuid (name VARCHAR(255))
-  RETURNS INT
-  DETERMINISTIC
-  BEGIN
-    DECLARE res INT;
-
-    SELECT id INTO res
-           FROM categories
-           WHERE title=name;
-
-    RETURN res;
-  END;
-//
-
 DROP PROCEDURE IF EXISTS categorylinks//
 CREATE PROCEDURE categorylinks (namespace INT)
   BEGIN
     DECLARE st VARCHAR(511);
+    DECLARE cnt INT DEFAULT '0';
+    DECLARE res VARCHAR(255);
+
+    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM ', @dbname, '.categorylinks, nr', namespace, ' WHERE nr', namespace, '.id=cl_from;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT cry_for_memory( 54*@cnt ) INTO @res;
+    IF @res!=''
+      THEN
+        SELECT CONCAT( ':: echo ', @res );
+    END IF;
+
+    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+      THEN
+        SELECT ':: echo MyISAM engine is chosen for categorizing links table';
+        SELECT 'MyISAM' INTO @res;
+      ELSE
+        SELECT 'MEMORY' INTO @res;
+    END IF;
 
     DROP TABLE IF EXISTS nrcatl;
-    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=MEMORY AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @dbname, '.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
+    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=', @res, ' AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @dbname, '.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -119,10 +136,34 @@ CREATE PROCEDURE notcategorized ()
     DECLARE cnt INT;
 
     DROP TABLE IF EXISTS nocat;
-    SET @st=CONCAT( "CREATE TABLE nocat ( nc_title varchar(255) binary NOT NULL default '', act INT(8) signed NOT NULL default '0', PRIMARY KEY (nc_title) ) ENGINE=MEMORY AS SELECT title AS nc_title, 1 as act FROM articles WHERE id NOT IN ( SELECT cl_from FROM visible_categories, ", @dbname, ".categorylinks WHERE cl_to=title );" );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    CREATE TABLE nocat ( 
+      nc_id INT(8) unsigned NOT NULL default '0',
+      act INT(8) signed NOT NULL default '0', 
+      PRIMARY KEY (nc_id)
+    ) ENGINE=MEMORY;
+
+    DROP TABLE IF EXISTS yescat;
+    CREATE TABLE yescat ( 
+      yc_id INT(8) unsigned NOT NULL default '0',
+      PRIMARY KEY (yc_id)
+    ) ENGINE=MEMORY;
+
+    INSERT INTO yescat
+    SELECT DISTINCT nrcl_from as yc_id
+           FROM visible_categories, 
+                nrcatl
+           WHERE nrcl_cat=id;
+
+    INSERT INTO nocat
+    SELECT id AS nc_id,
+           1 as act
+           FROM articles
+           WHERE id NOT IN (
+                             SELECT yc_id
+                                    FROM yescat
+                           );
+
+    DROP TABLE yescat;
 
     SELECT count(*) INTO @not_categorized_articles_count
            FROM nocat;
@@ -136,7 +177,7 @@ CREATE PROCEDURE notcategorized ()
         #
         # Already registered non-categorized articles.
         #
-        SET @st=CONCAT( 'INSERT INTO nocat SELECT title as nc_title, -1 as act FROM articles, ', @dbname, '.categorylinks WHERE id=cl_from and cl_to="', @non_categorized_articles_category, '" ON DUPLICATE KEY UPDATE act=0;' );
+        SET @st=CONCAT( 'INSERT INTO nocat SELECT id as nc_id, -1 as act FROM articles, ', @dbname, '.categorylinks WHERE id=cl_from and cl_to="', @non_categorized_articles_category, '" ON DUPLICATE KEY UPDATE act=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -149,11 +190,12 @@ CREATE PROCEDURE notcategorized ()
             IF cnt>0
               THEN
                 SELECT CONCAT(':: echo +: ', cnt ) as title;
+
                 SELECT CONCAT( ':: out ', @fprefix, 'ncaset.txt' );
-                SELECT nc_title
-                       FROM nocat
-                       WHERE act=1
-                       ORDER BY nc_title ASC;
+                SET @st=CONCAT( 'SELECT page_title FROM nocat, ', @dbname, '.page WHERE act=1 and nc_id=page_id ORDER BY page_title ASC;' );
+                PREPARE stmt FROM @st;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
             END IF;
         END IF;
     
@@ -163,11 +205,12 @@ CREATE PROCEDURE notcategorized ()
         IF cnt>0
           THEN
             SELECT CONCAT(':: echo -: ', cnt ) as title;
+
             SELECT CONCAT( ':: out ', @fprefix, 'ncarem.txt' );
-            SELECT nc_title
-                   FROM nocat
-                   WHERE act=-1
-                   ORDER BY nc_title ASC;
+            SET @st=CONCAT( 'SELECT page_title FROM nocat, ', @dbname, '.page WHERE act=-1 and nc_id=page_id ORDER BY page_title ASC;' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
         END IF;
     END IF;
   END;
