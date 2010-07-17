@@ -270,6 +270,43 @@ CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
     #
     # Current host log is updated with no call to the outer handler.
     #
+    # INSERT INTO u_', usr, '_golem_p.language_stats
+    # SELECT "', language, '" as lang,
+    #        "', @rep_time, '" as ts,
+    #        @_dr as disambig_recognition,
+    #        @_ac as article_count,
+    #        @_chc as chrono_count,
+    #        @_dc as disambig_count,
+    #        @_iac as isolated_count,
+    #        @_crtc as creator_count,
+    #        @_dec as deadend_count,
+    #        @_ncc as nocat_count,
+    #        @_drd as drdi,
+    #        @_nccc as nocatcat_count,
+    #        @_crc as catring_count,
+    #        0 as article_diff,
+    #        0 as isolated_diff,
+    #        0 as creator_diff,
+    #        0 as disambig_diff,
+    #        0 as drdi_diff
+    # ON DUPLICATE KEY UPDATE ts="', @rep_time, '",
+    #                         disambig_recognition=@_dr,
+    #                         article_diff=CAST(@_ac-language_stats.article_count AS SIGNED),
+    #                         article_count=@_ac,
+    #                         chrono_count=@_chc,
+    #                         disambig_diff=CAST(@_dc-language_stats.disambig_count AS SIGNED),
+    #                         disambig_count=@_dc,
+    #                         isolated_diff=CAST(@_iac-language_stats.isolated_count AS SIGNED),
+    #                         isolated_count=@_iac,
+    #                         deadend_count=@_dec,
+    #                         nocat_count=@_ncc,
+    #                         drdi_diff=@_drd-language_stats.drdi,
+    #                         drdi=@_drd,
+    #                         nocatcat_count=@_nccc,
+    #                         catring_count=@_crc,
+    #                         creator_diff=CAST(@_crtc-language_stats.creator_count AS SIGNED),
+    #                         creator_count=@_crtc;
+    #
     SET @st=CONCAT( 'INSERT INTO u_', usr, '_golem_p.language_stats SELECT "', language, '" as lang, "', @rep_time, '" as ts, @_dr as disambig_recognition, @_ac as article_count, @_chc as chrono_count, @_dc as disambig_count, @_iac as isolated_count, @_crtc as creator_count, @_dec as deadend_count, @_ncc as nocat_count, @_drd as drdi, @_nccc as nocatcat_count, @_crc as catring_count, 0 as article_diff, 0 as isolated_diff, 0 as creator_diff, 0 as disambig_diff, 0 as drdi_diff ON DUPLICATE KEY UPDATE ts="', @rep_time, '", disambig_recognition=@_dr, article_diff=CAST(@_ac-language_stats.article_count AS SIGNED), article_count=@_ac, chrono_count=@_chc, disambig_diff=CAST(@_dc-language_stats.disambig_count AS SIGNED), disambig_count=@_dc, isolated_diff=CAST(@_iac-language_stats.isolated_count AS SIGNED), isolated_count=@_iac, deadend_count=@_dec, nocat_count=@_ncc, drdi_diff=@_drd-language_stats.drdi, drdi=@_drd, nocatcat_count=@_nccc, catring_count=@_crc, creator_diff=CAST(@_crtc-language_stats.creator_count AS SIGNED), creator_count=@_crtc;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;

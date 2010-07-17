@@ -72,3 +72,4 @@ disambiguationspage_improperly_configured="<a href='http://$language.wikipedia.o
 templatedoc_improperly_configured="Requires standard template documentation subpage name to be configured at"
 never_run="Data collection for language $language was never started yet."
 interface_text="Interface"
+tablelink="Table&nbsp;for&nbsp;languages&nbsp;comparison"

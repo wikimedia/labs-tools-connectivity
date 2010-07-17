@@ -11,7 +11,7 @@ handle_dsglist ()
     name=${name//_/ }
     local cname=$( url "$name" )
 
-    echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>&rlm;</td><td class=\"sortkey\">$volume <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=\"green\">[[${linkshere}]]</font></a></small></td></tr>"
+    echo "<tr><td class=\"numerator\">${id}.</td><td class=\"listelem\"><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a>&rlm;</td><td class=\"sortkey\">$volume <small><a href=\"http://$language.wikipedia.org/w/index.php?title=Special:WhatLinksHere&amp;target=${cname}&amp;namespace=0\"><font color=\"green\">[[${linkshere}]]</font></a></small></td></tr>"
   fi
 }
 

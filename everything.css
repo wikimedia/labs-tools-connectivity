@@ -371,7 +371,6 @@ table.infotable {
   border: 1px #ddd solid;
   border-collapse: collapse;
   font-size: 8pt;
-  white-space:nowrap;
   float:left;
   clear:left;
 }

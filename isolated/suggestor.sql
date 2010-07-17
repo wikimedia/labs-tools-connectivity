@@ -31,12 +31,14 @@ CREATE PROCEDURE suggestor ( srv INT )
 
     CALL disambiguator_unload();
 
-    #
-    # For use in "ISOLATES WITH LINKED INTERWIKI".
-    #
-    # Note: postponed as taking too long.
-    #
-    CALL inter_langs( srv );
+#    #
+#    # For use in "ISOLATES WITH LINKED INTERWIKI".
+#    #
+#    # Note: postponed as taking too long.
+#    #
+#    CALL inter_langs( srv );
+    DROP TABLE iw_filter;
+    DROP TABLE nrcatl0;
 
     DROP TABLE ll_orcat;
 

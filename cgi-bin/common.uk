@@ -72,3 +72,4 @@ disambiguationspage_improperly_configured="<a href='http://$language.wikipedia.o
 templatedoc_improperly_configured="Вимагає завдання стандартного імені підсторінки документування шаблонів на конфігураційної сторінці"
 never_run="Дані для мови $language поки не збиралися."
 interface_text="Interface"
+tablelink="Таблица&nbsp;сравнения&nbsp;языков"

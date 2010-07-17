@@ -61,8 +61,8 @@ CREATE PROCEDURE actual_replag ( language VARCHAR(64) )
 # Permanent storage for inter-run timing data.
 #
 # Pretends to renew timestamp for an action given
-# stores last successfull something time as well as
-# current time to pretnd to renew.
+# stores the last "successfull something" time as well as
+# the current time to pretnd to renew.
 #
 DROP PROCEDURE IF EXISTS pretend//
 CREATE PROCEDURE pretend ( action VARCHAR(255) )
@@ -75,7 +75,7 @@ CREATE PROCEDURE pretend ( action VARCHAR(255) )
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    # no need to keep old data, especially when stats hasn't been uploaded
+    # no need to keep old data, especially when stats have not been uploaded
     SET @st=CONCAT( 'DELETE FROM ', action, ' WHERE valid=0;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;

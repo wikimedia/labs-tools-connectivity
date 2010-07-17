@@ -319,6 +319,11 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
                   PREPARE stmt FROM @st;
                   EXECUTE stmt;
                   DEALLOCATE PREPARE stmt;
+                  IF @main_page_id IS NULL
+                    THEN
+                      SET @mp_ns=NULL;
+                      SET @r_flag=0;
+                  END IF;
                 ELSE
                   SET @r_flag=0;
               END IF;
@@ -331,7 +336,12 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
 
                 SELECT CONCAT( ':: echo main page found for zero namespace' );
               ELSE
-                SELECT CONCAT( ':: echo main page is out of zero namespace' );
+                IF @main_page_id IS NULL
+                  THEN
+                    SELECT CONCAT( ':: echo main page is not linked via "Main_Page" redirect, so it is not found' );
+                  ELSE
+                    SELECT CONCAT( ':: echo main page is out of zero namespace' );
+                END IF;
             END IF;
 
         END IF;

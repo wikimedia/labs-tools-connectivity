@@ -64,6 +64,18 @@ count=0
 # Read language configuration file and run the analysis for each
 # language defined there.
 #
+# For host-oriented lists:
+# select wiki.lang
+#        from toolserver.wiki,
+#             u_mashiah_golem_p.server
+#        where is_closed=0 and
+#              family='wikipedia' and
+#              domain is not null and
+#              server=sv_id
+#              and host_name="$line";
+#
+# ORDER BY previous processing time is desired.
+#
 while read line
 do
   sline=( $line )
@@ -74,6 +86,15 @@ do
   if [ "$line" != '' ] && [ ${line:0:1} != '#' ] && [ ${line:0:1} != ' ' ]
   then
     ./isolated.sh $line | tee ${sline[0]}.log
+
+    # sometimes sql servers could be busy, so we just repeat
+    while [ -f ${sline[0]}.repeat.please ]
+    do
+      rm -f ./${sline[0]}.repeat.please
+      echo "REPEAT FOR ${sline[0]}"
+      ./isolated.sh $line | tee ${sline[0]}.log
+    done
+
     count=$((count+1))
   fi
 

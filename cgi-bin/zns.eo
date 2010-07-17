@@ -33,3 +33,5 @@ also_=""
 _determined1="Decidema"
 fl_wr="listo de alidirektiloj en la ĉefa nomspaco, kiuj havas superfluajn ligilojn"
 fl_wr_desc="En la listo estas paĝoj, kiujn Mediawiki rekonas kiel alidirektilojn, sed kiuj enhavas krom la komandoj #REDIRECT aŭ #ALIDIREKTU ankoraŭ iun tekston kun ligiloj. Preferindas redakti la paĝojn tiel, ke ili estu alidirektiloj (sen superflua teksto) aŭ tamen apartaj artikoloj (sen alidirektilo tiukaze)."
+_other='other'
+_couldbe="such as $_cllt lists and soft redirects"

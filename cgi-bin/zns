@@ -219,11 +219,13 @@ zns ()
     if [ "$cllt" != '0' ]
     then
       lists_flexies $cllt
+      __pages_p=$__pages
+      pages_flexies $cllt
       if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
       then
-        echo "<li><strong class=\"data\">$disambigs</strong> $_disambigs $__pages $_and_ <strong class=\"data\">$cllt</strong> $_cllt $__lists.</li>"
+        echo "<li><strong class=\"data\">$disambigs</strong> $_disambigs $__pages_p $_and_ <strong class=\"data\">$cllt</strong> $_other $__pages ($_couldbe).</li>"
       else
-        echo "<li><strong class=\"data\">$disambigs</strong> $__pages $_disambigs $_and_ <strong class=\"data\">$cllt</strong> $__lists $_cllt.</li>"
+        echo "<li><strong class=\"data\">$disambigs</strong> $__pages_p $_disambigs $_and_ <strong class=\"data\">$cllt</strong> $_other $__pages ($_couldbe).</li>"
       fi
     else
       if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]

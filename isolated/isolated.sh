@@ -68,6 +68,8 @@ rm -f ./${language}.*.info ./${language}.*.txt ./${language}.*.stat ${language}.
 
 echo "PROCESSING LANGUAGE $language"
 
+echo "cluster size limit: $limit"
+
 time { 
   {
     echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"

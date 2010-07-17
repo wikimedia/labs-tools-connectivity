@@ -11,7 +11,7 @@ handle_dsmbg ()
     then
       test=${test//_/ }
       local ctest=$( url "$test" )
-      echo "</ol><span><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$ctest\"><font color=\"green\">[[${linkshere}]]</font></a></small></span></li><ol>"
+      echo "</ol><span><b><a href=\"http://$language.wikipedia.org/w/index.php?title=$ctest\" target=\"_blank\">$test</a></b> <small><a href=\"http://$language.wikipedia.org/w/index.php?title=Special:WhatLinksHere&amp;target=${ctest}&amp;namespace=0\"><font color=\"green\">[[${linkshere}]]</font></a></small></span></li><ol>"
     else
       article=${article//_/ }
       local carticle=$( url "$article" )
@@ -28,7 +28,7 @@ handle_dlist ()
   then
     local name=${line//_/ }
     local cname=$( url "$name" )
-    echo "<li><span><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/wiki/Special:WhatLinksHere/$cname\"><font color=\"green\">[[${linkshere}]]</font></a></small></span></li>"
+    echo "<li><span><a href=\"http://$language.wikipedia.org/w/index.php?title=$cname\" target=\"blank\">$name</a> <small><a href=\"http://$language.wikipedia.org/w/index.php?title=Special:WhatLinksHere&amp;target=${cname}&amp;namespace=0\"><font color=\"green\">[[${linkshere}]]</font></a></small></span></li>"
   fi
 }
 

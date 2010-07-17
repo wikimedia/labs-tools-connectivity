@@ -220,12 +220,6 @@ echo "<center>"
 
 table_opens
 
-handle_a_table 1 "en lots many ? ? huge ? ? ? ? ? ? ? ? never_processed_yet ? ? ? ? ? English"
-
-table_closes
-
-table_opens
-
 {
   echo SELECT language_stats.lang,                                               \
               article_count,                                                     \
@@ -288,7 +282,7 @@ table_opens
               ORDER BY size DESC\;
 
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | { 
-                  count=1
+                  count=0
                   while read -r line
                   do 
                     if [ "$line" = 'change' ]

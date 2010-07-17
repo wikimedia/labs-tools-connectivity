@@ -429,9 +429,14 @@ handle ()
            then
              echo server is not allowed for writing\; nothing can be run
            else
-             if [ "$line" != '' ]
+             if [ "${line:0:40}" = 'ERROR 1040 (08004): Too many connections' ]
              then
-               echo -ne $line\\r\\n >> ${language}.debug.log
+               echo "$line" > ${language}.repeat.please
+             else
+               if [ "$line" != '' ]
+               then
+                 echo -ne $line\\r\\n >> ${language}.debug.log
+               fi
              fi
            fi
          fi
@@ -440,7 +445,10 @@ handle ()
        do_stat=0
        echo "$do_stat" > ${language}.no_stat.log
        echo "$do_templates" > ${language}.no_templates.log
-       echo "$line" > stop.please
+       if [ ! -f ${language}.repeat.please ]
+       then
+         echo "$line" > stop.please
+       fi
        ;;
     1) elem=${#fcollection[*]}
        fcollection[$elem]=$line

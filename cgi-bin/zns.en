@@ -32,4 +32,6 @@ _of_articles_are_isolated_of="of articles are isolated articles of"
 also_=""
 _determined1="Determined"
 fl_wr="full list of main namespace redirects with redundant links"
-fl_wr_desc="This list contains pages, which are recognized by WikiMedia engine as redirects but, unlike to other redirects, containing (in addition to #REDIRECT[[article name]]) some other text with links. It is recommended to modify the content of pages in this list so that they become recognized as regular redirects or regular articles."
+fl_wr_desc="This list contains pages, which are recognized by WikiMedia engine as redirects but, unlike to other redirects, containing (in addition to #REDIRECT[[article name]]) some other text with links or transcuding templates containing links to zero namespace. It is recommended to modify the content of pages in this list so that they become recognized as regular redirects or regular articles. In case the cause is in the template, removal of links to zero namespace would be of help."
+_other='other'
+_couldbe="such as $_cllt lists and soft redirects"

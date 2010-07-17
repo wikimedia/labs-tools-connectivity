@@ -918,9 +918,11 @@ EOM
   if [ "$language" != '' ]
   then
     how_actual $actcode
+    echo "<div id=\"powered-by\">Powered&nbsp;by&nbsp;<a href=\"/\">Wikimedia&nbsp;Toolserver</a><br /><br /><a href=\"./go.sh?&interface=$interface\">$tablelink</a></div>"
+  else
+    echo "<div id=\"powered-by\">Powered&nbsp;by&nbsp;<a href=\"/\">Wikimedia&nbsp;Toolserver</a></div>"
   fi
 
-  echo "<div id=\"powered-by\">Powered&nbsp;by <a href=\"/\">Wikimedia&nbsp;Toolserver</a></div>"
 
   #
   # The page header at the center
