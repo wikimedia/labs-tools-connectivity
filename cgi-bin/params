@@ -9,6 +9,7 @@ url ()
   str=${str//\?/\%3F}
   str=${str//\&/\%26}
   str=${str//\"/\%22}
+  str=${str//\+/\%2B}
 
   echo "$str"
 }
