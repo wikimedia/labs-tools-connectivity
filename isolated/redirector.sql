@@ -170,6 +170,72 @@ CREATE PROCEDURE nr2X2nr ()
 //
 
 #
+# Redirect chanis throwing optimization for huge nr2r tables.
+#
+# Avoids use of MyISAM tables for nr2r, which makes processing far too slow.
+#
+# Inputs: pl, r<ns>, nr<ns>.
+#
+# Outputs: pl modified.
+#
+DROP PROCEDURE IF EXISTS fast_nr2X2nr//
+CREATE PROCEDURE fast_nr2X2nr (namespace INT)
+  BEGIN
+    DECLARE st VARCHAR(255);
+    DECLARE cnt INT;
+    DECLARE portion INT;
+    DECLARE shift INT DEFAULT '0';
+    DECLARE pcnt INT;
+    DECLARE iteration INT DEFAULT '0';
+
+    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM pl, r', namespace, ' WHERE pl_to=r_id;' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT CONCAT( ':: echo nr2r links amount is estimated as ', @cnt, ' records' );
+
+    SELECT CAST(@memory_table_capacity/32 AS UNSIGNED) INTO portion;
+
+    SELECT CONCAT( ':: echo MEMORY table capacity is limited to store up to ', portion, ' indexed nr2r records' );
+
+    DROP TABLE IF EXISTS nr2r;
+    WHILE @cnt>0 DO
+
+      CREATE TABLE nr2r (
+        nr2r_to int(8) unsigned NOT NULL default '0',
+        nr2r_from int(8) unsigned NOT NULL default '0',
+        KEY (nr2r_to)
+      ) ENGINE=MEMORY;
+
+      SET @st=CONCAT( 'INSERT INTO nr2r SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+
+      SELECT count(*) INTO pcnt
+             FROM nr2r;
+
+      IF pcnt>0
+        THEN
+
+          SELECT CONCAT( ':: echo ', pcnt, ' links from non-redirects to redirects encountered at iteration ', iteration );
+
+          CALL nr2X2nr();
+
+      END IF;
+
+      DROP TABLE nr2r;
+
+      SELECT @cnt-portion INTO @cnt;
+      SELECT shift+portion INTO shift;
+      SELECT iteration+1 INTO iteration;
+
+    END WHILE;
+  END;
+//
+
+#
 # Constructs all links from redirects to redirects.
 #
 # Inputs: pl, r<ns>, nr<ns>.
@@ -180,8 +246,6 @@ DROP PROCEDURE IF EXISTS throw_multiple_redirects//
 CREATE PROCEDURE throw_multiple_redirects (namespace INT)
   BEGIN
     DECLARE st VARCHAR(255);
-    DECLARE cnt INT;
-    DECLARE res VARCHAR(255);
 
     #
     # Long redirects like double and triple do not work in web API,
@@ -304,43 +368,6 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     DROP TABLE orcatr;
     DROP TABLE ruwikir;
 
-    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM pl, r', namespace, ' WHERE pl_to=r_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT cry_for_memory( 32*@cnt ) INTO @res;
-    IF @res!=''
-      THEN
-        SELECT CONCAT( ':: echo ', @res );
-    END IF;
-    
-    # All links from non-redirects to redirects for a given namespace.
-    DROP TABLE IF EXISTS nr2r;
-    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
-      THEN
-        SELECT ':: echo MyISAM engine is chosen for non-redirects to redirects links table';
-        CREATE TABLE nr2r (
-          nr2r_to int(8) unsigned NOT NULL default '0',
-          nr2r_from int(8) unsigned NOT NULL default '0',
-          KEY (nr2r_to)
-        ) ENGINE=MyISAM;
-      ELSE
-        CREATE TABLE nr2r (
-          nr2r_to int(8) unsigned NOT NULL default '0',
-          nr2r_from int(8) unsigned NOT NULL default '0',
-          KEY (nr2r_to)
-        ) ENGINE=MEMORY;
-    END IF;
-
-    SET @st=CONCAT( 'INSERT INTO nr2r SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SELECT CONCAT( ':: echo ', count(*), ' links from non-redirects to redirects' )
-           FROM nr2r;
-           
     # All links from our namespace redirects to non-redirects.
     DROP TABLE IF EXISTS r2nr;
     CREATE TABLE r2nr (
@@ -433,9 +460,8 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     DELETE FROM r2r
            WHERE r2r_to=r2r_from;
 
-    CALL nr2X2nr();
+    CALL fast_nr2X2nr( namespace );
 
-    DROP TABLE nr2r;
   END;
 //
 

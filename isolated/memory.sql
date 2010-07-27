@@ -10,6 +10,10 @@
 ############################################################
 delimiter //
 
+#SET @memory_table_capacity=8589934592;
+SET @memory_table_capacity=134217728;
+#SET @memory_table_capacity=67108864;
+
 #
 # Requests change for memory table size limit if required/allowed.
 #
@@ -27,9 +31,7 @@ CREATE FUNCTION cry_for_memory ( size VARCHAR(64) )
     # This module allows avoiding default limits on heap table size, 
     # however some reasonable limitations should exist.
     #
-#    SET @capacity=8589934592;
-    SET @capacity=134217728;
-#    SET @capacity=67108864;
+    SET @capacity=@memory_table_capacity;
 
     IF size>@@max_heap_table_size
       THEN
