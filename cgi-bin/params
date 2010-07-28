@@ -7,6 +7,7 @@ url ()
   local str=$1
 
   str=${str//\?/\%3F}
+  str=${str//\&quot;/\%22}
   str=${str//\&/\%26}
   str=${str//\"/\%22}
   str=${str//\+/\%2B}
@@ -37,7 +38,7 @@ parse_query() #@ USAGE: parse_query var ...
             val=${val%.}
         esac
         eval "$var=\$val"
-        eval "${var}_url=\$val"
+        eval "${var}_url=\$( url \"\$val\" )"
         ;;
     esac
   done

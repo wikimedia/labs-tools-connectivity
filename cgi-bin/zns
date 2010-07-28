@@ -483,7 +483,9 @@ data=$(
                       LIMIT $((shift)),100\;
         } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                  while read -r line
-                    do handle_rlist "$line"
+                  do
+                    line=${line//\"/&quot;}
+                    handle_rlist "$line"
                   done
                 }
        )

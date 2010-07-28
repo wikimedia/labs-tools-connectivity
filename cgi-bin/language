@@ -291,6 +291,7 @@ table_opens
 
                       table_opens '?'
                     else
+                      line=${line//\"/&quot;}
                       handle_a_table $((count+1)) "$line"
                       count=$((count+1))
                     fi

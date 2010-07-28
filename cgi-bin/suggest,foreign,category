@@ -20,6 +20,7 @@ then
                         count=$((shift))
                         while read -r line
                         do
+                          line=${line//\"/&quot;}
                           handle_catlist $((count+1)) "$line" 'interlink'
                           count=$((count+1))
                         done
@@ -39,8 +40,10 @@ then
       } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                         count=$((shift))
                         while read -r line
-                          do handle_totranslate $((count+1)) "$line"
-                           count=$((count+1))
+                        do
+                          line=${line//\"/&quot;}
+                          handle_totranslate $((count+1)) "$line"
+                          count=$((count+1))
                         done
                       }
       echo "</table>"

@@ -104,7 +104,9 @@ suggestions ()
                   echo CALL suggestd\(\"$convertedtitle\"\, \'${language}\', 0\)\;
                 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
-                      do handle_dlist "$line"
+                    do
+                      line=${line//\"/&quot;}
+                      handle_dlist "$line"
                     done
                   }
               )
@@ -127,7 +129,9 @@ suggestions ()
               echo CALL dsuggest\(\"$convertedtitle\"\, \'${language}\'\)\;
             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
-                        do handle_dsmbg "$line"
+                      do
+                        line=${line//\"/&quot;}
+                        handle_dsmbg "$line"
                       done
                     }
           )
@@ -150,7 +154,9 @@ suggestions ()
               echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
-                        do handle_lnk "$line"
+                      do
+                        line=${line//\"/&quot;}
+                        handle_lnk "$line"
                       done
                     }
           )
@@ -173,7 +179,9 @@ suggestions ()
             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       lang=''
                       while read -r line
-                        do handle_trns "$line"
+                      do
+                        line=${line//\"/&quot;}
+                        handle_trns "$line"
                       done
                     }
           )
@@ -197,7 +205,9 @@ suggestions ()
               echo CALL interwiki_suggest_wikify\(\"$convertedtitle\"\)\;
             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       while read -r line
-                        do handle_wikify "$line"
+                      do
+                        line=${line//\"/&quot;}
+                        handle_wikify "$line"
                       done
                     }
           )

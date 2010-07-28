@@ -26,7 +26,9 @@ then
                      ORDER BY title ASC\;
   } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
-                      do handle_layer "$line"
+                    do
+                      line=${line//\"/&quot;}
+                      handle_layer "$line"
                     done
                   }
   echo "</ol>"
@@ -48,7 +50,9 @@ echo "<center><table border=0><tr><th>$struchead</th></tr><tr><td align=center><
               ORDER BY REPLACE\(coolcat,\'_\',\'\+\'\) ASC\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   while read -r line
-                    do handle_table "$line"
+                  do 
+                    line=${line//\"/&quot;}
+                    handle_table "$line"
                   done
                 }
 echo "</small></td></tr></table></center>"
@@ -63,7 +67,9 @@ then
                         ORDER BY r_title ASC\;
           } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
-                      do handle_crlist "$line"
+                    do
+                      line=${line//\"/&quot;}
+                      handle_crlist "$line"
                     done
                   }
         )
@@ -90,7 +96,9 @@ then
                         ORDER BY wr_title ASC\;
           } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     while read -r line
-                      do handle_crlist "$line"
+                    do 
+                      line=${line//\"/&quot;}
+                      handle_crlist "$line"
                     done
                   }
         )

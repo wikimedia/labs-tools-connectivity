@@ -22,7 +22,9 @@ echo "<ul class=disambig>"
   echo CALL suggestd\(\"$convertedtemplate\"\, \'${language}\', 10\)\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   while read -r line
-                    do handle_dlist "$line"
+                  do
+                    line=${line//\"/&quot;}
+                    handle_dlist "$line"
                   done
                 }
 echo "</ul><br />"

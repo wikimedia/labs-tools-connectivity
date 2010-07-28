@@ -40,7 +40,9 @@ echo "<tr><th>&#8470;</th><th>${template_title}</th><th>${ambiguous_links}</th><
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                     count=$((shift))
                     while read -r line
-                      do handle_tmpllist $((count+1)) "$line"
+                    do
+                      line=${line//\"/&quot;}
+                      handle_tmpllist $((count+1)) "$line"
                       count=$((count+1))
                     done
                   }
