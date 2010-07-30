@@ -99,6 +99,11 @@ time {
     #
     echo "set @i18n_page='$prjp';"
 
+    #
+    # For some reason iwiki spy could be disabled in /cgi-bin/ts
+    #
+    echo "set @iwspy='$iwspy';"
+
     cat toolserver.sql
 
     echo "select dbname_for_lang( '$language' ) into @dbname;"

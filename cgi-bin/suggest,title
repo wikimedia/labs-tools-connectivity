@@ -97,8 +97,6 @@ suggestions ()
 {
   local isotype=$1
 
-  convertedtitle=${titlesql// /_}
-
   local data=$(
                 {
                   echo CALL suggestd\(\"$convertedtitle\"\, \'${language}\', 0\)\;
@@ -149,77 +147,83 @@ suggestions ()
       echo "</ol>"
     fi
 
-    data=$(
-            {
-              echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
-            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-                      while read -r line
-                      do
-                        line=${line//\"/&quot;}
-                        handle_lnk "$line"
-                      done
-                    }
-          )
+    if [ "$iwspy" != 'off' ]
+    then
+      data=$(
+              {
+                echo CALL interwiki_suggest\(\"$convertedtitle\"\)\;
+              } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                        while read -r line
+                        do
+                          line=${line//\"/&quot;}
+                          handle_lnk "$line"
+                        done
+                      }
+            )
 
-    if [ "$data" != '' ]
-    then 
-      echo "<h3>$sggclause4</h3>"
-      echo "<p>$sggclause5</p>"
+      if [ "$data" != '' ]
+      then 
+        echo "<h3>$sggclause4</h3>"
+        echo "<p>$sggclause5</p>"
 
-      echo "<ol>"
+        echo "<ol>"
 
-      echo $data
+        echo $data
 
-      echo "</ol>"
-    fi
+        echo "</ol>"
+      fi
 
-    data=$(
-            {
-              echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
-            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-                      lang=''
-                      while read -r line
-                      do
-                        line=${line//\"/&quot;}
-                        handle_trns "$line"
-                      done
-                    }
-          )
+      data=$(
+              {
+                echo CALL interwiki_suggest_translate\(\"$convertedtitle\"\)\;
+              } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                        lang=''
+                        while read -r line
+                        do
+                          line=${line//\"/&quot;}
+                          handle_trns "$line"
+                        done
+                      }
+            )
 
-    if [ "$data" != '' ]
-    then 
-      echo "<h3>$sggclause6</h3>"
-      echo "<p>$sggclause7</p>"
+      if [ "$data" != '' ]
+      then 
+        echo "<h3>$sggclause6</h3>"
+        echo "<p>$sggclause7</p>"
 
-      echo "<ul class=\"warning\"><li>$sggclause2</li></ul>"
+        echo "<ul class=\"warning\"><li>$sggclause2</li></ul>"
 
-      echo "<ol>"
+        echo "<ol>"
 
-      echo $data
+        echo $data
 
-      echo "</ol>"
+        echo "</ol>"
+      fi
     fi
   else
-    data=$(
-            {
-              echo CALL interwiki_suggest_wikify\(\"$convertedtitle\"\)\;
-            } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-                      while read -r line
-                      do
-                        line=${line//\"/&quot;}
-                        handle_wikify "$line"
-                      done
-                    }
-          )
+    if [ "$iwspy" != 'off' ]
+    then
+      data=$(
+              {
+                echo CALL interwiki_suggest_wikify\(\"$convertedtitle\"\)\;
+              } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
+                        while read -r line
+                        do
+                          line=${line//\"/&quot;}
+                          handle_wikify "$line"
+                        done
+                      }
+            )
 
-    if [ "$data" != '' ]
-    then 
-      echo "<h3>$sggclause10</h3>"
-      echo "<p>$sggclause11</p>"
+      if [ "$data" != '' ]
+      then 
+        echo "<h3>$sggclause10</h3>"
+        echo "<p>$sggclause11</p>"
 
-      echo $data
+        echo $data
 
-      echo "<br />"
+        echo "<br />"
+      fi
     fi
   fi
 }

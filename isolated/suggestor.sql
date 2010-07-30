@@ -31,12 +31,14 @@ CREATE PROCEDURE suggestor ( srv INT )
 
     CALL disambiguator_unload();
 
-#    #
-#    # For use in "ISOLATES WITH LINKED INTERWIKI".
-#    #
-#    # Note: postponed as taking too long.
-#    #
-#    CALL inter_langs( srv );
+    IF @iwspy!='off'
+    THEN
+      #
+      # For use in "ISOLATES WITH LINKED INTERWIKI".
+      #
+      CALL inter_langs( srv );
+    END IF;
+
     DROP TABLE iw_filter;
     DROP TABLE nrcatl0;
 

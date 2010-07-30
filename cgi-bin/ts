@@ -2,6 +2,9 @@ dbserver="$1"
 dbhost="sql-s${dbserver}"
 usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
 prjp='ConnectivityProjectInternationalization'
+# iwiki spy does not work since limitations on memory introduced
+# requires a more memory efficient implementation
+iwspy='off'
 
 #
 # Returns mysql handler.

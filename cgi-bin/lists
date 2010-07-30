@@ -43,9 +43,12 @@ fi
 
 echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=disambig\">$fl_disambig</a></li>"
 
-echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=interlink\">$fl_interlink</a></li>"
+if [ "$iwspy" != 'off' ]
+then
+  echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=interlink\">$fl_interlink</a></li>"
 
-echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=translate\">$fl_translate</a></li>"
+  echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest&amp;suggest=translate\">$fl_translate</a></li>"
+fi
 
 echo "<li><a href=\"./go.sh?$stdurl&amp;listby=creator&amp;registered=0\">$fl_anonym</a></li>"
 

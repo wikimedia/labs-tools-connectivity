@@ -136,7 +136,7 @@ handle_langlist2 ()
     local twocolumn="<td>0</td><td>0</td>"
     if [  $iamount != 'NULL' ]
     then
-     twocolumn="<td>$aamount <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$code\"><font color=\"green\">[[$bycategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=interlink&amp;foreign=$code\">$iamount</a></td>"
+      twocolumn="<td>$aamount <small><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$code\"><font color=\"green\">[[$bycategory]]</font></a></small></td><td><a href=\"./go.sh?$stdurl&amp;listby=suggest,category,foreign&amp;suggest=interlink&amp;foreign=$code\">$iamount</a></td>"
     fi
     local twocolumn2="<td>0</td><td>0</td>"
     if [  $iamount2 != 'NULL' ]

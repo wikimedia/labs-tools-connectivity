@@ -501,62 +501,66 @@ the_menu ()
     # end of article links disambiguation in menu
     echo "</li>"
 
-    cur=''
-    if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'interlink' ] && [ "$foreign" = '' ] && [ "$category" = '' ]
+    if [ "$iwspy" != 'off' ]
     then
-      cur=' class="current"'
-    fi
-    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=interlink\"$cur>$spiedwikification</a> <span class=\"beta\">beta</span>"
-
-    if [ "$foreign" != '' ]
-    then
-      echo "<ul>"
-
       cur=''
-      if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'interlink' ] && [ "$category" = '' ]
+      if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'interlink' ] && [ "$foreign" = '' ] && [ "$category" = '' ]
       then
-        cur=' current'
+        cur=' class="current"'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=interlink&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=interlink\"$cur>$spiedwikification</a> <span class=\"beta\">beta</span>"
 
-      echo "<ul>"
-
-      if [ "$category" != '' ]
+      if [ "$foreign" != '' ]
       then
-        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign\">$bycategory</a>"
-
         echo "<ul>"
 
         cur=''
-        if [ "$suggest" = 'interlink' ] && [ $listby = 'suggest,foreign,category' ]
+        if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'interlink' ] && [ "$category" = '' ]
         then
           cur=' current'
         fi
-        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign&amp;category=$category_url\" class=\"category$cur\">${catns}:$category</a></li>"
+        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=interlink&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
+
+        echo "<ul>"
+
+        if [ "$category" != '' ]
+        then
+          echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign\">$bycategory</a>"
+
+          echo "<ul>"
+
+          cur=''
+          if [ "$suggest" = 'interlink' ] && [ $listby = 'suggest,foreign,category' ]
+          then
+            cur=' current'
+          fi
+          echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign&amp;category=$category_url\" class=\"category$cur\">${catns}:$category</a></li>"
+
+          echo "</ul>"
+
+          # end of by category data
+          echo "</li>"
+        else
+          cur=''
+          if [ "$suggest" = 'interlink' ] && [ $listby = 'suggest,foreign,category' ]
+          then
+            cur=' class="current"'
+          fi
+          echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign\"$cur>$bycategory</a></li>"
+        fi
 
         echo "</ul>"
 
-        # end of by category data
+        # end of data for a particular language
         echo "</li>"
-      else
-        cur=''
-        if [ "$suggest" = 'interlink' ] && [ $listby = 'suggest,foreign,category' ]
-        then
-          cur=' class="current"'
-        fi
-        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign\"$cur>$bycategory</a></li>"
+
+        echo "</ul>"
       fi
 
-      echo "</ul>"
-
-      # end of data for a particular language
+      # end of spied wikification in menu
       echo "</li>"
 
-      echo "</ul>"
     fi
-
-    # end of spied wikification in menu
-    echo "</li>"
 
     if [ "$deadend_category" != "$catnspref" ]
     then
@@ -667,20 +671,23 @@ the_menu ()
     # end of categorized suggestions for isolates resolving via disambiguation
     echo "</li>"
 
-    echo "<li><em>$justlink</em>"
+    if [ "$iwspy" != 'off' ]
+    then
+      echo "<li><em>$justlink</em>"
 
-    echo "<ul>"
+      echo "<ul>"
 
-    # menu items related to links spyping
-    the_menu_part interlink "$parttranslate"
+      # menu items related to links spyping
+      the_menu_part interlink "$parttranslate"
 
-    # menu items related to linking with translation
-    the_menu_part translate "$translatenlink"
+      # menu items related to linking with translation
+      the_menu_part translate "$translatenlink"
 
-    echo "</ul>"
+      echo "</ul>"
 
-    # end of categorized iwiki-spy suggestions for isolated articles in menu
-    echo "</li>"
+      # end of categorized iwiki-spy suggestions for isolated articles in menu
+      echo "</li>"
+    fi
 
     echo "</ul>"
 
@@ -730,46 +737,49 @@ the_menu ()
     # end of isolated articles in menu
     echo "</li>"
 
-    cur=''
-    if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'translate' ] && [ "$foreign" = '' ] && [ "$category" = '' ]
+    if [ "$iwspy" != 'off' ]
     then
-      cur=' class="current"'
-    fi
-    echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=translate\"$cur>$articlestotranslate</a> <span class=\"beta\">beta</span>"
-
-    if [ "$foreign" != '' ]
-    then
-      echo "<ul>"
-
       cur=''
-      if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'translate' ] && [ "$category" = '' ]
+      if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'translate' ] && [ "$foreign" = '' ] && [ "$category" = '' ]
       then
-        cur=' current'
+        cur=' class="current"'
       fi
-      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=translate&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
+      echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=translate\"$cur>$articlestotranslate</a> <span class=\"beta\">beta</span>"
 
-      if [ "$category" != '' ]
+      if [ "$foreign" != '' ]
       then
         echo "<ul>"
 
         cur=''
-        if [ "$suggest" = 'translate' ] && [ $listby = 'suggest,foreign,category' ]
+        if [ "$listby" = 'suggest,foreign' ] && [ "$suggest" = 'translate' ] && [ "$category" = '' ]
         then
           cur=' current'
         fi
-        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign&amp;category=$category_url\" class=\"category$cur\">$category</a></li>"
+        echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign&amp;suggest=translate&amp;foreign=$foreign\" class=\"language$cur\">$foreignname</a>"
+
+        if [ "$category" != '' ]
+        then
+          echo "<ul>"
+
+          cur=''
+          if [ "$suggest" = 'translate' ] && [ $listby = 'suggest,foreign,category' ]
+          then
+            cur=' current'
+          fi
+          echo "<li><a href=\"./go.sh?$stdurl&amp;listby=suggest,foreign,category&amp;suggest=interlink&amp;foreign=$foreign&amp;category=$category_url\" class=\"category$cur\">$category</a></li>"
+
+          echo "</ul>"
+        fi
+
+        # end of articles translation for a particular language in menu
+        echo "</li>"
 
         echo "</ul>"
       fi
 
-      # end of articles translation for a particular language in menu
+      # end of articles translation in menu
       echo "</li>"
-
-      echo "</ul>"
     fi
-
-    # end of articles translation in menu
-    echo "</li>"
 
     echo "</ul>"
 
@@ -845,7 +855,7 @@ the_header ()
      actcode='disambiguator'
      ;;
    'lists')
-     actcode='znswrongredirects'
+     actcode='isolatedbycategory'
      ;;
    'suggest' | 'suggest,category')
      case $suggest in
@@ -876,8 +886,13 @@ the_header ()
         ;;
      esac
      ;;
-   'suggest,title') 
-     actcode='tsuggestor'
+   'suggest,title')
+     if [ "$iwspy" != 'off' ]
+     then
+       actcode='tsuggestor'
+     else
+       actcode='dsuggestor'
+     fi
      ;;
    *)
      actcode='creatorizer'
