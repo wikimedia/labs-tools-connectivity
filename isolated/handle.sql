@@ -36,9 +36,9 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
 
     IF @cnt>0
     THEN
-      SELECT CONCAT(':: echo ', outt, ': ', @cnt ) as title;
-      SELECT CONCAT(':: ', rule, ' ', @fprefix, outf ) as title;
+      SELECT CONCAT( ':: echo ', outt, ': ', @cnt ) as title;
 
+      SELECT CONCAT( ':: ', rule, ' ', @fprefix, outf ) as title;
       #
       # Note: no way to prepend rows with a namespace prefix here
       #
@@ -46,6 +46,7 @@ CREATE PROCEDURE outifexists ( tablename VARCHAR(255), outt VARCHAR(255), outf V
       PREPARE stmt FROM @st2;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
+      SELECT ':: sync';
     END IF;
   END;
 //
@@ -86,7 +87,7 @@ DROP PROCEDURE IF EXISTS combineandout//
 CREATE PROCEDURE combineandout ()
   BEGIN
     DECLARE cnt INT;
-    DECLARE st VARCHAR(255);
+    DECLARE st VARCHAR(511);
 
     SELECT ':: echo COMBINATOR';
 
@@ -126,7 +127,7 @@ CREATE PROCEDURE combineandout ()
     #
     # Initialize with isolated articles to be edited.
     #
-    INSERT INTO task
+    INSERT INTO task (id, ncaact, deact, isoact, isocat, title, importance)
     SELECT id,
            0 as ncaact,
            0 as deact,
@@ -147,7 +148,7 @@ CREATE PROCEDURE combineandout ()
     #
     # Add dead-end articles to be edited updating existent rows.
     #
-    INSERT INTO task
+    INSERT INTO task (id, ncaact, deact, isoact, isocat, title, importance)
     SELECT id,
            0 as ncaact,
            act as deact,
@@ -162,7 +163,7 @@ CREATE PROCEDURE combineandout ()
     #
     # Add non-categorized articles to be edited updating existent rows.
     #
-    INSERT INTO task
+    INSERT INTO task (id, ncaact, deact, isoact, isocat, title, importance)
     SELECT nc_id,
            act as ncaact,
            0 as deact,
@@ -180,18 +181,41 @@ CREATE PROCEDURE combineandout ()
     IF cnt>0
       THEN
         #
-        # This request doesn't insert anything, it does update on this
-        # strange manner. The reason is that <dbname>.page is not granted
-        # to users for update.
-        #
         # Preparing the updated table with title and importance columns set
         # I hope I prevent outer handler to be waiting for data in the next
         # query performing ':: out'.
         #
-        SET @st=CONCAT( 'INSERT INTO task SELECT id, ncaact, deact, isoact, isocat, CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ) as title, 0 as importance FROM task, ', @dbname, '.page WHERE id=page_id ON DUPLICATE KEY UPDATE title=CONCAT( getnsprefix(page_namespace,"', @target_lang, '"), page_title ), importance=values(ncaact)+values(deact)+values(deact)+values(isoact);' );
+        # Note: Normally four queries below should look like
+        #
+        #       UPDATE task,
+        #              <dbname>page
+        #              SET title=<ns_name>:page.page_title,
+        #                  importance=ncaact+deact+deact+isoact
+        #              WHERE task.id=page.page_id;
+        #
+        #       but such a request requires (for what reason?!)
+        #       update permission granted on <dbname>.page table,
+        #       and this is not the case.
+
+        DROP TABLE IF EXISTS task_cache;
+        CREATE TABLE task_cache (
+          tc_id int(8) unsigned NOT NULL default '0',
+          tc_title VARCHAR(511) binary NOT NULL default '',
+          PRIMARY KEY (tc_id)
+        ) ENGINE=MEMORY;
+
+        SET @st=CONCAT( 'INSERT INTO task_cache (tc_id, tc_title) SELECT id, CONCAT( getnsprefix(page.page_namespace,"', @target_lang, '"), page.page_title ) FROM task, ', @dbname, '.page WHERE id=page.page_id;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
+
+        UPDATE task,
+               task_cache
+               SET title=tc_title,
+                   importance=ncaact+deact+deact+isoact
+               WHERE id=tc_id;
+
+        DROP TABLE task_cache;
 
         #
         # To the moment some of the pages theoretically could be permanently
@@ -209,8 +233,8 @@ CREATE PROCEDURE combineandout ()
         # Output common task for processing in an outer handler.
         # 
         SELECT CONCAT( ':: echo ', cnt, ' articles to be edited' ) as title;
-        SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
 
+        SELECT CONCAT( ':: out ', @fprefix, 'task.txt' );
         SELECT title,
                ncaact,
                deact,
@@ -219,6 +243,7 @@ CREATE PROCEDURE combineandout ()
                FROM task
                ORDER BY importance DESC,
                         title ASC;
+        SELECT ':: sync';
     END IF;
 
     DROP TABLE task;

@@ -42,7 +42,7 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
       rlc_id int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO rlc SELECT count(*) as rlc_cnt, r_id as rlc_id  FROM pl, r', namespace, ' WHERE pl_from=r_id GROUP BY r_id;' );
+    SET @st=CONCAT( 'INSERT INTO rlc (rlc_cnt, rlc_id) SELECT count(*) as rlc_cnt, r_id as rlc_id  FROM pl, r', namespace, ' WHERE pl_from=r_id GROUP BY r_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -57,7 +57,7 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;   
 
-    SET @st=CONCAT( 'INSERT IGNORE INTO wr', namespace, ' SELECT r_title as wr_title, r_id as wr_id FROM r', namespace, ', rlc WHERE rlc_cnt>1 and rlc_id=r_id;' );
+    SET @st=CONCAT( 'INSERT IGNORE INTO wr', namespace, ' (wr_title, wr_id) SELECT r_title as wr_title, r_id as wr_id FROM r', namespace, ', rlc WHERE rlc_cnt>1 and rlc_id=r_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -117,7 +117,7 @@ CREATE PROCEDURE nr2X2nr ()
       #
       # Note: pl has no unique keys, so data is redundant.
       #
-      INSERT INTO pl
+      INSERT INTO pl (pl_from, pl_to)
       SELECT nr2r_from as pl_from,
              r2nr_to as pl_to
              FROM nr2r,
@@ -146,7 +146,7 @@ CREATE PROCEDURE nr2X2nr ()
         nr2r_from int(8) unsigned NOT NULL default '0'
       ) ENGINE=MEMORY;
 
-      INSERT INTO nr2X2r
+      INSERT INTO nr2X2r (nr2r_to, nr2r_from)
       SELECT r2r_to as nr2r_to,
              nr2r_from
              FROM r2r,
@@ -208,7 +208,7 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
         KEY (nr2r_to)
       ) ENGINE=MEMORY;
 
-      SET @st=CONCAT( 'INSERT INTO nr2r SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
+      SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
       PREPARE stmt FROM @st;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
@@ -246,6 +246,8 @@ DROP PROCEDURE IF EXISTS throw_multiple_redirects//
 CREATE PROCEDURE throw_multiple_redirects (namespace INT)
   BEGIN
     DECLARE st VARCHAR(255);
+    DECLARE res VARCHAR(255);
+    DECLARE cnt VARCHAR(255);
 
     #
     # Long redirects like double and triple do not work in web API,
@@ -267,25 +269,44 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       PRIMARY KEY (l_to,l_from)
     ) ENGINE=MEMORY;
 
-    DROP TABLE IF EXISTS rrr;
-    CREATE TABLE rrr (
-      rrr_id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (rrr_id)
-    ) ENGINE=MEMORY;
-    
-    SET @st=CONCAT( 'INSERT INTO rrr SELECT r_id as rrr_id FROM r', namespace, ';' );
+    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM r', namespace, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    INSERT INTO l
+    SELECT cry_for_memory( 32*@cnt ) INTO @res;
+    IF @res!=''
+      THEN
+        SELECT CONCAT( ':: echo ', @res );
+    END IF;
+
+    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+      THEN
+        SELECT ':: echo MyISAM engine is chosen for redirect identifiers table';
+        SELECT 'MyISAM' INTO @r_identifiers_engine;
+      ELSE
+        SELECT 'MEMORY' INTO @r_identifiers_engine;
+    END IF;
+
+    DROP TABLE IF EXISTS rrr;
+    SET @st=CONCAT( "CREATE TABLE rrr ( pid int(8) unsigned NOT NULL default '0', PRIMARY KEY (pid) ) ENGINE=", @r_identifiers_engine, ";" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SET @st=CONCAT( 'INSERT INTO rrr (pid) SELECT r_id as pid FROM r', namespace, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    INSERT INTO l (l_to, l_from)
     SELECT pl_to as l_to,
            pl_from as l_from
            FROM pl,
                 rrr as rrr1,
                 rrr as rrr2
-           WHERE pl_from=rrr1.rrr_id and
-                 pl_to=rrr2.rrr_id;
+           WHERE pl_from=rrr1.pid and
+                 pl_to=rrr2.pid;
 
     #
     # Names of redirect pages linking other redirects.
@@ -298,20 +319,24 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     IF namespace!=0
       THEN
-        SET @st=CONCAT( 'INSERT INTO mr SELECT CONCAT( getnsprefix( ', namespace, ', "', @target_lang, '" ), r_title ) as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
+        SET @st=CONCAT( 'INSERT INTO mr (mr_title) SELECT CONCAT( getnsprefix( ', namespace, ', "', @target_lang, '" ), r_title ) as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
       ELSE
-        SET @st=CONCAT( 'INSERT INTO mr SELECT r_title as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
+        INSERT INTO mr (mr_title)
+        SELECT r_title as mr_title
+               FROM l,
+                    r0
+               WHERE l_from=r_id;
     END IF;
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
 
     CALL outifexists( 'mr', 'redirects linking redirects', 'mr.info', 'mr_title', 'upload' );
 
     DROP TABLE mr;
 
     #
-    # Upper limit on a claster size. Must not be huge; however, let see...
+    # Upper limit on a cluster size. Must not be huge; however, let see...
     #
     SET @st=CONCAT( 'SELECT count(*) INTO @rcount FROM r', namespace, ';' );
     PREPARE stmt FROM @st;
@@ -339,13 +364,13 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
            WHERE coolcat NOT RLIKE '\_1$' and
                  cat=uid;
 
-    # Claster _1 is of nothing to do with, regular redirects.
-    # Clasters like _X, X>1 are rings and cannot point outside redirects set.
-    # Claserts _1_..._1_X, X>1 are like above but with a source chain.
+    # Cluster _1 is of nothing to do with, regular redirects.
+    # Clusters like _X, X>1 are rings and cannot point outside redirects set.
+    # Cluserts _1_..._1_X, X>1 are like above but with a source chain.
     DELETE FROM orcatr
            WHERE coolcat NOT RLIKE '^\_1\_1';
 
-    # Clasters like _1_..._1 are all to be thrown
+    # Clusters like _1_..._1 are all to be thrown
 
     DROP TABLE IF EXISTS r2r;
     CREATE TABLE r2r (
@@ -354,13 +379,13 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       PRIMARY KEY (r2r_to,r2r_from)
     ) ENGINE=MEMORY;
 
-    INSERT INTO r2r 
+    INSERT INTO r2r (r2r_to, r2r_from)
     SELECT id as r2r_to,
            pl_from as r2r_from
            FROM pl,
                 ruwikir
            WHERE pl_from in (
-                              SELECT rrr_id
+                              SELECT pid
                                      FROM rrr
                             ) and
                  pl_to=id;
@@ -375,7 +400,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
       r2nr_from int(8) unsigned NOT NULL default '0'
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO r2nr SELECT nr', namespace, '.id as r2nr_to, pl_from as r2nr_from FROM pl, nr', namespace, ' WHERE pl_from in ( SELECT rrr_id FROM rrr ) and pl_to=nr', namespace, '.id;' );
+    SET @st=CONCAT( 'INSERT INTO r2nr (r2nr_to, r2nr_from) SELECT nr', namespace, '.id as r2nr_to, pl_from as r2nr_from FROM pl, nr', namespace, ' WHERE pl_from in ( SELECT pid FROM rrr ) and pl_to=nr', namespace, '.id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -403,7 +428,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
         # Note: Redirects are being merged to disambiguation pages,
         #       so key violation impossible.
         #
-        INSERT INTO cnad
+        INSERT INTO cnad (cnad_id)
         SELECT d_id as cnad_id
                FROM d;
 
@@ -429,7 +454,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
           PRIMARY KEY (name)
         ) ENGINE=MEMORY;
 
-        INSERT INTO iw_filter
+        INSERT INTO iw_filter (name)
         SELECT title as name
                FROM nr0,
                     cna
@@ -441,7 +466,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
         #       However, better to prevent, because data is live and could
         #       change during selection.
         #
-        INSERT INTO iw_filter
+        INSERT INTO iw_filter (name)
         SELECT r_title as name
                FROM r0,
                     cnar

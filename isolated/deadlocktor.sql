@@ -28,7 +28,7 @@ CREATE PROCEDURE get_known_deadend ()
 
     IF @deadend_category_name!=''
       THEN
-        INSERT INTO del
+        INSERT INTO del (id, act)
         SELECT nrcl_from as id,
                -1 as act
                FROM nrcatl
@@ -113,7 +113,7 @@ CREATE PROCEDURE deadend (namespace INT)
     # 
     # has been killed on s1 - look for distinct values may take long.
     #
-    INSERT INTO lwl 
+    INSERT INTO lwl (lwl_id)
     SELECT l_from as lwl_id
            FROM l;
 
@@ -123,7 +123,7 @@ CREATE PROCEDURE deadend (namespace INT)
     ALTER TABLE lwl ENGINE=MEMORY;
 
     # CURRENT DEAD-END ARTICLES
-    INSERT INTO del
+    INSERT INTO del (id, act)
     SELECT id,
            1 as act
            FROM articles
@@ -158,6 +158,7 @@ CREATE PROCEDURE deadend (namespace INT)
                 PREPARE stmt FROM @st;
                 EXECUTE stmt;
                 DEALLOCATE PREPARE stmt;
+                SELECT ':: sync';
             END IF;
         END IF;
     END IF;
@@ -171,16 +172,17 @@ CREATE PROCEDURE deadend (namespace INT)
         IF cnt>0
           THEN
             SELECT CONCAT(':: echo -: ', cnt ) as title;
-            SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
 
+            SELECT CONCAT( ':: out ', @fprefix, 'derem.txt' );
             SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM del, ', @dbname, '.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st;
             EXECUTE stmt;
             DEALLOCATE PREPARE stmt;
+            SELECT ':: sync';
         END IF;
 
         # Restore previously deleted links to cronological articles
-        INSERT INTO l
+        INSERT INTO l (l_to, l_from)
         SELECT a2cr_to as l_to,
                a2cr_from as l_from
                FROM a2cr;

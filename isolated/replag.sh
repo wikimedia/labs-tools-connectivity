@@ -41,6 +41,6 @@ rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log
   #
   echo "CALL replag( '$language' );"
 
-} | $( sql $server ) 2>&1 | ./handle.sh
+} | $( sql $server ) 2>&1 | ./handle.sh $language
 
 # </pre>
