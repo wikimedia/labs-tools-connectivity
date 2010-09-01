@@ -46,7 +46,7 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
     # Dirty list of disambiguation pages, everything, 
     # not just the namespace given.
     #
-    SET @st=CONCAT( 'INSERT INTO d SELECT DISTINCT tl_from as d_id FROM dt, ', dbname, '.templatelinks WHERE tl_namespace=10 and tl_title=dt_title;' );
+    SET @st=CONCAT( 'INSERT INTO d (d_id) SELECT DISTINCT tl_from as d_id FROM dt, ', dbname, '.templatelinks WHERE tl_namespace=10 and tl_title=dt_title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -57,7 +57,7 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
     SELECT CONCAT( prefix, @disambiguation_pages_count, ' disambiguation pages for all namespaces' );
 
     #
-    # namespace=-1 used for major speedup to a per-language iwikispy function
+    # namespace=-1 used for a major speedup to a per-language iwikispy function
     #
     IF namespace>=0
       THEN
@@ -110,7 +110,7 @@ CREATE PROCEDURE construct_dlinks ()
     #
     # Here we adding direct links from articles to disambiguations.
     #
-    INSERT IGNORE INTO dl
+    INSERT IGNORE INTO dl (dl_to, dl_from)
     SELECT d_id as dl_to,
            pl_from as dl_from
            FROM pl,
@@ -128,7 +128,7 @@ CREATE PROCEDURE construct_dlinks ()
     #
     # Here we adding direct links from disambiguations to articles.
     #
-    INSERT IGNORE INTO ld
+    INSERT IGNORE INTO ld (ld_to, ld_from)
     SELECT id as ld_to,
            pl_from as ld_from
            FROM pl,
@@ -189,7 +189,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
       d_cnt int(8) unsigned NOT NULL default '0'
     ) ENGINE=MyISAM;
 
-    SET @st=CONCAT( 'INSERT INTO disambiguate SELECT nr', namespace, '.title as d_title, dss_cnt as d_cnt FROM dsstat, nr', namespace, ' WHERE nr', namespace, '.id=dss_id ORDER BY dss_cnt DESC;' );
+    SET @st=CONCAT( 'INSERT INTO disambiguate (d_title, d_cnt) SELECT nr', namespace, '.title as d_title, dss_cnt as d_cnt FROM dsstat, nr', namespace, ' WHERE nr', namespace, '.id=dss_id ORDER BY dss_cnt DESC;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -197,7 +197,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
     DELETE FROM dsstat;
 
     # statistics on amount of links to disambigs for each article having such
-    INSERT INTO dsstat
+    INSERT INTO dsstat (dss_id, dss_cnt)
     SELECT dl_from as dss_id,
            count(*) as dss_cnt
            FROM dl
@@ -209,7 +209,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
       d_cnt int(8) unsigned NOT NULL default '0'
     ) ENGINE=MyISAM;
 
-    SET @st=CONCAT( 'INSERT INTO disambigtop SELECT page_title as d_title, dss_cnt as d_cnt FROM dsstat, ', @dbname, '.page WHERE page_id=dss_id ORDER BY dss_cnt DESC;' );
+    SET @st=CONCAT( 'INSERT INTO disambigtop (d_title, d_cnt) SELECT page_title as d_title, dss_cnt as d_cnt FROM dsstat, ', @dbname, '.page WHERE page_id=dss_id ORDER BY dss_cnt DESC;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -278,7 +278,7 @@ CREATE PROCEDURE disambiguator (namespace INT)
         #
         # First create an imagination of self-redirects from/to every template.
         #
-        INSERT INTO r2nr10
+        INSERT INTO r2nr10 (r2nr_to, r2nr_from)
         SELECT id as r2nr_to,
                id as r2nr_from
                FROM regular_templates;
@@ -476,7 +476,7 @@ CREATE PROCEDURE store_drdi ()
     # no need to keep old data because the action has performed
     DELETE FROM drdi;
 
-    INSERT INTO drdi
+    INSERT INTO drdi (l_ratio, lamnt, d_ratio, DRDI)
     VALUES ( _l_ratio, @aricles_to_disambiguations_links_count, _d_ratio, _drdi );
   END;
 //

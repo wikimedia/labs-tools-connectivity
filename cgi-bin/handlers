@@ -218,3 +218,44 @@ handle_totranslate ()
     esac
   fi
 }
+
+articles_flexies ()
+{
+  local articles=$1
+  local voice=$2
+
+  __articles=$_articles1
+
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  then
+    if [ "$articles" != '1' ]
+    then
+      __articles=$_articles
+    fi
+  else
+    if [ "$voice" = 'active' ]
+    then
+      __articles=$_articles1_do
+    fi
+    if [ "${articles:(-1)}" = '5' ] ||
+       [ "${articles:(-1)}" = '6' ] ||
+       [ "${articles:(-1)}" = '7' ] ||
+       [ "${articles:(-1)}" = '8' ] ||
+       [ "${articles:(-1)}" = '9' ] ||
+       [ "${articles:(-1)}" = '0' ] ||
+       [ "${articles:(-2)}" = '11' ] ||
+       [ "${articles:(-2)}" = '12' ] ||
+       [ "${articles:(-2)}" = '13' ] ||
+       [ "${articles:(-2)}" = '14' ]
+    then
+      __articles=$_articles5678901234
+    else
+      if [ "${articles:(-1)}" = '2' ] ||
+         [ "${articles:(-1)}" = '3' ] ||
+         [ "${articles:(-1)}" = '4' ]
+      then
+        __articles=$_articles234
+      fi
+    fi
+  fi
+}

@@ -74,7 +74,7 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
-        SET @st=CONCAT( 'INSERT INTO nr SELECT page_id as id, page_title as title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
+        SET @st=CONCAT( 'INSERT INTO nr (id, title) SELECT page_id as id, page_title as title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -122,7 +122,7 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
-        SET @st=CONCAT( 'INSERT INTO r SELECT page_id as r_id, page_title as r_title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=1;' );
+        SET @st=CONCAT( 'INSERT INTO r (r_id, r_title) SELECT page_id as r_id, page_title as r_title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -174,7 +174,7 @@ CREATE PROCEDURE get_categorized_non_articles (namespace INT)
       PRIMARY KEY  (cllt_id)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO cllt SELECT DISTINCT cl_from as cllt_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
+    SET @st=CONCAT( 'INSERT INTO cllt (cllt_id) SELECT DISTINCT cl_from as cllt_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -210,7 +210,7 @@ CREATE PROCEDURE get_chrono ()
       PRIMARY KEY  (chr_id)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO chrono SELECT DISTINCT cl_from as chr_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
+    SET @st=CONCAT( 'INSERT INTO chrono (chr_id) SELECT DISTINCT cl_from as chr_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/ArticlesNotFormingValidLinks";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -331,7 +331,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
 
             IF @mp_ns=0
               THEN
-                INSERT INTO cna
+                INSERT INTO cna (cna_id)
                 SELECT @main_page_id as cna_id;
 
                 SELECT CONCAT( ':: echo main page found for zero namespace' );
@@ -349,7 +349,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         #
         # Add disambiguations to cna.
         #
-        INSERT INTO cna
+        INSERT INTO cna (cna_id)
         SELECT d_id as cna_id
                FROM d
         #
@@ -361,7 +361,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         #
         # Add collaborative lists to cna.
         #
-        INSERT INTO cna
+        INSERT INTO cna (cna_id)
         SELECT cllt_id as cna_id
                FROM cllt
         #
@@ -384,7 +384,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
 
     IF namespace!=10
       THEN
-        SET @st=CONCAT( 'INSERT INTO articles SELECT id FROM nr', namespace, ' WHERE id NOT IN ( SELECT DISTINCT cna_id FROM cna );' );
+        SET @st=CONCAT( 'INSERT INTO articles (id) SELECT id FROM nr', namespace, ' WHERE id NOT IN ( SELECT DISTINCT cna_id FROM cna );' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -392,7 +392,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         ALTER TABLE articles ADD COLUMN title varchar(255) binary NOT NULL default '';
         ALTER TABLE articles ADD UNIQUE KEY title (title);
 
-        SET @st=CONCAT( 'INSERT INTO articles SELECT id, title FROM nr', namespace, ' WHERE id NOT IN ( SELECT DISTINCT cna_id FROM cna );' );
+        SET @st=CONCAT( 'INSERT INTO articles (id, title) SELECT id, title FROM nr', namespace, ' WHERE id NOT IN ( SELECT DISTINCT cna_id FROM cna );' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -421,7 +421,7 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
         # Note: Articles are being merged to non-articles,
         #       thus key violations impossible.
         #
-        INSERT INTO cna
+        INSERT INTO cna (cna_id)
         SELECT chr_id as cna_id
                FROM chrono;
 
@@ -600,7 +600,7 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
     #
     # Here we can construct links from articles to articles.
     #
-    INSERT INTO l /* SLOW_OK */
+    INSERT INTO l /* SLOW_OK */ (l_to, l_from)
     SELECT id as l_to,
            pl_from as l_from
            FROM pl,
@@ -673,7 +673,7 @@ CREATE PROCEDURE store_paraphrases ()
     DELETE FROM zns;
 
     # just in case of stats uploaded during this run
-    INSERT INTO zns
+    INSERT INTO zns (articles, chrono, disambig, cllt)
     VALUES ( @articles_count, @chrono_articles_count, @disambiguation_pages_count, @collaborative_lists_count );
 
     #
@@ -690,7 +690,7 @@ CREATE PROCEDURE store_paraphrases ()
     DELETE FROM fch;
 
     # just in case of stats uploaded during this run
-    INSERT INTO fch
+    INSERT INTO fch (clinks, alinks)
     VALUES ( art_lnks_per_ch, other_lnks_per_other );
 
     #
@@ -707,7 +707,7 @@ CREATE PROCEDURE store_paraphrases ()
     DELETE FROM tch;
 
     # just in case of stats uploaded during this run
-    INSERT INTO tch
+    INSERT INTO tch (clratio, linksc)
     VALUES ( ch_links_prc, ch_lnks_per_ch );
 
     # permanent storage for inter-run data created here if not exists
@@ -719,13 +719,13 @@ CREATE PROCEDURE store_paraphrases ()
 
     DELETE FROM inda;
 
-    INSERT INTO inda
+    INSERT INTO inda (isolated, isotypes, deadend)
     VALUES ( @isolated_articles_count, @isolated_articles_types_count, @deadend_articles_count );
   END;
 //
 
 # Do all the templates namespace connectivity analysis assuming maxsize as
-# maximal possible claster size, zero means no limit.
+# maximal possible cluster size, zero means no limit.
 #
 DROP PROCEDURE IF EXISTS collect_template_pages//
 CREATE PROCEDURE collect_template_pages ( maxsize INT )
@@ -859,7 +859,7 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
 
 #
 # Do all the zero namespace connectivity analysis assuming maxsize as
-# maximal possible claster size, zero means no limit.
+# maximal possible cluster size, zero means no limit.
 #
 DROP PROCEDURE IF EXISTS zero_namespace_connectivity//
 CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )

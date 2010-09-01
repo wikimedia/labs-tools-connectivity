@@ -1,40 +1,93 @@
+isolated_flexies ()
+{
+  local isolated=$1
+
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  then
+    __isolated=$_isolated
+  else
+    if [ "${isolated:(-1)}" = '5' ] ||
+       [ "${isolated:(-1)}" = '6' ] ||
+       [ "${isolated:(-1)}" = '7' ] ||
+       [ "${isolated:(-1)}" = '8' ] ||
+       [ "${isolated:(-1)}" = '9' ] ||
+       [ "${isolated:(-1)}" = '0' ] ||
+       [ "${isolated:(-2)}" = '11' ] ||
+       [ "${isolated:(-2)}" = '12' ] ||
+       [ "${isolated:(-2)}" = '13' ] ||
+       [ "${isolated:(-2)}" = '14' ]
+    then
+      __isolated=$_isolated5678901234
+    else
+      if [ "${isolated:(-1)}" = '2' ] ||
+         [ "${isolated:(-1)}" = '3' ] ||
+         [ "${isolated:(-1)}" = '4' ]
+      then
+        __isolated=$_isolated234
+      fi
+    fi
+  fi
+}
+
 isoarticles ()
 {
-  local a=$1
+  local articles=$1
   local ia=$2
+  local lim=$3
 
   if no_sql_error $ia
   then
     echo "<div class=\"content-block\">"
     echo "<div class=\"aside\">"
 
-    echo "<p>oh! isolated articles...</p>"
+    echo "<p>$isotext</p>"
+
+    echo "<p>$isoclustertext</p>"
 
     echo "</div>"
     echo "<ul class=\"clean\">"
 
-    echo "<li><strong class=\"data\">$a</strong> articles</li>"
-    echo "<li class=\"large\"><strong class=\"data\">&ndash; $ia</strong> isolated</li>"
-    echo "<li><strong class=\"data\"><center> = $((a-ia))</strong> linked core</center></li>"
+    articles_flexies $articles passive
+
+    echo "<li><strong class=\"data\">$articles</strong> $__articles</li>"
+
+    isolated_flexies $ia
+    echo "<li class=\"large\"><strong class=\"data\">&ndash; $ia</strong> $__isolated</li>"
+    echo "<li><strong class=\"data\"><center> = $((articles-ia))</strong> $linked_core</center></li>"
+    echo "<li>&nbsp;</li>"
+    if [ "$language" = 'en' ]
+    then
+      lim=1
+    fi
+    if [ "$lim" != '0' ]
+    then
+      echo "<li>$upper_cluster_limit <strong class=\"data\">$lim</strong></li>"
+    else
+      echo "<li>$no_upper_limit</li>"
+    fi
     echo "</ul>"
     echo "</div>"
   fi
 }
-
-echo "<ul class=list>"
 
 {
   echo SELECT articles \
               FROM zns\;
   echo SELECT isolated \
               FROM inda\;
+  echo SELECT cluster_limit                        \
+              FROM u_${usr}_golem_p.language_stats \
+              WHERE lang=\"$language\"\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   read -r line
                   read -r line1
-                  isoarticles $line $line1
+                  read -r line2
+                  isoarticles $line $line1 $line2
                 }
 
 echo "<h3>$available_lists</h3>"
+
+echo "<ul class=list>"
 
 if [ "$isolated_category" != "$catnspref" ]
 then

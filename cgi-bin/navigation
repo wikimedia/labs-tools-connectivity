@@ -607,14 +607,14 @@ the_menu ()
         echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}/${orphan_param}0\">$orphanes</a></li>"
       fi
     else
-      echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}/bytypes\">$byclastertype</a>"
+      echo "<li><a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}/bytypes\">$byclustertype</a>"
 
       if [ "$isolated_category" != "$catnspref" ] && [ "$orphan_param" != '' ]
       then
         echo "<ul><li><a href=\"http://$language.wikipedia.org/w/index.php?title=${isolated_category}/${orphan_param}0\">$orphanes</a></li></ul>"
       fi
 
-      # end of isolated articles by claster type
+      # end of isolated articles by cluster type
       echo "</li>"
     fi
 

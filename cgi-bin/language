@@ -13,20 +13,21 @@ handle_a_table ()
     local drdi=${str[4]}
     local core=${str[5]}
     local iso=${str[6]}
-    local isor=${str[7]}
-    local isocr=${str[8]}
-    local chr=${str[9]}
-    local de=${str[10]}
-    local nc=${str[11]}
-    local cr=${str[12]}
-    local ncc=${str[13]}
-    local tmst=${str[14]}
-    local art_diff=${str[15]}
-    local iso_diff=${str[16]}
-    local iso_cr_diff=${str[17]}
-    local dsmbg_diff=${str[18]}
-    local drdi_diff=${str[19]}
-    local lang_name=${str[20]}
+    local cl=${str[7]}
+    local isor=${str[8]}
+    local isocr=${str[9]}
+    local chr=${str[10]}
+    local de=${str[11]}
+    local nc=${str[12]}
+    local cr=${str[13]}
+    local ncc=${str[14]}
+    local tmst=${str[15]}
+    local art_diff=${str[16]}
+    local iso_diff=${str[17]}
+    local iso_cr_diff=${str[18]}
+    local dsmbg_diff=${str[19]}
+    local drdi_diff=${str[20]}
+    local lang_name=${str[21]}
 
     tmst=${tmst//_/ }
 
@@ -141,6 +142,18 @@ handle_a_table ()
     fi
     echo "<td><span title=\"${iso_diff}\">$bld$iso$bldc</span></td>"
 
+    if [ "$cl" = '0' ]
+    then
+      if [ "$lang" = 'en' ]
+      then
+        echo "<td>${bld}1${bldc}</td>"
+      else
+        echo "<td>${bld}$art${bldc}</td>"
+      fi
+    else
+      echo "<td>$bld$cl$bldc</td>"
+    fi
+
     if [ "$iso" = '?' ]
     then
       echo "<td>$bld$isor$bldc</td>"
@@ -199,7 +212,8 @@ table_opens ()
   echo "<th>$ambig_text</th>"
   echo "<th>$drdi_text</th>"
   echo "<th><b class=\"data\">$main_text</b></th>"
-  echo "<th>$iso_text</b></th>"
+  echo "<th>$iso_text</th>"
+  echo "<th>$cl_text</th>"
   echo "<th>$iso_rat_text</th>"
   echo "<th>$iso_cr_text</th>"
   echo "<th>$chrono_text</th>"
@@ -228,6 +242,7 @@ table_opens
               drdi,                                                              \
               article_count-isolated_count as main,                              \
               isolated_count,                                                    \
+              cluster_limit,                                                     \
               isolated_count\*100\/article_count,                                \
               creator_count,                                                     \
               chrono_count,                                                      \
@@ -252,6 +267,7 @@ table_opens
 
   echo SELECT language_stats.lang,                                               \
               size,                                                              \
+              \'\?\',                                                            \
               \'\?\',                                                            \
               \'\?\',                                                            \
               \'\?\',                                                            \

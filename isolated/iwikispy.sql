@@ -32,7 +32,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
     # Note: Of course, we do not need too much of suggestions, thus
     #       the amount of links selected is limited here by 524'288;
     #
-    SET @st=CONCAT( 'INSERT INTO liwl SELECT /* SLOW_OK */ pl_from as fr, id as t FROM ', dbname, ".pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language10, "' LIMIT 524288;" );
+    SET @st=CONCAT( 'INSERT INTO liwl (fr, t) SELECT /* SLOW_OK */ pl_from as fr, id as t FROM ', dbname, ".pagelinks, iwl WHERE pl_title=title and pl_namespace=0 and lang='", language10, "' LIMIT 524288;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -46,7 +46,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
       THEN
         SET mlang10=SUBSTRING( mlang FROM 1 FOR 10 );
 
-        SET @st=CONCAT( 'INSERT INTO rinfo SELECT fr, page_is_redirect, page_title, t FROM ', dbname, '.page, liwl WHERE page_id=fr GROUP BY fr;' );
+        SET @st=CONCAT( 'INSERT INTO rinfo (fr, page_is_redirect, page_title, t) SELECT fr, page_is_redirect, page_title, t FROM ', dbname, '.page, liwl WHERE page_id=fr GROUP BY fr;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -66,7 +66,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
         SELECT CONCAT( prefix, count(*), " links to isolate's interwikis after redirects cleanup" )
                FROM liwl;
 
-        SET @st=CONCAT( 'INSERT INTO liwl SELECT pl_from as fr, t FROM ', dbname, '.pagelinks, rinfo WHERE page_is_redirect=1 and pl_title=page_title and pl_namespace=0;' );
+        SET @st=CONCAT( 'INSERT INTO liwl (fr, t) SELECT pl_from as fr, t FROM ', dbname, '.pagelinks, rinfo WHERE page_is_redirect=1 and pl_title=page_title and pl_namespace=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -104,7 +104,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
 
         SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis from zero namespace" );
 
-        SET @st=CONCAT( "INSERT INTO res SELECT /* SLOW_OK */ REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang10, "';" );
+        SET @st=CONCAT( "INSERT INTO res (suggestn, id, lang) SELECT /* SLOW_OK */ REPLACE(ll_title,' ','_') as suggestn, t as id, '", language,"' as lang FROM ", dbname, ".langlinks, liwl WHERE fr=ll_from and ll_lang='", mlang10, "';" );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -123,7 +123,7 @@ CREATE PROCEDURE inter_lang( dbname VARCHAR(32), language VARCHAR(16), mlang VAR
 
         SELECT CONCAT( prefix, @cnt, " links to isolate's interwikis after exclusion of already translated" );
 
-        SET @st=CONCAT( "INSERT INTO tres SELECT page_title as suggestn, t as id, '", language, "' as lang FROM ", dbname, '.page, liwl WHERE page_id=fr and page_namespace=0;' );
+        SET @st=CONCAT( "INSERT INTO tres (suggestn, id, lang) SELECT page_title as suggestn, t as id, '", language, "' as lang FROM ", dbname, '.page, liwl WHERE page_id=fr and page_namespace=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -271,7 +271,7 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     # Prepare interwiki links for isolated articles.
     #
-    SET @st=CONCAT( 'INSERT INTO iwl /* SLOW_OK */ SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @dbname, '.langlinks, ruwiki0 WHERE id=ll_from;' );
+    SET @st=CONCAT( 'INSERT INTO iwl (id, title, lang) /* SLOW_OK */ SELECT id, REPLACE(ll_title,', "' ','_'", ') as title, ll_lang as lang FROM ', @dbname, '.langlinks, ruwiki0 WHERE id=ll_from;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -443,7 +443,7 @@ CREATE PROCEDURE inter_langs( srv INT )
       FETCH scur INTO cur_host, cur_sv;
       IF NOT done
         THEN
-          SET @st=CONCAT( 'INSERT INTO res SELECT suggestn, id, lang FROM res_s', cur_sv, ';' );
+          SET @st=CONCAT( 'INSERT INTO res (suggestn, id, lang) SELECT suggestn, id, lang FROM res_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
           EXECUTE stmt;
           DEALLOCATE PREPARE stmt;
@@ -454,7 +454,7 @@ CREATE PROCEDURE inter_langs( srv INT )
 
           SELECT CONCAT( ':: s', cur_sv, ' drop res' );
 
-          SET @st=CONCAT( 'INSERT INTO tres SELECT suggestn, id, lang FROM tres_s', cur_sv, ';' );
+          SET @st=CONCAT( 'INSERT INTO tres (suggestn, id, lang) SELECT suggestn, id, lang FROM tres_s', cur_sv, ';' );
           PREPARE stmt FROM @st;
           EXECUTE stmt;
           DEALLOCATE PREPARE stmt;

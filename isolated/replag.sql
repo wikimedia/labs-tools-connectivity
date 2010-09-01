@@ -82,7 +82,7 @@ CREATE PROCEDURE pretend ( action VARCHAR(255) )
     DEALLOCATE PREPARE stmt;
 
     # just in case of stats uploaded during this run
-    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', @rep_act, '" as ts, 0 as valid;' );
+    SET @st=CONCAT( 'INSERT INTO ', action, ' (ts, valid) SELECT "', @rep_act, '" as ts, 0 as valid;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -139,7 +139,7 @@ CREATE PROCEDURE actuality ( action VARCHAR(255) )
     DEALLOCATE PREPARE stmt;
 
     # just in case of stats uploaded during this run
-    SET @st=CONCAT( 'INSERT INTO ', action, ' SELECT "', @rep_act, '" as rep, "', @run_act, '" as run, "', now(), '" as actual;' );
+    SET @st=CONCAT( 'INSERT INTO ', action, ' (rep, run, actual) SELECT "', @rep_act, '" as rep, "', @run_act, '" as run, "', now(), '" as actual;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

@@ -1,44 +1,3 @@
-articles_flexies ()
-{
-  local articles=$1
-  local voice=$2
-
-  __articles=$_articles1
-
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
-  then
-    if [ "$articles" != '1' ]
-    then
-      __articles=$_articles
-    fi
-  else
-    if [ "$voice" = 'active' ]
-    then
-      __articles=$_articles1_do
-    fi
-    if [ "${articles:(-1)}" = '5' ] ||
-       [ "${articles:(-1)}" = '6' ] ||
-       [ "${articles:(-1)}" = '7' ] ||
-       [ "${articles:(-1)}" = '8' ] ||
-       [ "${articles:(-1)}" = '9' ] ||
-       [ "${articles:(-1)}" = '0' ] ||
-       [ "${articles:(-2)}" = '11' ] ||
-       [ "${articles:(-2)}" = '12' ] ||
-       [ "${articles:(-2)}" = '13' ] ||
-       [ "${articles:(-2)}" = '14' ]
-    then
-      __articles=$_articles5678901234
-    else
-      if [ "${articles:(-1)}" = '2' ] ||
-         [ "${articles:(-1)}" = '3' ] ||
-         [ "${articles:(-1)}" = '4' ]
-      then
-        __articles=$_articles234
-      fi
-    fi
-  fi
-}
-
 pages_flexies ()
 {
   local pages=$1
@@ -70,6 +29,38 @@ pages_flexies ()
          [ "${pages:(-1)}" = '4' ]
       then
         __pages=$_pages234
+      fi
+    fi
+  fi
+}
+
+other_flexies ()
+{
+  local other=$1
+
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  then
+    __other=$_other
+  else
+    __other=$_other1
+    if [ "${other:(-1)}" = '5' ] ||
+       [ "${other:(-1)}" = '6' ] ||
+       [ "${other:(-1)}" = '7' ] ||
+       [ "${other:(-1)}" = '8' ] ||
+       [ "${other:(-1)}" = '9' ] ||
+       [ "${other:(-1)}" = '0' ] ||
+       [ "${other:(-2)}" = '11' ] ||
+       [ "${other:(-2)}" = '12' ] ||
+       [ "${other:(-2)}" = '13' ] ||
+       [ "${other:(-2)}" = '14' ]
+    then
+      __other=$_other5678901234
+    else
+      if [ "${other:(-1)}" = '2' ] ||
+         [ "${other:(-1)}" = '3' ] ||
+         [ "${other:(-1)}" = '4' ]
+      then
+        __other=$_other234
       fi
     fi
   fi
@@ -221,11 +212,12 @@ zns ()
       lists_flexies $cllt
       __pages_p=$__pages
       pages_flexies $cllt
+      other_flexies $cllt
       if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
       then
-        echo "<li><strong class=\"data\">$disambigs</strong> $_disambigs $__pages_p $_and_ <strong class=\"data\">$cllt</strong> $_other $__pages ($_couldbe).</li>"
+        echo "<li><strong class=\"data\">$disambigs</strong> $_disambigs $__pages_p $_and_ <strong class=\"data\">$cllt</strong> $__other $__pages ($_couldbe).</li>"
       else
-        echo "<li><strong class=\"data\">$disambigs</strong> $__pages_p $_disambigs $_and_ <strong class=\"data\">$cllt</strong> $_other $__pages ($_couldbe).</li>"
+        echo "<li><strong class=\"data\">$disambigs</strong> $__pages_p $_disambigs $_and_ <strong class=\"data\">$cllt</strong> $__other $__pages ($_couldbe).</li>"
       fi
     else
       if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
@@ -392,7 +384,7 @@ isoarticles ()
     echo "<div class=\"content-block\">"
     echo "<div class=\"aside\">"
 
-    echo "<p>$par5</p>"
+    echo "<p>$isotext</p>"
 
     if [ "$chrono" != '0' ]
     then

@@ -23,7 +23,7 @@
  # ./isolated.sh <lang> nostat      - to enable multiple redirects resolving
  # ./isolated.sh <lang> nomr        - to enable cluster chains statistics upload
  # ./isolated.sh <lang>             - like we do in Ruwiki
- # ./isolated.sh <lang> ... limit=3 - reduces largest allowed claster size down
+ # ./isolated.sh <lang> ... limit=3 - reduces largest allowed cluster size down
  #                                    from 20 (default) to 3,
  #                                    zero states for no limit
  #
@@ -39,9 +39,9 @@
  #      3. Files archieved to <lang>.info.7z at some stage:
  #         - Multiple redirects list                     (<ts>.mr.info)
  #      4. Files archieved to <lang>.stat.7z at some stage:
- #         - Claster chains for zero namespace redirects (<ts>.redirects.stat)
- #         - Claster chains for articles                 (<ts>.articles.stat)
- #         - Claster chains for categories               (<ts>.categories.stat)
+ #         - Cluster chains for zero namespace redirects (<ts>.redirects.stat)
+ #         - Cluster chains for articles                 (<ts>.articles.stat)
+ #         - Cluster chains for categories               (<ts>.categories.stat)
  #      5. Redirects in category namespace - if any      (<ts>.r.txt)
  #
  # Error handling:
@@ -68,7 +68,7 @@ rm -f ./${language}.*.info ./${language}.*.txt ./${language}.*.stat ${language}.
 
 echo "PROCESSING LANGUAGE $language"
 
-echo "cluster size limit: $limit"
+echo "cluster size limit: ${cluster_limit}"
 
 time { 
   {
@@ -77,41 +77,52 @@ time {
     #
     # New language database might have to be created.
     #
-    echo "create database if not exists u_${usr}_golem_s${dbserver}_${language_sql};"
+    echo "CREATE DATABASE IF NOT EXISTS u_${usr}_golem_s${dbserver}_${language_sql};"
 
     #
     # Switch to the language database just created.
     #
-    echo "use u_${usr}_golem_s${dbserver}_${language_sql};"
+    echo "USE u_${usr}_golem_s${dbserver}_${language_sql};"
 
     #
     # Configure the target wikipedia language name for analysis
     #
-    echo "set @target_lang='$language';"
+    echo "SET @target_lang='$language';"
+
+    #
+    # Configure the target wikipedia language name for analysis
+    #
+    echo "SET @cluster_limit=${cluster_limit};"
 
     #
     # Set master server id
     #
-    echo "set @master_server_id=$server;"
+    echo "SET @master_server_id=$server;"
 
     #
     # Root page for various language related configurations
     #
-    echo "set @i18n_page='$prjp';"
+    echo "SET @i18n_page='$prjp';"
 
     #
     # For some reason iwiki spy could be disabled in /cgi-bin/ts
     #
-    echo "set @iwspy='$iwspy';"
+    echo "SET @iwspy='$iwspy';"
 
     cat toolserver.sql
 
-    echo "select dbname_for_lang( '$language' ) into @dbname;"
+    echo "SELECT dbname_for_lang( '$language' ) into @dbname;"
+
+    cat replag.sql
+
+    #
+    # real start time
+    #
+    echo "CALL actual_replag( '$language' );"
 
     cat projector.sql
     cat memory.sql
     cat handle.sql
-    cat replag.sql
     cat namespacer.sql
     cat categorizer.sql
     cat redirector.sql
@@ -123,11 +134,6 @@ time {
     cat suggestor.sql
     cat creatorizer.sql
     cat cgi.sql
-
-    #
-    # real start time
-    #
-    echo "CALL actual_replag( '$language' );"
 
     #
     # Categorizer setup, prefetch categories namespace (14)
@@ -162,13 +168,13 @@ time {
     #
     # Analyze zero namespace connectivity.
     #
-    echo "CALL zero_namespace_connectivity( ${claster_limit} );"
+    echo "CALL zero_namespace_connectivity( ${cluster_limit} );"
 
     echo "CALL replag( '$language' );"
 
     #
     # Analyze categorytree namespace connectivity and prepare categoryspruce.
-    # No limit on claster size.
+    # No limit on cluster size.
     #
     echo 'CALL categorytree_connectivity( 0 );'
 
@@ -182,22 +188,52 @@ time {
     #
     # New project database may have to be created.
     #
-    echo "create database if not exists u_${usr}_golem_p;"
+    echo "CREATE DATABASE IF NOT EXISTS u_${usr}_golem_p;"
 
     #
     # Switch to the project database just created.
     #
-    echo "use u_${usr}_golem_p;"
+    echo "USE u_${usr}_golem_p;"
 
     #
     # Prepare a shared log table with actuality data for languages.
     #
-    echo "create table if not exists language_stats ( lang VARCHAR(16) BINARY NOT NULL default '', ts TIMESTAMP(14) NOT NULL, disambig_recognition TINYINT UNSIGNED NOT NULL DEFAULT '0', article_count INT UNSIGNED NOT NULL DEFAULT '0', chrono_count INT UNSIGNED NOT NULL DEFAULT '0', disambig_count INT UNSIGNED NOT NULL DEFAULT '0', isolated_count INT UNSIGNED NOT NULL DEFAULT '0', creator_count INT UNSIGNED NOT NULL DEFAULT '0', deadend_count INT UNSIGNED NOT NULL DEFAULT '0', nocat_count INT UNSIGNED NOT NULL DEFAULT '0', drdi REAL(5,3) NOT NULL DEFAULT '0', nocatcat_count INT UNSIGNED NOT NULL DEFAULT '0', catring_count INT UNSIGNED NOT NULL DEFAULT '0', article_diff INT SIGNED NOT NULL DEFAULT '0', isolated_diff INT SIGNED NOT NULL DEFAULT '0', creator_diff INT SIGNED NOT NULL DEFAULT '0', disambig_diff INT SIGNED NOT NULL DEFAULT '0', drdi_diff REAL(5,3) NOT NULL DEFAULT '0', PRIMARY KEY (lang) ) ENGINE=MyISAM;"
+    echo "CREATE TABLE IF NOT EXISTS language_stats (
+            lang VARCHAR(16) BINARY NOT NULL default '',
+            ts TIMESTAMP(14) NOT NULL,
+            disambig_recognition TINYINT UNSIGNED NOT NULL DEFAULT '0',
+            article_count INT UNSIGNED NOT NULL DEFAULT '0',
+            chrono_count INT UNSIGNED NOT NULL DEFAULT '0',
+            disambig_count INT UNSIGNED NOT NULL DEFAULT '0',
+            isolated_count INT UNSIGNED NOT NULL DEFAULT '0',
+            creator_count INT UNSIGNED NOT NULL DEFAULT '0',
+            deadend_count INT UNSIGNED NOT NULL DEFAULT '0',
+            nocat_count INT UNSIGNED NOT NULL DEFAULT '0',
+            drdi REAL(5,3) NOT NULL DEFAULT '0',
+            nocatcat_count INT UNSIGNED NOT NULL DEFAULT '0',
+            catring_count INT UNSIGNED NOT NULL DEFAULT '0',
+            article_diff INT SIGNED NOT NULL DEFAULT '0',
+            isolated_diff INT SIGNED NOT NULL DEFAULT '0',
+            creator_diff INT SIGNED NOT NULL DEFAULT '0',
+            disambig_diff INT SIGNED NOT NULL DEFAULT '0',
+            drdi_diff REAL(5,3) NOT NULL DEFAULT '0',
+            cluster_limit INT UNSIGNED NOT NULL DEFAULT '0',
+            proc_time INT UNSIGNED NOT NULL DEFAULT '0',
+            PRIMARY KEY (lang)
+          ) ENGINE=MyISAM;"
 
     #
     # Switch to the language database back to share its data.
     #
-    echo "use u_${usr}_golem_s${dbserver}_${language_sql};"
+    echo "USE u_${usr}_golem_s${dbserver}_${language_sql};"
+
+
+    #
+    # Calculate processing time and report on it
+    #
+    echo "SELECT TIME_TO_SEC( TIMEDIFF( NOW(), @run_act ) ) INTO @processing_time;"
+
+    echo "SELECT CONCAT( ':: echo processing taken ', @processing_time, ' sec' );"
 
     #
     # Signed record to the public log on analysis actuality.

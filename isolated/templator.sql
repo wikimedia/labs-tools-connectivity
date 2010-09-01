@@ -32,7 +32,7 @@ CREATE PROCEDURE a2a_templating ()
     # Note: Fast when transclusion is completely unusual for articles titles.
     #       The more are transcluded the slower this.
     #
-    SET @st=CONCAT( 'INSERT IGNORE INTO pl SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, ', @dbname, '.page, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and page_title=tl_title and page_id=id;' );
+    SET @st=CONCAT( 'INSERT IGNORE INTO pl (pl_from, pl_to) SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, ', @dbname, '.page, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and page_title=tl_title and page_id=id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -93,7 +93,7 @@ CREATE PROCEDURE template_documentation_link_cleanup ()
     #
     # Documentation pages sometimes are redirects to other documents.
     #
-    INSERT INTO doct
+    INSERT INTO doct (doc, t)
     SELECT r2nr_to AS doc,
            id AS t
            FROM r10,
@@ -238,7 +238,7 @@ CREATE PROCEDURE recognizable_template_links ()
       page_len INT(8) unsigned NOT NULL default '0',
       PRIMARY KEY (id)
     ) ENGINE=MyISAM;
-    SET @st=CONCAT( 'INSERT INTO text_len SELECT id, page_len FROM ', @dbname, '.page, articles WHERE id=page_id;' );
+    SET @st=CONCAT( 'INSERT INTO text_len (id, page_len) SELECT id, page_len FROM ', @dbname, '.page, articles WHERE id=page_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

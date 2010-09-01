@@ -117,7 +117,7 @@ suggestions ()
     echo "<ul class=\"disambig\">"
 
     echo $data
-    echo "</ul><br />"
+    echo "</ul><br clear=\"all\"/>"
   fi
 
   if [ "$isotype" != '' ]
@@ -230,16 +230,6 @@ suggestions ()
 
 echo "<h2><a href=\"http://$language.wikipedia.org/wiki/${title_url}\">$title</a></h2>"
 
-## for orphaned and other isolated articles we use different definitions.
-#{
-#  echo "SELECT cat FROM ruwiki0 WHERE title=\"${titlesql// /_}\";"
-#} | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
-#                  isotype=''
-#
-#                  while read -r line
-#                    do handle_isotype $line
-#                  done
-
 case "$isotype" in
  '')
   echo "<p>$r_notrecognized</p>"
@@ -256,7 +246,6 @@ esac
 echo "&nbsp;<br />"
 
 suggestions $isotype
-#                }
                
 echo "&nbsp;<br />"
 

@@ -61,7 +61,7 @@ CREATE PROCEDURE categories ()
       PRIMARY KEY (id)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO visible_categories SELECT id FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
+    SET @st=CONCAT( 'INSERT INTO visible_categories (id) SELECT id FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -78,14 +78,15 @@ CREATE PROCEDURE categories ()
     SELECT CONCAT( ':: echo ', count(*), ' visible categories found' )
            FROM visible_categories;
 
-    # allows unique identifiers for non-existent categories
+    #
+    # Allows unique identifiers for non-existent categories.
+    #
     SELECT max(id)+1 INTO @freecatid
            FROM categories;
 
     SELECT CONCAT( ':: echo categories prefetch time: ', timediff(now(), @starttime));
   END;
 //
-
 
 DROP PROCEDURE IF EXISTS categorylinks//
 CREATE PROCEDURE categorylinks (namespace INT)
@@ -148,13 +149,13 @@ CREATE PROCEDURE notcategorized ()
       PRIMARY KEY (yc_id)
     ) ENGINE=MEMORY;
 
-    INSERT INTO yescat
+    INSERT INTO yescat (yc_id)
     SELECT DISTINCT nrcl_from as yc_id
            FROM visible_categories, 
                 nrcatl
            WHERE nrcl_cat=id;
 
-    INSERT INTO nocat
+    INSERT INTO nocat (nc_id, act)
     SELECT id AS nc_id,
            1 as act
            FROM articles
@@ -177,7 +178,7 @@ CREATE PROCEDURE notcategorized ()
         #
         # Already registered non-categorized articles.
         #
-        SET @st=CONCAT( 'INSERT INTO nocat SELECT id as nc_id, -1 as act FROM articles, ', @dbname, '.categorylinks WHERE id=cl_from and cl_to="', @non_categorized_articles_category, '" ON DUPLICATE KEY UPDATE act=0;' );
+        SET @st=CONCAT( 'INSERT INTO nocat (nc_id, act) SELECT id as nc_id, -1 as act FROM articles, ', @dbname, '.categorylinks WHERE id=cl_from and cl_to="', @non_categorized_articles_category, '" ON DUPLICATE KEY UPDATE act=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -196,6 +197,7 @@ CREATE PROCEDURE notcategorized ()
                 PREPARE stmt FROM @st;
                 EXECUTE stmt;
                 DEALLOCATE PREPARE stmt;
+                SELECT ':: sync';
             END IF;
         END IF;
     
@@ -211,6 +213,7 @@ CREATE PROCEDURE notcategorized ()
             PREPARE stmt FROM @st;
             EXECUTE stmt;
             DEALLOCATE PREPARE stmt;
+            SELECT ':: sync';
         END IF;
     END IF;
   END;

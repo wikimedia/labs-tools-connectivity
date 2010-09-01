@@ -10,9 +10,11 @@ then
 
   convertedcathere=${categorysqlhere// /_}
 
+  local curcatlink="<a href=\"http://$language.wikipedia.org/wiki/Category:$category_url\" target=\"_blank\">$category</a>"
+
   case $suggest in
    'disambig')
-    echo "<p>$submenu1desc</p>"
+    echo "<p>$submenu1desc $curcatlink</p>"
 
     echo "<table class=\"sortable infotable\">"
     echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
@@ -31,7 +33,7 @@ then
     echo '<script type="text/javascript" src="../sortable.js"></script>'
     ;;
   'interlink')
-    echo "<p>$submenu2desc</p>"
+    echo "<p>$submenu2desc $curcatlink</p>"
 
     echo "<table class=\"sortable infotable\">"
     echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"
@@ -50,7 +52,7 @@ then
     echo '<script type="text/javascript" src="../sortable.js"></script>'
     ;;
    'translate')
-    echo "<p>$submenu3desc</p>"
+    echo "<p>$submenu3desc $curcatlink</p>"
 
     echo "<table class=\"sortable infotable\">"
     echo "<tr><th>&#8470;</th><th>$article_title_tr</th><th>$iso_type_tr</th></tr>"

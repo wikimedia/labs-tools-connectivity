@@ -13,7 +13,7 @@
  --                           relevant, and they are threated as links from 
  --                           a time-oriented portal.
  --
- -- Types of isolated claster chains: The connectivity analysis here relies on
+ -- Types of isolated cluster chains: The connectivity analysis here relies on
  --                                   some concepts from [[graphs theory]].
  --                                   One important thing is the concept of
  --                                   a [[strongly connected component]] 
@@ -29,7 +29,7 @@
  --                                   that clusters are all constructed from
  --                                   cycles of various sizes.
  --
- -- Expected outputs: Isolated claster chains of various types, what's to be
+ -- Expected outputs: Isolated cluster chains of various types, what's to be
  --                   (un)taged in relation to disconnexion.
  --
  -- Tested with: Article links
@@ -81,7 +81,7 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
     #
     # Copy resulting redirected templating links to l.
     #
-    INSERT IGNORE INTO l
+    INSERT IGNORE INTO l (l_to, l_from)
     SELECT pl_to as l_to,
            pl_from as l_from
            FROM pl;
@@ -126,7 +126,7 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
       # linked from a large component  and and exclude it from otl.
       #
       DELETE FROM todelete;
-      INSERT INTO todelete
+      INSERT INTO todelete (id)
              SELECT lc_pid as id
                     FROM lc,
                          otllc
@@ -140,12 +140,12 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
                    );
 
       DELETE FROM aset;
-      INSERT INTO aset
+      INSERT INTO aset (id)
       SELECT DISTINCT otl_from as id
              FROM otl;
 
       DELETE FROM todelete;
-      INSERT INTO todelete
+      INSERT INTO todelete (id)
              SELECT DISTINCT otl_to as id
                     FROM otl
                     WHERE otl_to NOT IN
@@ -161,12 +161,12 @@ CREATE PROCEDURE oscchull (OUT linkscount INT)
                    );
 
       DELETE FROM aset;
-      INSERT INTO aset
+      INSERT INTO aset (id)
       SELECT DISTINCT otl_to as id
              FROM otl;
 
       DELETE FROM todelete;
-      INSERT INTO todelete
+      INSERT INTO todelete (id)
              SELECT DISTINCT otl_from as id
                     FROM otl
                     WHERE otl_from NOT IN
@@ -221,7 +221,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
     # Groups marked in direct minimums flow by nodes out of top level clusters
     # are out of top level clusters and should be marked for deletion.
     #
-    INSERT INTO todelete
+    INSERT INTO todelete (id)
     SELECT id
            FROM ga,
                 newparent_grps
@@ -240,7 +240,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
            WHERE ga.id=rga.id AND
                  ga.g<rga.g;
 
-    INSERT INTO todelete
+    INSERT INTO todelete (id)
     SELECT id
            FROM ga,
                 newparent_grps
@@ -255,7 +255,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
     #
     # Note: May contain nodes already marked for deletion.
     #
-    INSERT INTO todelete
+    INSERT INTO todelete (id)
     SELECT ga.id
            FROM ga,
                 rga
@@ -266,7 +266,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
     #
     # Repetition but with maximums instead of minimums.
     #
-    INSERT INTO todelete
+    INSERT INTO todelete (id)
     SELECT ga.id
            FROM ga,
                 rga
@@ -278,7 +278,7 @@ CREATE PROCEDURE filterscc (IN rank INT)
     # Should mark too huge (cnt>rank) closed (stable up to links reversing)
     # clusters for deletion.
     #
-    INSERT INTO todelete
+    INSERT INTO todelete (id)
     SELECT ga.id
            FROM ga,
                 rga,
@@ -332,12 +332,12 @@ CREATE PROCEDURE grpsplitga ()
            otl_to as eotl_to
            FROM otl;
     # add self-links to avoid loosing minimal id for articles having it
-    INSERT INTO eotl
+    INSERT INTO eotl (eotl_from, eotl_to)
            SELECT DISTINCT otl_from as eotl_from,
                            otl_from as eotl_to
                   FROM otl;
 
-    # initializing search with min of ids of parents as a claster id for each 
+    # initializing search with min of ids of parents as a cluster id for each 
     # article
     DROP TABLE IF EXISTS ga;
     CREATE TABLE ga (
@@ -428,12 +428,12 @@ CREATE PROCEDURE grpsplitrga ()
            otl_from as eotl_to
            FROM otl;
     # add self-links to avoid loosing minal id for articles having it
-    INSERT INTO eotl
+    INSERT INTO eotl (eotl_from, eotl_to)
            SELECT DISTINCT otl_to as eotl_from,
                            otl_to as eotl_to
                   FROM otl;
 
-    # initializing search with min of ids of parents as a claster id for each 
+    # initializing search with min of ids of parents as a cluster id for each 
     # article
     DROP TABLE IF EXISTS rga;
     CREATE TABLE rga (
@@ -522,6 +522,68 @@ CREATE FUNCTION catuid (coolname VARCHAR(255))
 //
 
 #
+# Converts useful and clear orcat names to human-readable (?) form.
+#
+DROP FUNCTION IF EXISTS convertcoolcat//
+CREATE FUNCTION convertcoolcat ( wcoolcat VARCHAR(255) )
+  RETURNS VARCHAR(255)
+  DETERMINISTIC
+  BEGIN
+    DECLARE argue INT;
+    DECLARE outcat VARCHAR(255) DEFAULT '';
+    DECLARE trstr VARCHAR(255) DEFAULT '';
+    DECLARE trsym CHAR(1) DEFAULT '';
+
+    IF @orphan_param_name=''
+      THEN
+        SET outcat=wcoolcat;
+      ELSE
+        IF @isolated_ring_param_name=''
+          THEN
+            SET outcat=wcoolcat;
+          ELSE
+            IF @isolated_cluster_param_name=''
+              THEN
+                SET outcat=wcoolcat;
+              ELSE
+                WHILE wcoolcat!='' DO
+                  CASE RIGHT( wcoolcat, 2 )
+                    WHEN '_1'
+                      THEN
+                        SET argue=-1;
+                        WHILE RIGHT( wcoolcat, 2 ) = '_1' DO
+                          SET wcoolcat=LEFT( wcoolcat, LENGTH( wcoolcat ) - 2 );
+                          SET argue=argue+1;
+                        END WHILE;
+                        IF argue>-1
+                          THEN
+                            SET outcat=CONCAT( @orphan_param_name, argue, outcat );
+                        END IF;
+                    WHEN '_2'
+                      THEN
+                        WHILE RIGHT( wcoolcat, 2 ) = '_2' DO
+                          SET wcoolcat=LEFT( wcoolcat, LENGTH( wcoolcat ) - 2 );
+                          SET outcat=CONCAT( @isolated_ring_param_name, '2', outcat );
+                        END WHILE;
+                    ELSE
+                      SET trstr='';
+                      REPEAT
+                        SET trsym=RIGHT( wcoolcat, 1 );
+                        SET trstr=CONCAT( trsym, trstr );
+                        SET wcoolcat=LEFT( wcoolcat, LENGTH( wcoolcat ) - 1 );
+                      UNTIL trsym='_'
+                      END REPEAT;
+                      SET outcat=CONCAT( @isolated_cluster_param_name, RIGHT( trstr, LENGTH( trstr )-1 ), outcat );
+                  END CASE;  
+                END WHILE;
+            END IF;
+        END IF;
+    END IF;
+    RETURN CONCAT( @isolated_category_name, '/', outcat );
+  END;
+//
+
+#
 # Identifies isolated singlets (orphanes).
 #
 DROP PROCEDURE IF EXISTS _1//
@@ -545,14 +607,15 @@ CREATE PROCEDURE _1 (category VARCHAR(255))
 
         IF catknown=0
           THEN
-            INSERT INTO orcat
+            INSERT INTO orcat (uid, cat, coolcat)
             SELECT @freecatid as uid,
-                   CONCAT( @isolated_category_name, '/', category ) as cat,
+                   convertcoolcat( category ) as cat,
                    category as coolcat;
             SET @freecatid=@freecatid+1;
+
         END IF;
 
-        INSERT INTO isolated
+        INSERT INTO isolated (id, cat, act)
         SELECT pid as id,
                catuid(category) as cat,
                1 as act
@@ -569,16 +632,16 @@ CREATE PROCEDURE _1 (category VARCHAR(255))
 //
 
 DROP FUNCTION IF EXISTS smart_action//
-CREATE FUNCTION smart_action(claster_size INT, acnt INT)
+CREATE FUNCTION smart_action(cluster_size INT, acnt INT)
   RETURNS INT
   DETERMINISTIC
   BEGIN
     DECLARE result INT;
 
-    IF acnt<2*claster_size
+    IF acnt<2*cluster_size
       THEN
         SET result=0;
-        SET @principle_component_size=claster_size;
+        SET @principle_component_size=cluster_size;
       ELSE
         SET result=1;
     END IF;
@@ -622,7 +685,7 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
         ) ENGINE=MEMORY;
     END IF;
 
-    INSERT INTO otl /* SLOW OK */
+    INSERT INTO otl /* SLOW OK */ (otl_to, otl_from)
     SELECT l_to as otl_to,
            l_from as otl_from
            FROM lc,
@@ -660,8 +723,8 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
                  );
 
     #
-    # For an article belonging to isolated cluster this table provides the
-    # claster size.
+    # For an article belonging to an isolated cluster this table provides the
+    # cluster size.
     #
     DROP TABLE IF EXISTS grp;
     CREATE TABLE grp (
@@ -676,17 +739,17 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
     #
     # New categories added with temporal names in order to give them an id.
     #
-    INSERT IGNORE INTO orcat
-    SELECT @freecatid+cnt as uid,
-           CONCAT( @isolated_category_name, '/', upcat, '_', cnt ) as cat,
-           CONCAT(upcat,'_',cnt) as coolcat
+    INSERT IGNORE INTO orcat (uid, cat, coolcat)
+    SELECT @freecatid+cnt-1 as uid,
+           convertcoolcat( CONCAT( upcat, '_', cnt ) ) as cat,
+           CONCAT( upcat, '_', cnt ) as coolcat
            FROM grp
            GROUP BY cnt;
     # allows unique identifiers for non-existent categories
     SELECT max(uid)+1 INTO @freecatid
            FROM orcat;
 
-    INSERT INTO isolated
+    INSERT INTO isolated (id, cat, act)
     SELECT ga.id as id,
            catuid(CONCAT(upcat,'_',grp.cnt)) as cat,
            smart_action(grp.cnt, @articles_count) as act
@@ -709,7 +772,7 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
       THEN
         # parenting links count for each parented article
         DELETE FROM lc;
-        INSERT INTO lc
+        INSERT INTO lc (lc_pid, lc_amnt)
         SELECT l_to as lc_pid,
                count( * ) as lc_amnt
                FROM l
@@ -721,7 +784,7 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
           THEN CALL oscc( maxsize, upcat );
         END IF;
 
-        # used only for ..._1 clasters detection,
+        # used only for ..._1 clusters detection,
         # provides the ability to use INSERT ... ON DUPLICATE KEY UPDATE ...
         # there
         # select from isolated maybe is too wide
@@ -743,7 +806,7 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
 #       to avoid running trough all numbers from 1 upto maxsize.
 #
 DROP PROCEDURE IF EXISTS forest_walk//
-CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type VARCHAR(255), outprefix VARCHAR(255))
+CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, cluster_type VARCHAR(255), outprefix VARCHAR(255))
   BEGIN
     DECLARE tmp VARCHAR(255);
     DECLARE rank INT;
@@ -751,8 +814,11 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
     DECLARE curcatuid INT;
     DECLARE actmaxsize INT DEFAULT '1';
     DECLARE st VARCHAR(255);
+    DECLARE comment_left VARCHAR(8) DEFAULT '';
+    DECLARE comment_right VARCHAR(8) DEFAULT '';
+    DECLARE pos INT DEFAULT '0';
 
-    CALL isolated_layer(maxsize, claster_type);
+    CALL isolated_layer(maxsize, cluster_type);
 
     IF maxsize>=2
       THEN
@@ -773,7 +839,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
     # search again excluding increasing SCC ranks starting from orphanes
     SET rank=1;
     WHILE rank<=actmaxsize DO
-      SET tmp=CONCAT(claster_type, '_', rank );
+      SET tmp=CONCAT(cluster_type, '_', rank );
       SET curcatuid=catuid(tmp);
 
       # if any SCC of type tmp found
@@ -786,10 +852,21 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
           # report on progress
           SELECT CONCAT( ':: echo ', tmp, ': ', cnt ) as title;
 
+          SELECT LOCATE( CONCAT( '_', @principle_component_size ), tmp ) INTO pos;
+          IF pos>0
+            THEN
+              SET comment_left='<!-- ';
+              SET comment_right=' -->';
+            ELSE
+              SET comment_left='';
+              SET comment_right='';
+          END IF;
+
           SELECT CONCAT( ':: out ', @fprefix, targetset, '.stat' );
-          SELECT CONCAT( outprefix, '[[:', getnsprefix(14,@target_lang), cat, '|', tmp, ']]: ', cnt )
+          SELECT CONCAT( comment_left, outprefix, '[[:', getnsprefix(14,@target_lang), cat, '|', tmp, ']]: ', cnt, comment_right )
                  FROM orcat
                  WHERE coolcat=tmp;
+          SELECT ':: sync';
 
           #
           # If the orphaned category is changed for some of articles,
@@ -849,6 +926,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, claster_type 
                   PREPARE stmt FROM @st;
                   EXECUTE stmt;
                   DEALLOCATE PREPARE stmt;
+                  SELECT ':: sync';
               END IF;
           END IF;
 
@@ -914,7 +992,7 @@ CREATE FUNCTION convertcat ( wcat VARCHAR(255) )
                     SET argue=CAST(wcat AS DECIMAL);
                     IF argue<1
                     THEN
-                      RETURN '_wrong_claster_size_';
+                      RETURN '_wrong_cluster_size_';
                     END IF;
                     SET outcat=CONCAT(outcat, '_', argue);
                     SET wcat=SUBSTRING( wcat FROM 1+LENGTH( argue ) );
@@ -948,6 +1026,8 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DECLARE rank INT;
     DECLARE cnt INT;
     DECLARE res VARCHAR(255);
+    DECLARE isocl INT;
+    DECLARE isocsl VARCHAR(255);
 
     SET @starttime=now();
 
@@ -977,19 +1057,25 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
     # temporary table
     DROP TABLE IF EXISTS parented;
-    CREATE TABLE parented(
-      pid int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (pid)
-    ) ENGINE=MEMORY;
     IF targetset!='redirects'
       THEN
-        INSERT INTO parented
+        CREATE TABLE parented(
+          pid int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (pid)
+        ) ENGINE=MEMORY;
+
+        INSERT INTO parented (pid)
         SELECT id as pid
                FROM articles
                # not sure if sorting does help
                ORDER by id ASC;
       ELSE
-        SET @st=CONCAT( 'INSERT INTO parented SELECT r_id as pid FROM r', namespace, ';' );
+        SET @st=CONCAT( "CREATE TABLE parented( pid int(8) unsigned NOT NULL default '0', PRIMARY KEY (pid) ) ENGINE=", @r_identifiers_engine, ";" );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SET @st=CONCAT( 'INSERT INTO parented (pid) SELECT r_id as pid FROM r', namespace, ';' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -1032,7 +1118,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     END IF;
 
     #
-    # List of claster types (category based) for isolated articles.
+    # List of cluster types (category based) for isolated articles.
     #
     DROP TABLE IF EXISTS orcat;
     CREATE TABLE orcat (
@@ -1053,7 +1139,28 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
       THEN
         IF @isolated_category_name!=''
           THEN
-            SET @st=CONCAT( 'INSERT INTO orcat SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @dbname, '.categorylinks, ', @dbname, '.page, categories WHERE page_title=categories.title and cl_to=', "'", @isolated_category_name, "'", ' and page_id=cl_from and page_namespace=14;' );
+            #
+            # Existing categories categorized as isolated with their id,
+            # name, and name chifer.
+            #
+            # INSERT INTO orcat (uid, cat, coolcat)
+            # SELECT categories.id as uid,
+            #        page_title as cat,
+            #        convertcat( page_title ) as coolcat
+            #        FROM <dbname>.categorylinks, 
+            #             <dbname>.page,
+            #             categories
+            #        WHERE page_title=categories.title and
+            #              cl_to=', "'", @isolated_category_name, "'", ' and 
+            #              page_id=cl_from and
+            #              page_namespace=14;
+            #
+            # Note: Table requires expansion by linked but not created
+            #       isolated categories, all changes are to be sinchronized 
+            #       with nrcatl on uid=nrcl_cat. This might also cause
+            #       influence on categories table.
+            #
+            SET @st=CONCAT( 'INSERT INTO orcat (uid, cat, coolcat) SELECT categories.id as uid, page_title as cat, convertcat( page_title ) as coolcat FROM ', @dbname, '.categorylinks, ', @dbname, '.page, categories WHERE page_title=categories.title and cl_to=', "'", @isolated_category_name, "'", ' and page_id=cl_from and page_namespace=14;' );
             PREPARE stmt FROM @st; 
             EXECUTE stmt; 
             DEALLOCATE PREPARE stmt; 
@@ -1062,16 +1169,85 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
                    FROM orcat;
      
             #
-            # Initializing main output table with currently registered 
-            # isolated articles and their categories.
+            # Isolated articles might be marked as belonging to non-existent
+            # categories.
             #
-            INSERT INTO isolated
+            DROP TABLE IF EXISTS ref_orcat;
+            CREATE TABLE ref_orcat (
+              uid int(8) unsigned NOT NULL AUTO_INCREMENT,
+              cat varchar(255) binary NOT NULL default '',
+              PRIMARY KEY (uid),
+              KEY(cat)
+            ) ENGINE=MEMORY;
+            
+            SELECT 1+CHAR_LENGTH( @isolated_category_name ) INTO isocl;
+            SELECT CONCAT( @isolated_category_name, '/' ) INTO isocsl;
+
+            #
+            # INSERT INTO ref_orcat (cat)
+            # SELECT cl_to as cat
+            #        FROM <dbname>.categorylinks,
+            #             <dbname>.page
+            #        WHERE LEFT( cl_to, isocl ) = isocsl and
+            #              cl_to NOT IN (
+            #                             SELECT cat
+            #                                    FROM orcat
+            #                           ) and
+            #              cl_from=page_id and
+            #              page_namespace=0
+            #        GROUP BY cl_to;
+            #
+            SET @st=CONCAT( 'INSERT INTO ref_orcat (cat) SELECT cl_to as cat FROM ', @dbname, '.categorylinks, ', @dbname, '.page WHERE LEFT( cl_to, ', isocl, ' ) = ', "'", isocsl, "'", ' and cl_to NOT IN ( SELECT cat FROM orcat ) and cl_from=page_id and page_namespace=0 GROUP BY cl_to;' );
+            PREPARE stmt FROM @st; 
+            EXECUTE stmt; 
+            DEALLOCATE PREPARE stmt; 
+            
+            SELECT count(*) INTO cnt
+                   FROM ref_orcat;
+
+            INSERT INTO orcat (uid, cat, coolcat)
+            SELECT @freecatid+uid,
+                   cat,
+                   convertcat( cat )
+                   FROM ref_orcat;
+
+            SELECT CONCAT( ':: echo . ', cnt, ' additional referenced isolated chain types registered' );
+
+            #
+            # Initializing main output table with currently registered 
+            # isolated articles belonging to existent categories.
+            #
+            INSERT INTO isolated (id, cat, act)
             SELECT nrcl_from as id,
                    uid as cat,
                    -1 as act
                    FROM nrcatl,
                         orcat
                    WHERE nrcl_cat=uid;
+
+            #
+            # Now adding registered isolated articles with category pages to
+            # be created.
+            #
+            # INSERT INTO isolated (id, cat, act)
+            # SELECT cl_from as id,
+            #        @freecatid+uid as cat,
+            #        -1 as act
+            #        FROM <dbname>.categorylinks,
+            #             <dbname>.page,
+            #             ref_orcat
+            #        WHERE cl_to=cat and
+            #              cl_from=page_id and
+            #              page_namespace=0;
+            #
+            SET @st=CONCAT( 'INSERT INTO isolated (id, cat, act) SELECT cl_from as id, ', @freecatid, '+uid as cat, -1 as act FROM ', @dbname, '.categorylinks, ', @dbname, '.page, ref_orcat WHERE cl_to=cat and cl_from=page_id and page_namespace=0;' );
+            PREPARE stmt FROM @st; 
+            EXECUTE stmt; 
+            DEALLOCATE PREPARE stmt; 
+
+            SELECT @freecatid+cnt INTO @freecatid;
+
+            DROP TABLE ref_orcat;
 
             SELECT CONCAT( ':: echo . ', count(*), ' isolated articles templated' )
                    FROM isolated;
@@ -1149,13 +1325,14 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
         IF cnt>0
           THEN
-            SELECT CONCAT(':: echo parented isolates: ', cnt ) as title;
-            SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
+            SELECT CONCAT( ':: echo parented isolates: ', cnt ) as title;
 
+            SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
             SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @dbname, '.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st; 
             EXECUTE stmt; 
             DEALLOCATE PREPARE stmt; 
+            SELECT ':: sync';
         END IF;
     END IF;
 
@@ -1174,6 +1351,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     
     SELECT CONCAT( ':: out ', @fprefix, targetset, '.stat' );
     SELECT CONCAT( '{{total amount of isolated articles}}: ', @isolated_articles_count );
+    SELECT ':: sync';
 
     # this table is pretty well worn here after isolated processing
     #
@@ -1214,7 +1392,10 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
 
     IF postfix='r'
       THEN
-        ALTER TABLE ruwiki_ns ENGINE=MEMORY;
+        IF @r_identifiers_engine='MEMORY'
+          THEN
+            ALTER TABLE ruwiki_ns ENGINE=MEMORY;
+        END IF;
         ALTER TABLE orcat_ns ENGINE=MEMORY;
 
         ALTER TABLE ruwiki_ns ADD COLUMN cat int(8) unsigned NOT NULL default '0';
@@ -1222,7 +1403,7 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
         #
         # Redirects as they belong to redirect chains.
         #
-        SET @st=CONCAT( 'INSERT INTO ruwiki_ns SELECT isolated.id as id, uid as cat FROM isolated, r', namespace, ', orcat_ns WHERE act>=0 and isolated.id=r_id and uid=isolated.cat;' );
+        SET @st=CONCAT( 'INSERT INTO ruwiki_ns (id, cat) SELECT isolated.id as id, uid as cat FROM isolated, r', namespace, ', orcat_ns WHERE act>=0 and isolated.id=r_id and uid=isolated.cat;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -1232,11 +1413,11 @@ CREATE PROCEDURE isolated_refresh (postfix VARCHAR(255), namespace INT)
         ALTER TABLE ruwiki_ns ADD KEY (cat);
 
         #
-        # Isolated articles as they belong to different claster chains.
+        # Isolated articles as they belong to different cluster chains.
         # Categories as they belong to categorytree paths.
         #
         # isolated refresh
-        SET @st=CONCAT( 'INSERT INTO ruwiki_ns SELECT isolated.id, coolcat as cat, page_title FROM isolated, ', @dbname, '.page, orcat_ns WHERE act>=0 and id=page_id and uid=isolated.cat;' );
+        SET @st=CONCAT( 'INSERT INTO ruwiki_ns (id, cat, title) SELECT isolated.id, coolcat as cat, page_title as title FROM isolated, ', @dbname, '.page, orcat_ns WHERE act>=0 and id=page_id and uid=isolated.cat;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
