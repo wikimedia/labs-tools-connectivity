@@ -43,6 +43,8 @@
  #                                   completion
  #                 init <script>   - passes file <script> with sql code to
  #                                   server s<N>
+ #         :: sync                 - flushes current stdout, for use after
+ #                                   ':: out' or ':: upload' commands
  #         :: 7z                   - archives output files (.txt, .info, .stat)
  #
  #      Reports on error if unexpected output occurs. Disables any external
@@ -406,14 +408,9 @@ handle ()
                       drdi REAL(5,3) NOT NULL DEFAULT '0',
                       nocatcat_count INT UNSIGNED NOT NULL DEFAULT '0',
                       catring_count INT UNSIGNED NOT NULL DEFAULT '0',
-                      article_diff INT SIGNED NOT NULL DEFAULT '0',
-                      isolated_diff INT SIGNED NOT NULL DEFAULT '0',
-                      creator_diff INT SIGNED NOT NULL DEFAULT '0',
-                      disambig_diff INT SIGNED NOT NULL DEFAULT '0',
-                      drdi_diff REAL(5,3) NOT NULL DEFAULT '0',
                       cluster_limit INT UNSIGNED NOT NULL DEFAULT '0',
                       proc_time INT UNSIGNED NOT NULL DEFAULT '0',
-                      PRIMARY KEY (lang)
+                      PRIMARY KEY (lang, ts)
                     ) ENGINE=MyISAM;"
 
               echo "INSERT INTO language_stats (
@@ -429,11 +426,6 @@ handle ()
                                                  nocatcat_count,
                                                  catring_count,
                                                  creator_count,
-                                                 article_diff,
-                                                 isolated_diff,
-                                                 creator_diff,
-                                                 disambig_diff,
-                                                 drdi_diff,
                                                  ts,
                                                  cluster_limit,
                                                  proc_time
@@ -450,34 +442,9 @@ handle ()
                            ${emdata[8]} as nocatcat_count,
                            ${emdata[9]} as catring_count,
                            ${emdata[10]} as creator_count,
-                           0 as article_diff,
-                           0 as isolated_diff,
-                           0 as creator_diff,
-                           0 as disambig_diff,
-                           0 as drdi_diff,
                            '${emdata[11]}' as ts,
                            ${emdata[12]} as cluster_limit,
-                           ${emdata[13]} as proc_time
-                    ON DUPLICATE KEY UPDATE
-                           disambig_recognition=${emdata[0]},
-                           article_diff=CAST(${emdata[1]}-language_stats.article_count AS SIGNED),
-                           article_count=${emdata[1]},
-                           chrono_count=${emdata[2]},
-                           disambig_diff=CAST(${emdata[3]}-language_stats.disambig_count AS SIGNED),
-                           disambig_count=${emdata[3]},
-                           isolated_diff=CAST(${emdata[4]}-language_stats.isolated_count AS SIGNED),
-                           isolated_count=${emdata[4]},
-                           deadend_count=${emdata[5]},
-                           nocat_count=${emdata[6]},
-                           drdi_diff=${emdata[7]}-language_stats.drdi,
-                           drdi=${emdata[7]},
-                           nocatcat_count=${emdata[8]},
-                           catring_count=${emdata[9]},
-                           creator_diff=CAST(${emdata[10]}-language_stats.creator_count AS SIGNED),
-                           creator_count=${emdata[10]},
-                           ts='${emdata[11]}',
-                           cluster_limit=${emdata[12]},
-                           proc_time=${emdata[13]};"
+                           ${emdata[13]} as proc_time;"
             } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
             ;;
          'drop')
@@ -515,6 +482,17 @@ handle ()
                if [ "$line" != '' ]
                then
                  echo -ne $line\\r\\n >> ${language}.debug.log
+
+                 #
+                 # Query execution was interrupted
+                 #
+                 if [ "${line:0:18}" = 'ERROR 1317 (70100)' ]
+                 then
+                   #
+                   # Check if there was a reason for interruption
+                   #
+                   ./replag.sh "$language" >> ${language}.debug.log
+                 fi
                fi
              fi
            fi

@@ -2,7 +2,7 @@ isolated_flexies ()
 {
   local isolated=$1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     __isolated=$_isolated
   else
@@ -77,7 +77,9 @@ isoarticles ()
               FROM inda\;
   echo SELECT cluster_limit                        \
               FROM u_${usr}_golem_p.language_stats \
-              WHERE lang=\"$language\"\;
+              WHERE lang=\"$language\"             \
+              ORDER BY ts DESC                     \
+              LIMIT 1\;
 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                   read -r line
                   read -r line1

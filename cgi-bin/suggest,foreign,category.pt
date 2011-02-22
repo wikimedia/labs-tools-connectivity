@@ -1,0 +1,4 @@
+pagetitle="Sugerir uma ligação para artigos isolados"
+thish1="sugerir uma ligação para artigos isolados na ${language}wiki"
+subclause1name="categorias para cópia de ligações desde ${foreignname}"
+subclause1="Esta é uma lista de categorias de artigos, que poderiam ser wikificados espiando ligações a artigos isolados da ${foreignname} wikipedia."

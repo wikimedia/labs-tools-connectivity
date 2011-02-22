@@ -1,0 +1,13 @@
+pagetitle="Listas de artigos isolados"
+thish1=$isolatedarticles
+available_lists="listas disponíveis para artigos isolados"
+fl="lista completa de artigos isolados"
+fl_disambig="lista completa de artigos isolados com sugestões de desambiguação de ligações"
+fl_interlink="lista completa de artigos isolados com sugestões de ligações do espião de interwikis"
+fl_translate="lista completa de artigos isolados com sugestões de ligações com tradução"
+fl_anonym="lista completa de artigos isolados criados por autores anónimos"
+isoclustertext="Ligações entre artigos isolados formam<strong>agrupamentos isolados</strong>, os quais não estão ligados a partir de artigos fora do agrupamento, mas para cada par de artigos isolados num agrupamento é possível passar de um para o outro usando hiperligações."
+upper_cluster_limit="O limite superior do tamanho de agrupamentos isolados durante a análise foi"
+no_upper_limit="A análise é feita sem limite superior de tamanho dos agrupamentos isolados."
+linked_core="núcleo ligados"
+_isolated="isolados"

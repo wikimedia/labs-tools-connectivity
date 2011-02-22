@@ -284,11 +284,6 @@ CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
     #                                                  drdi,
     #                                                  nocatcat_count,
     #                                                  catring_count,
-    #                                                  article_diff,
-    #                                                  isolated_diff,
-    #                                                  creator_diff,
-    #                                                  disambig_diff,
-    #                                                  drdi_diff,
     #                                                  cluster_limit,
     #                                                  proc_time
     #                                                )
@@ -305,34 +300,10 @@ CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
     #        @_drd as drdi,
     #        @_nccc as nocatcat_count,
     #        @_crc as catring_count,
-    #        0 as article_diff,
-    #        0 as isolated_diff,
-    #        0 as creator_diff,
-    #        0 as disambig_diff,
-    #        0 as drdi_diff,
     #        @cluster_limit as cluster_limit,
-    #        @processing_time as proc_time
-    # ON DUPLICATE KEY UPDATE ts="', @rep_time, '",
-    #                         disambig_recognition=@_dr,
-    #                         article_diff=CAST(@_ac-language_stats.article_count AS SIGNED),
-    #                         article_count=@_ac,
-    #                         chrono_count=@_chc,
-    #                         disambig_diff=CAST(@_dc-language_stats.disambig_count AS SIGNED),
-    #                         disambig_count=@_dc,
-    #                         isolated_diff=CAST(@_iac-language_stats.isolated_count AS SIGNED),
-    #                         isolated_count=@_iac,
-    #                         deadend_count=@_dec,
-    #                         nocat_count=@_ncc,
-    #                         drdi_diff=@_drd-language_stats.drdi,
-    #                         drdi=@_drd,
-    #                         nocatcat_count=@_nccc,
-    #                         catring_count=@_crc,
-    #                         creator_diff=CAST(@_crtc-language_stats.creator_count AS SIGNED),
-    #                         creator_count=@_crtc,
-    #                         cluster_limit=@cluster_limit,
-    #                         proc_time=@processing_time;
+    #        @processing_time as proc_time;
     #
-    SET @st=CONCAT( 'INSERT INTO u_', usr, '_golem_p.language_stats (lang, ts, disambig_recognition, article_count, chrono_count, disambig_count, isolated_count, creator_count, deadend_count, nocat_count, drdi, nocatcat_count, catring_count, article_diff, isolated_diff, creator_diff, disambig_diff, drdi_diff, cluster_limit, proc_time) SELECT "', language, '" as lang, "', @rep_time, '" as ts, @_dr as disambig_recognition, @_ac as article_count, @_chc as chrono_count, @_dc as disambig_count, @_iac as isolated_count, @_crtc as creator_count, @_dec as deadend_count, @_ncc as nocat_count, @_drd as drdi, @_nccc as nocatcat_count, @_crc as catring_count, 0 as article_diff, 0 as isolated_diff, 0 as creator_diff, 0 as disambig_diff, 0 as drdi_diff, @cluster_limit as cluster_limit, @processing_time as proc_time ON DUPLICATE KEY UPDATE ts="', @rep_time, '", disambig_recognition=@_dr, article_diff=CAST(@_ac-language_stats.article_count AS SIGNED), article_count=@_ac, chrono_count=@_chc, disambig_diff=CAST(@_dc-language_stats.disambig_count AS SIGNED), disambig_count=@_dc, isolated_diff=CAST(@_iac-language_stats.isolated_count AS SIGNED), isolated_count=@_iac, deadend_count=@_dec, nocat_count=@_ncc, drdi_diff=@_drd-language_stats.drdi, drdi=@_drd, nocatcat_count=@_nccc, catring_count=@_crc, creator_diff=CAST(@_crtc-language_stats.creator_count AS SIGNED), creator_count=@_crtc, cluster_limit=@cluster_limit, proc_time=@processing_time;' );
+    SET @st=CONCAT( 'INSERT INTO u_', usr, '_golem_p.language_stats (lang, ts, disambig_recognition, article_count, chrono_count, disambig_count, isolated_count, creator_count, deadend_count, nocat_count, drdi, nocatcat_count, catring_count, cluster_limit, proc_time) SELECT "', language, '" as lang, "', @rep_time, '" as ts, @_dr as disambig_recognition, @_ac as article_count, @_chc as chrono_count, @_dc as disambig_count, @_iac as isolated_count, @_crtc as creator_count, @_dec as deadend_count, @_ncc as nocat_count, @_drd as drdi, @_nccc as nocatcat_count, @_crc as catring_count, @cluster_limit as cluster_limit, @processing_time as proc_time;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -373,10 +344,84 @@ CREATE PROCEDURE langwiki2 ()
     DECLARE lng_str VARCHAR(8192) DEFAULT '';
     DECLARE garbage TIMESTAMP(14);
     DECLARE chrcnt INT DEFAULT 0;
-    DECLARE cur1 CURSOR FOR SELECT lang, ts, chrono_count FROM language_stats WHERE ts+interval 1 day>now() and disambig_recognition=1 ORDER BY ts DESC, lang ASC;
-    DECLARE cur2 CURSOR FOR SELECT lang, ts, chrono_count FROM language_stats WHERE ts+interval 1 day<=now() and ts+interval 2 day>now() and disambig_recognition=1 ORDER BY ts DESC, lang ASC;
-    DECLARE cur3 CURSOR FOR SELECT lang, ts, chrono_count FROM language_stats WHERE ts+interval 2 day<=now() and disambig_recognition=1 ORDER BY ts DESC, lang ASC;
-    DECLARE cur4 CURSOR FOR SELECT language_stats.lang, ts FROM language_stats, toolserver.wiki WHERE domain=CONCAT(language_stats.lang,'.wikipedia.org') and disambig_recognition=0 ORDER BY size DESC;
+    #DECLARE cur1 CURSOR FOR
+    #        SELECT lang,
+    #               ts,
+    #               chrono_count
+    #               FROM language_stats ls
+    #                    INNER JOIN (
+    #                                 SELECT lang AS _lang,
+    #                                        MAX(ts) AS _ts
+    #                                        FROM language_stats
+    #                                        WHERE ts+interval 1 day>now()
+    #                                        GROUP BY lang
+    #                               ) _ls
+    #                               ON lang = _lang AND
+    #                                  ts = _ts
+    #               WHERE disambig_recognition=1
+    #               ORDER BY ts DESC,
+    #                        lang ASC;
+    DECLARE cur1 CURSOR FOR SELECT lang, ts, chrono_count FROM language_stats ls INNER JOIN ( SELECT lang AS _lang, MAX(ts) AS _ts FROM language_stats WHERE ts+interval 1 day>now() GROUP BY lang ) _ls ON lang = _lang AND ts = _ts WHERE disambig_recognition=1 ORDER BY ts DESC, lang ASC;
+    #DECLARE cur2 CURSOR FOR
+    #        SELECT lang,
+    #               ts,
+    #               chrono_count
+    #               FROM language_stats ls
+    #                    INNER JOIN (
+    #                                 SELECT lang AS _lang,
+    #                                        MAX(ts) AS _ts
+    #                                        FROM language_stats
+    #                                        WHERE ts+interval 2 day>now()
+    #                                        GROUP BY lang
+    #                                        HAVING _ts+interval 1 day<=now()
+    #                               ) _ls
+    #                               ON lang = _lang AND
+    #                                  ts = _ts
+    #               WHERE disambig_recognition=1
+    #               ORDER BY ts DESC,
+    #                     lang ASC;
+    DECLARE cur2 CURSOR FOR SELECT lang, ts, chrono_count FROM language_stats ls INNER JOIN ( SELECT lang AS _lang, MAX(ts) AS _ts FROM language_stats WHERE ts+interval 2 day>now() GROUP BY lang HAVING _ts+interval 1 day<=now() ) _ls ON lang = _lang AND ts = _ts WHERE disambig_recognition=1 ORDER BY ts DESC, lang ASC;
+    #DECLARE cur3 CURSOR FOR
+    #        SELECT lang,
+    #               ts,
+    #               chrono_count
+    #               FROM language_stats ls
+    #                    INNER JOIN (
+    #                                 SELECT lang AS _lang,
+    #                                        MAX(ts) AS _ts
+    #                                        FROM language_stats
+    #                                        GROUP BY lang
+    #                                        HAVING _ts+interval 2 day<=now()
+    #                               ) _ls
+    #                               ON lang = _lang AND
+    #                                  ts = _ts
+    #               WHERE disambig_recognition=1
+    #               ORDER BY ts DESC,
+    #                        lang ASC;
+    DECLARE cur3 CURSOR FOR SELECT lang, ts, chrono_count FROM language_stats ls INNER JOIN ( SELECT lang AS _lang, MAX(ts) AS _ts FROM language_stats GROUP BY lang HAVING _ts+interval 2 day<=now() ) _ls ON lang = _lang AND ts = _ts WHERE disambig_recognition=1 ORDER BY ts DESC, lang ASC;
+    #DECLARE cur4 CURSOR FOR
+    #        SELECT lang,
+    #               ts
+    #               FROM language_stats ls
+    #                    INNER JOIN (
+    #                                 SELECT lang AS _lang,
+    #                                        MAX(ts) AS _ts
+    #                                        FROM language_stats
+    #                                        GROUP BY lang
+    #                               ) _ls
+    #                               ON lang = _lang AND
+    #                                  ts = _ts
+    #                    INNER JOIN (
+    #                                 SELECT domain,
+    #                                        size
+    #                                        FROM toolserver.wiki
+    #                                        WHERE is_closed=0 and
+    #                                              family='wikipedia'
+    #                               ) tsw
+    #                               ON domain=CONCAT(lang,'.wikipedia.org')
+    #               WHERE disambig_recognition=0
+    #               ORDER BY size DESC;
+    DECLARE cur4 CURSOR FOR SELECT lang, ts FROM language_stats ls INNER JOIN ( SELECT lang AS _lang, MAX(ts) AS _ts FROM language_stats GROUP BY lang ) _ls ON lang = _lang AND ts = _ts INNER JOIN ( SELECT domain, size FROM toolserver.wiki WHERE is_closed=0 and family='wikipedia' ) tsw ON domain=CONCAT(lang,'.wikipedia.org') WHERE disambig_recognition=0 ORDER BY size DESC;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
     OPEN cur1;

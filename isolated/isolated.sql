@@ -772,7 +772,7 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
       THEN
         # parenting links count for each parented article
         DELETE FROM lc;
-        INSERT INTO lc (lc_pid, lc_amnt)
+        INSERT INTO lc /* SLOW_OK */ (lc_pid, lc_amnt)
         SELECT l_to as lc_pid,
                count( * ) as lc_amnt
                FROM l

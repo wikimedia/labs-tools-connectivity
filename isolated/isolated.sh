@@ -212,14 +212,9 @@ time {
             drdi REAL(5,3) NOT NULL DEFAULT '0',
             nocatcat_count INT UNSIGNED NOT NULL DEFAULT '0',
             catring_count INT UNSIGNED NOT NULL DEFAULT '0',
-            article_diff INT SIGNED NOT NULL DEFAULT '0',
-            isolated_diff INT SIGNED NOT NULL DEFAULT '0',
-            creator_diff INT SIGNED NOT NULL DEFAULT '0',
-            disambig_diff INT SIGNED NOT NULL DEFAULT '0',
-            drdi_diff REAL(5,3) NOT NULL DEFAULT '0',
             cluster_limit INT UNSIGNED NOT NULL DEFAULT '0',
             proc_time INT UNSIGNED NOT NULL DEFAULT '0',
-            PRIMARY KEY (lang)
+            PRIMARY KEY (lang, ts)
           ) ENGINE=MyISAM;"
 
     #

@@ -708,7 +708,7 @@ the_menu ()
 
     if [ "$user" != '' ]
     then
-      echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=creator&amp;$user=$user&amp;registered=$registered\" class=\"creator current\">${usrns}:$user</a></li></ul>"
+      echo "<ul><li><a href=\"./go.sh?$stdurl&amp;listby=creator&amp;user=$user&amp;registered=$registered\" class=\"creator current\">${usrns}:$user</a></li></ul>"
     fi
 
     # end of isolated articles creators in menu

@@ -1,3 +1,140 @@
+#
+# scale the third param value to time units of the second param
+# modified by means of the first param
+#
+scale_to_time ()
+{
+  # lower bound for values
+  local lb=$1
+  local tsd=$2
+  # inplace in/out
+  local value=''
+
+  # measurement scale selection
+  if [ "$tsd" != '?' ]
+  then
+    local tmp=$((tsd${lb}/60))
+    if [ $tmp -eq 0 ]
+    then
+      value="1/$2 a sec"
+    else
+      tsd=$((tsd/60))
+      tmp=$((tsd${lb}/60))
+      if [ $tmp -eq 0 ]
+      then
+        value="60/$2 a min"
+      else
+        tsd=$((tsd/60))
+        tmp=$((tsd${lb}/24))
+        if [ $tmp -eq 0 ]
+        then
+          value="3600/$2 an hr"
+        else
+          tsd=$((tsd/24))
+          tmp=$((tsd${lb}/7))
+          if [ $tmp -eq 0 ]
+          then
+            value="86400/$2 a day"
+          else
+            tmp=$((tsd${lb}/31))
+            if [ $tmp -eq 0 ]
+            then
+              value="604800/$2 a week"
+            else
+              tmp=$((tsd${lb}/366))
+              if [ $tmp -eq 0 ]
+              then
+                value="2678400/$2 a month"
+              else
+                value="31536000/$2 a year"
+              fi
+            fi
+          fi
+        fi
+      fi
+    fi
+  fi
+  echo $value
+}
+
+#
+# convert the second param given in seconds to shorter time units
+# with respect to modification defined by the first param
+#
+scale_time ()
+{
+  # lower bound for values
+  local lb=$1
+  # inplace in/out
+  local tsd=$2
+
+  # measurement scale selection
+  if [ "$tsd" != '?' ]
+  then
+    local tmp=$((tsd/60$lb))
+    if [ $tmp -eq 0 ]
+    then
+      tsd="${tsd} sec"
+    else
+      tsd=$((tsd/60))
+      tmp=$((tsd/60$lb))
+      if [ $tmp -eq 0 ]
+      then
+        tsd="$tsd min"
+      else
+        tsd=$((tsd/60))
+        tmp=$((tsd/24$lb))
+        if [ $tmp -eq 0 ]
+        then
+          tsd="$tsd hr(s)"
+        else
+          tsd=$((tsd/24))
+          tmp=$((tsd/7$lb))
+          if [ $tmp -eq 0 ]
+          then
+            tsd="$tsd day(s)"
+          else
+            tmp=$((tsd/31$lb))
+            if [ $tmp -eq 0 ]
+            then
+              tsd="$((tsd/7)) week(s)"
+            else
+              tmp=$((tsd/366$lb))
+              if [ $tmp -eq 0 ]
+              then
+                tsd="$((tsd/31)) month(s)"
+              else
+                tsd="$((tsd/365)) year(s)"
+              fi
+            fi
+          fi
+        fi
+      fi
+    fi
+  fi
+
+  echo $tsd
+}
+
+format_diff ()
+{
+  local res=''
+  local in=$1
+  local tmul=$2
+
+  if [ "$1" != '?' ]
+  then
+    res=$((in*$tmul))
+
+    if [ $1 -ge 0 ]
+    then
+      res="+${res}"
+    fi
+  fi
+
+  echo $res
+}
+
 handle_a_table ()
 {
   local count=$1
@@ -26,8 +163,17 @@ handle_a_table ()
     local iso_diff=${str[17]}
     local iso_cr_diff=${str[18]}
     local dsmbg_diff=${str[19]}
-    local drdi_diff=${str[20]}
-    local lang_name=${str[21]}
+    local cl_diff=${str[20]}
+    local chr_diff=${str[21]}
+    local de_diff=${str[22]}
+    local nc_diff=${str[23]}
+    local cr_diff=${str[24]}
+    local ncc_diff=${str[25]}
+    local drdi_diff=${str[26]}
+    local ts_diff=${str[27]}
+    local lang_name=${str[28]}
+
+    local art_diff_txt=''
 
     tmst=${tmst//_/ }
 
@@ -43,6 +189,11 @@ handle_a_table ()
       bld='<b>'
       bldc='</b>'
     fi
+
+    local tunits=$( scale_to_time '*2' $ts_diff )
+    tunits=( $tunits )
+    local tmul=${tunits[0]}
+    local tmeas="${tunits[1]} ${tunits[2]}"
 
     isor_diff=$( echo "scale=4; $isor-100*($iso-(${iso_diff}))/($art-(${art_diff}))" | bc )
     if [ "${isor_diff:0:1}" = '.' ]
@@ -76,24 +227,23 @@ handle_a_table ()
       fi
     fi
 
-    if [ $art_diff -ge 0 ]
+    if [ "$art_diff" != '?' ]
     then
-      art_diff="+${art_diff}"
+      art_diff_txt=$((art_diff*$tmul))
+
+      if [ $art_diff -ge 0 ]
+      then
+        art_diff="+${art_diff}"
+        art_diff_txt="+${art_diff_txt}"
+      fi
     fi
 
-    if [ $iso_diff -ge 0 ]
+    if [ "$cl_diff" != '?' ]
     then
-      iso_diff="+${iso_diff}"
-    fi
-
-    if [ $iso_cr_diff -ge 0 ]
-    then
-      iso_cr_diff="+${iso_cr_diff}"
-    fi
-
-    if [ $dsmbg_diff -ge 0 ]
-    then
-      dsmbg_diff="+${dsmbg_diff}"
+      if [ $cl_diff -ge 0 ]
+      then
+        cl_diff="+${cl_diff}"
+      fi
     fi
 
     if [ "${drdi_diff:0:1}" != '-' ]
@@ -116,8 +266,8 @@ handle_a_table ()
     then
       echo "<td><center>$bld$art$bldc</center></td>"
     else
-      echo "<td><span title=\"${art_diff}\">$bld$art$bldc</span></td>"
-      echo "<td><span title=\"${dsmbg_diff}\">$bld$dsmbg$bldc</span></td>"
+      echo "<td><span title=\"${art_diff_txt} $tmeas\">$bld$art$bldc</span></td>"
+      echo "<td><span title=\"$( format_diff $dsmbg_diff $tmul ) $tmeas\">$bld$dsmbg$bldc</span></td>"
     fi
 
     if [ "$tmst" = 'never processed yet' ]
@@ -134,24 +284,21 @@ handle_a_table ()
       echo "<td><b>$core</b></td>"
     else
       local core_diff=$(( (${art_diff}) - (${iso_diff}) ))
+      local core_diff_txt=$((core_diff*$tmul))
+
       if [ $core_diff -ge 0 ]
       then
-        core_diff="+${core_diff}"
+        core_diff_txt="+${core_diff_txt}"
       fi
-      echo "<td><span title=\"${core_diff}\"><b>$core</b></span></td>"
+      echo "<td><span title=\"${core_diff_txt} $tmeas\"><b>$core</b></span></td>"
     fi
-    echo "<td><span title=\"${iso_diff}\">$bld$iso$bldc</span></td>"
+    echo "<td><span title=\"$( format_diff $iso_diff $tmul ) $tmeas\">$bld$iso$bldc</span></td>"
 
     if [ "$cl" = '0' ]
     then
-      if [ "$lang" = 'en' ]
-      then
-        echo "<td>${bld}1${bldc}</td>"
-      else
-        echo "<td>${bld}$art${bldc}</td>"
-      fi
+      echo "<td><span title=\"${art_diff}\">${bld}$art${bldc}</span></td>"
     else
-      echo "<td>$bld$cl$bldc</td>"
+      echo "<td><span title=\"${cl_diff}\">$bld$cl$bldc</span></td>"
     fi
 
     if [ "$iso" = '?' ]
@@ -165,30 +312,51 @@ handle_a_table ()
     then
       echo "<td>$bld$isocr$bldc</td>"
     else
-      echo "<td><span title=\"${iso_cr_diff}\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</span></td>"
+      echo "<td><span title=\"$( format_diff $iso_cr_diff $tmul ) $tmeas\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</span></td>"
     fi
+
     if [ "$chr" = '?' ]
     then
       if [ "$tmst" = 'never processed yet' ]
       then
-        echo "<td>$bld$chr$bldc</td>"
+        echo "<td><span title=\"${chr_diff}\">$bld$chr$bldc</span></td>"
       else
         echo "<td>$bld<a href=\"http://ru.wikipedia.org/wiki/Википедия:ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks\">$chr</a>$bldc</td>"
       fi
     else
-      echo "<td>$bld$chr$bldc</td>"
+      echo "<td><span title=\"$( format_diff $chr_diff $tmul ) $tmeas\">$bld$chr$bldc</span></td>"
     fi
-    echo "<td>$bld$de$bldc</td>"
-    echo "<td>$bld$nc$bldc</td>"
-    if [ "$tmst" = 'never processed yet' ]
+
+    if [ "$de" = '?' ]
+    then
+      echo "<td>$bld$de$bldc</td>"
+    else
+      echo "<td><span title=\"$( format_diff $de_diff $tmul ) $tmeas\">$bld$de$bldc</span></td>"
+    fi
+
+    if [ "$nc" = '?' ]
+    then
+      echo "<td>$bld$nc$bldc</td>"
+    else
+      echo "<td><span title=\"$( format_diff $nc_diff $tmul ) $tmeas\">$bld$nc$bldc</span></td>"
+    fi
+
+    if [ "$cr" = '?' ]
     then
       echo "<td>$bld$cr$bldc</td>"
+    else
+      echo "<td><span title=\"$( format_diff $cr_diff $tmul ) $tmeas\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce\">$cr</a>$bldc</span></td>"
+    fi
+
+    if [ "$ncc" = '?' ]
+    then
       echo "<td>$bld$ncc$bldc</td>"
     else
-      echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce\">$cr</a>$bldc</td>"
-      echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce&amp;networkpath=_1\">$ncc</a>$bldc</td>"
+      echo "<td><span title=\"$( format_diff $ncc_diff $tmul ) $tmeas\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce&amp;networkpath=_1\">$ncc</a>$bldc</span></td>"
     fi
-    echo "<td>$bld$tmst$bldc</td>"
+
+    echo "<td><span title=\"+$( scale_time '/5' $ts_diff )\">$bld$tmst$bldc</span></td>"
+
     echo "</tr>"
   else
     echo $str
@@ -235,67 +403,114 @@ echo "<center>"
 table_opens
 
 {
-  echo SELECT language_stats.lang,                                               \
-              article_count,                                                     \
-              disambig_count,                                                    \
-              disambig_count*100\/\(disambig_count\+article_count\),             \
-              drdi,                                                              \
-              article_count-isolated_count as main,                              \
-              isolated_count,                                                    \
-              cluster_limit,                                                     \
-              isolated_count\*100\/article_count,                                \
-              creator_count,                                                     \
-              chrono_count,                                                      \
-              deadend_count,                                                     \
-              nocat_count,                                                       \
-              catring_count,                                                     \
-              nocatcat_count,                                                    \
-              REPLACE\(ts,\' \',\'_\'\),                                         \
-              article_diff,                                                      \
-              isolated_diff,                                                     \
-              creator_diff,                                                      \
-              disambig_diff,                                                     \
-              drdi_diff,                                                         \
-              CONCAT\(REPLACE\(native_name,\' \',\'_\'\),\'_\/_\',REPLACE\(english_name,\' \',\'_\'\)\) \
-              FROM language_stats,                                               \
-                   toolserver.language                                           \
-              WHERE disambig_recognition\!\=0 and                                \
-                    language_stats.lang=LOWER\(language.lang\)                   \
-              ORDER BY main DESC, article_count DESC\;
+  echo "SELECT __ls.lang,
+               ls1.article_count as _ac,
+               ls1.disambig_count,
+               ls1.disambig_count*100/(ls1.disambig_count+ls1.article_count),
+               ls1.drdi,
+               ls1.article_count-ls1.isolated_count as _main,
+               ls1.isolated_count,
+               ls1.cluster_limit,
+               ls1.isolated_count*100/ls1.article_count,
+               ls1.creator_count,
+               ls1.chrono_count,
+               ls1.deadend_count,
+               ls1.nocat_count,
+               ls1.catring_count,
+               ls1.nocatcat_count,
+               REPLACE(_ts,' ','_'),
+               CAST(ls1.article_count-ls2.article_count AS SIGNED),
+               CAST(ls1.isolated_count-ls2.isolated_count AS SIGNED),
+               CAST(ls1.creator_count-ls2.creator_count AS SIGNED),
+               CAST(ls1.disambig_count-ls2.disambig_count AS SIGNED),
+               CAST(ls1.cluster_limit-ls2.cluster_limit AS SIGNED),
+               CAST(ls1.chrono_count-ls2.chrono_count AS SIGNED),
+               CAST(ls1.deadend_count-ls2.deadend_count AS SIGNED),
+               CAST(ls1.nocat_count-ls2.nocat_count AS SIGNED),
+               CAST(ls1.catring_count-ls2.catring_count AS SIGNED),
+               CAST(ls1.nocatcat_count-ls2.nocatcat_count AS SIGNED),
+               ls1.drdi-ls2.drdi,
+               CAST(TIMEDIFF(_ts,__ts) AS SIGNED),
+               CONCAT(REPLACE(native_name,' ','_'),'_/_',REPLACE(english_name,' ','_'))
+               FROM (
+                      SELECT ls.lang AS lang,
+                             MAX(ls.ts) AS __ts,
+                             _ts
+                             FROM language_stats ls,
+                                  (
+                                    SELECT lang,
+                                           MAX(ts) AS _ts
+                                           FROM language_stats
+                                           GROUP BY lang
+                                  ) as _ls
+                             WHERE ls.lang=_ls.lang AND
+                                   ls.ts<_ls._ts
+                             GROUP BY ls.lang
+                    ) __ls
+                    INNER JOIN language_stats ls1
+                               ON ls1.lang=__ls.lang AND
+                                  ls1.ts=__ls._ts AND
+                                  ls1.disambig_recognition!=0
+                    INNER JOIN language_stats ls2
+                               ON ls2.lang=__ls.lang AND
+                                  ls2.ts=__ls.__ts
+                    INNER JOIN toolserver.language
+                               ON __ls.lang=LOWER(language.lang)
+               ORDER BY _main DESC,
+                        _ac DESC;"
 
-  echo SELECT \'change\'\;
+  echo "SELECT 'change';"
 
-  echo SELECT language_stats.lang,                                               \
-              size,                                                              \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              catring_count,                                                     \
-              nocatcat_count,                                                    \
-              REPLACE\(ts,\' \',\'_\'\),                                         \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              \'\?\',                                                            \
-              CONCAT\(REPLACE\(native_name,\' \',\'_\'\),\'_\/_\',REPLACE\(english_name,\' \',\'_\'\)\) \
-              FROM language_stats,                                               \
-                   toolserver.wiki,                                              \
-                   toolserver.language                                           \
-              WHERE disambig_recognition\=0 and                                  \
-                    family\=\'wikipedia\' and                                    \
-                    domain\=CONCAT\(language_stats.lang,\'.wikipedia.org\'\) and \
-                    is_closed\=0 and                                             \
-                    language_stats.lang=LOWER\(language.lang\)                   \
-              ORDER BY size DESC\;
+  echo "SELECT ls.lang,
+               size,
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               catring_count,
+               nocatcat_count,
+               REPLACE(ts,' ','_'),
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               '?',
+               CONCAT(REPLACE(native_name,' ','_'),'_/_',REPLACE(english_name,' ','_'))
+               FROM language_stats ls
+                    INNER JOIN (
+                                 SELECT lang AS _lang,
+                                        MAX(ts) AS _ts
+                                        FROM language_stats
+                                        GROUP BY lang
+                               ) _ls
+                               ON ls.lang = _ls._lang AND
+                                  ls.ts = _ls._ts
+                    INNER JOIN toolserver.language
+                               ON ls.lang=LOWER(language.lang)
+                    INNER JOIN (
+                                  SELECT domain,
+                                         size
+                                         FROM toolserver.wiki
+                                         WHERE is_closed=0 and
+                                               family='wikipedia'
+                               ) tsw
+                               ON domain=CONCAT(ls.lang,'.wikipedia.org')
+               WHERE disambig_recognition=0
+               ORDER BY size DESC;"
 
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | { 
                   count=0

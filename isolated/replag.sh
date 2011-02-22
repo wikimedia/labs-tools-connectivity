@@ -26,8 +26,6 @@ server=$( ./toolserver.sh "$language" )
 #
 source ../cgi-bin/ts $server
 
-rm -f ${language}.debug.log ${language}.no_stat.log ${language}.no_templates.log no_mr.log
-
 {
   echo "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
 

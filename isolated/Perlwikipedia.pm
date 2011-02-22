@@ -179,7 +179,8 @@ sub login {
     unless ($res) { return 1; }
     my $content = $res->decoded_content();
     # '= "' means there is a name, no matter which one if not just '= null'.
-    if ( $content =~ m/wgUserName\s*=\s*"/ ) {
+#    if ( $content =~ m/wgUserName\s*=\s*"/ ) {
+    if ( $content =~ m/wgUserName\"\:\s*\"[^\"]+/ ) {
         if ( $content =~ m/There is no user by the name/ ) {
             $self->{errstr} = qq/Login as "$editor" failed: User "$editor" does not exist/;
             return 1;
@@ -195,7 +196,10 @@ sub login {
     } else {
         $self->{errstr} = qq/Login as "$editor" failed: Name is not recognized/;
 # debug output
-#        $self->{errstr} = qq/Login as "$editor" failed: Name is not recognized, $content/;
+#        open DEBUGFILE, '>login.content.txt' or die ":: echo $!";
+#        print DEBUGFILE $content;
+#        close DEBUGFILE;
+#        $self->{errstr} = qq/${HTML::Form::VERSION}. Login as "$editor" failed: Name is not recognized, $content/;
         return 1;
     }
 }

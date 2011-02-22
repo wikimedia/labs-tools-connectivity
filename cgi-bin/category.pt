@@ -1,0 +1,7 @@
+pagetitle="Artigos isolados por categoria para ${language}wiki"
+thish1="artigos isolados por categoria para ${language}wiki"
+example="Exemplo: Geologia"
+catnamereq="Introduzir nome de categoria:"
+top1name="100 categorias com mais artigos isolados"
+top2name="100 categorias com maior % de artigos isolados"
+submenudesc="esta é a lista de todos os artigos isolados para a categoria $wiki_link_to_category"

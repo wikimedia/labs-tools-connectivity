@@ -4,7 +4,7 @@ pages_flexies ()
 
   __pages=$_pages1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     if [ "$pages" != '1' ]
     then
@@ -38,7 +38,7 @@ other_flexies ()
 {
   local other=$1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     __other=$_other
   else
@@ -72,7 +72,7 @@ lists_flexies ()
 
   __lists=$_lists1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     if [ "$lists" != '1' ]
     then
@@ -108,7 +108,7 @@ types_flexies ()
 
   __types=$_types1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     if [ "$types" != '1' ]
     then
@@ -144,7 +144,7 @@ deadend_flexies ()
 
   __deadend=$_deadend1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     if [ "$deadend" != '1' ]
     then
@@ -164,7 +164,7 @@ determined_flexies ()
 
   __determined=$_determined1
 
-  if [ "$interface" = 'ru' ] || [ "$interface" = 'uk' ]
+  if [ "$interface" = 'ru' ] || [ "$interface" = 'uk' ] || [ "$interface" = 'be' ] || [ "$interface" = 'be-x-old' ]
   then
     if [ "${determined:(-1)}" != '1' ] || [ "${determined:(-2)}" = '11' ]
     then
@@ -213,14 +213,14 @@ zns ()
       __pages_p=$__pages
       pages_flexies $cllt
       other_flexies $cllt
-      if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+      if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
       then
         echo "<li><strong class=\"data\">$disambigs</strong> $_disambigs $__pages_p $_and_ <strong class=\"data\">$cllt</strong> $__other $__pages ($_couldbe).</li>"
       else
         echo "<li><strong class=\"data\">$disambigs</strong> $__pages_p $_disambigs $_and_ <strong class=\"data\">$cllt</strong> $__other $__pages ($_couldbe).</li>"
       fi
     else
-      if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+      if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
       then
         echo "<li>$_and_ <strong class=\"data\">$disambigs</strong> $_disambigs $__pages.</li>"
       else

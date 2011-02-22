@@ -36,11 +36,14 @@ search_form ()
   echo "</form>"
 }
 
-UPPERFIRST=`echo "$user" | cut -c 1  |tr '[a-z]' '[A-Z]'`
-user=$( echo "$user" | sed 's/./'$UPPERFIRST'/'1)
+# upperfirst user
+#
+# note: does not function for non-ascii names
+user=${user^}
 
 if [ "$user" != '' ]
 then
+
   if [ "$user" = '<an empty name user>' ]
   then
     user=''
@@ -146,7 +149,7 @@ else
                         shifter
                       }
 #
-#    this could be for the list of all isolated articles
+#    this could go for the list of all isolated articles
 #    created by registered users
 #
 #    else

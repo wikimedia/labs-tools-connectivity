@@ -226,7 +226,7 @@ articles_flexies ()
 
   __articles=$_articles1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
   then
     if [ "$articles" != '1' ]
     then

@@ -13,7 +13,7 @@ handle_isoage ()
 
     local ldate=''
 
-    if [ "$interface" = 'ru' ] || [ "$interface" = 'uk' ]
+    if [ "$interface" = 'ru' ] || [ "$interface" = 'uk' ] || [ "$interface" = 'be' ] || [ "$interface" = 'be-x-old' ]
     then
       ldate=${ts:6:2}/${ts:4:2}/${ts:0:4}
     else
