@@ -815,8 +815,16 @@ the_menu ()
   echo "<li><em>$contactme</em>"
 
   echo "<ul>"
-  echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
-  echo "<li><em>mashiah $attext <a href=\"irc://irc.freenode.net/wikipedia-connectivity\">#wikipedia-connectivity</a></em></li>"
+
+  if [ -f feedback.${interface} ]
+  then
+#    source ./feedback.info
+    cat ./feedback.${interface}
+  else
+    echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
+    echo "<li><em>mashiah $attext <a href=\"irc://irc.freenode.net/wikipedia-connectivity\">#wikipedia-connectivity</a></em></li>"
+  fi
+
   echo "</ul>"
 
   # end of contacts in menu
