@@ -50,7 +50,7 @@ sub new {
     $self->{mech}->agent("$agent/$VERSION");
     $self->{host}   = 'en.wikipedia.org';
     $self->{path}   = 'w';
-    $self->{debug}  = 1;
+    $self->{debug}  = 0;
     $self->{errstr} = '';
     return $self;
 }

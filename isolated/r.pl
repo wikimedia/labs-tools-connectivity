@@ -6,7 +6,7 @@
  # '''[[:ru:User:Mashiah_Davidson/toolserver/isolated.sh|isolated.sh]]'''.
  # 
  # Works on the Toolserver and uploads connectivity analysis statistics
- # and multiple redirects list to Russian Wikipedia.
+ # or multiple redirects list to Russian Wikipedia.
  #
  # <pre>
 
@@ -74,7 +74,7 @@ while( <> )
     {
       $cur='| valign="top" | '."\n".$cur;
       $columns++;
-    } elsif ( $cur !~ /^\*/ ) {
+    } elsif ( $cur !~ /^(\<\!\-\-\s|)\*/ ) {
       $cur="|-\n".
            '| colspan='.
            $columns.
