@@ -157,6 +157,11 @@ time {
     echo "CALL obtain_project_settings( '$language' );"
 
     #
+    # For debugging purposes
+    #
+    echo "CALL out_project_settings();"
+
+    #
     # From now on the templates are the subject of our interest.
     #
     # We gonna use them for massive cleanup of links to disambiguation pages

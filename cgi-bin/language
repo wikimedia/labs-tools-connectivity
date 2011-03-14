@@ -312,7 +312,16 @@ handle_a_table ()
     then
       echo "<td>$bld$isocr$bldc</td>"
     else
-      echo "<td><span title=\"$( format_diff $iso_cr_diff $tmul ) $tmeas\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</span></td>"
+      if [ "$iso_cr_diff" = '?' ]
+      then
+        echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</td>"
+      else
+        if [ $iso_cr_diff -ge 0 ]
+        then
+          iso_cr_diff="+${iso_cr_diff}"
+        fi
+        echo "<td><span title=\"${iso_cr_diff}\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</span></td>"
+      fi
     fi
 
     if [ "$chr" = '?' ]
@@ -324,35 +333,65 @@ handle_a_table ()
         echo "<td>$bld<a href=\"http://ru.wikipedia.org/wiki/Википедия:ConnectivityProjectInternationalization/ArticlesNotFormingValidLinks\">$chr</a>$bldc</td>"
       fi
     else
-      echo "<td><span title=\"$( format_diff $chr_diff $tmul ) $tmeas\">$bld$chr$bldc</span></td>"
+      if [ $chr_diff -ge 0 ]
+      then
+        chr_diff="+${chr_diff}"
+      fi
+      echo "<td><span title=\"${chr_diff}\">$bld$chr$bldc</span></td>"
     fi
 
     if [ "$de" = '?' ]
     then
       echo "<td>$bld$de$bldc</td>"
     else
-      echo "<td><span title=\"$( format_diff $de_diff $tmul ) $tmeas\">$bld$de$bldc</span></td>"
+      if [ $de_diff -ge 0 ]
+      then
+        de_diff="+${de_diff}"
+      fi
+      echo "<td><span title=\"${de_diff}\">$bld$de$bldc</span></td>"
     fi
 
     if [ "$nc" = '?' ]
     then
       echo "<td>$bld$nc$bldc</td>"
     else
-      echo "<td><span title=\"$( format_diff $nc_diff $tmul ) $tmeas\">$bld$nc$bldc</span></td>"
+      if [ $nc_diff -ge 0 ]
+      then
+        nc_diff="+${nc_diff}"
+      fi
+      echo "<td><span title=\"${nc_diff}\">$bld$nc$bldc</span></td>"
     fi
 
     if [ "$cr" = '?' ]
     then
       echo "<td>$bld$cr$bldc</td>"
     else
-      echo "<td><span title=\"$( format_diff $cr_diff $tmul ) $tmeas\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce\">$cr</a>$bldc</span></td>"
+      if [ "$cr_diff" = '?' ]
+      then
+        echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce\">$cr</a>$bldc</td>"
+      else
+        if [ $cr_diff -ge 0 ]
+        then
+          cr_diff="+${cr_diff}"
+        fi
+        echo "<td><span title=\"${cr_diff}\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce\">$cr</a>$bldc</span></td>"
+      fi
     fi
 
     if [ "$ncc" = '?' ]
     then
       echo "<td>$bld$ncc$bldc</td>"
     else
-      echo "<td><span title=\"$( format_diff $ncc_diff $tmul ) $tmeas\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce&amp;networkpath=_1\">$ncc</a>$bldc</span></td>"
+      if [ "$ncc_diff" = '?' ]
+      then
+        echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce&amp;networkpath=_1\">$ncc</a>$bldc</td>"
+      else
+        if [ $ncc_diff -ge 0 ]
+        then
+          ncc_diff="+${ncc_diff}"
+        fi
+        echo "<td><span title=\"${ncc_diff}\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=categoryspruce&amp;networkpath=_1\">$ncc</a>$bldc</span></td>"
+      fi
     fi
 
     echo "<td><span title=\"+$( scale_time '/5' $ts_diff )\">$bld$tmst$bldc</span></td>"

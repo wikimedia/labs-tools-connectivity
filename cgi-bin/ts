@@ -1,5 +1,5 @@
 dbserver="$1"
-dbhost="sql-s${dbserver}"
+dbhost="sql-s${dbserver}-user"
 usr=$( cat ~/.my.cnf | grep 'user ' | sed 's/^user = \([a-z]*\)$/\1/' )
 prjp='ConnectivityProjectInternationalization'
 # iwiki spy does not work since limitations on memory introduced
@@ -22,9 +22,9 @@ sql ()
 
   if [ "$dbn" = '' ]
   then
-    ret="mysql --defaults-file=/home/${usr}/.my.cnf --host=sql-s${dbs} -A  -n -b -N --connect_timeout=10"
+    ret="mysql --defaults-file=/home/${usr}/.my.cnf --host=sql-s${dbs}-user -A  -n -b -N --connect_timeout=10"
   else
-    ret="mysql --defaults-file=/home/${usr}/.my.cnf --host=sql-s${dbs} -A --database=$dbn -n -b -N --connect_timeout=10"
+    ret="mysql --defaults-file=/home/${usr}/.my.cnf --host=sql-s${dbs}-user -A --database=$dbn -n -b -N --connect_timeout=10"
   fi
 
   echo $ret

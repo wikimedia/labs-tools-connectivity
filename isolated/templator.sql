@@ -251,7 +251,8 @@ CREATE PROCEDURE recognizable_template_links ()
 #
 #    This should output the amount of massive link lists.
 #
-#    But it doesn't due to unrecognized links from templates doing ## on them.
+#    But it doesn't due to unrecognized links from templates doing
+#    concatenation on link destination names.
 #
 #    SELECT id, 
 #           # 4 here states for '[[' and ']]'

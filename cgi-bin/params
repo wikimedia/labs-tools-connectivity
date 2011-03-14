@@ -56,7 +56,7 @@ language_sql=${language//\-/_}
 #
 # Any working server should be queried here
 #
-anysrv=1
+anysrv=2
 source ./ts ${anysrv}
 anydbserver=$anysrv
 

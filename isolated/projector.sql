@@ -79,7 +79,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         #
         # Sub-category prefix for orphaned articles.
         #
-        SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        SET @st=CONCAT( 'SELECT cl_to INTO @orphan_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey_prefix="_1" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -97,7 +97,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         #
         # Sub-category prefix for isolated pair.
         #
-        SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        SET @st=CONCAT( 'SELECT cl_to INTO @isolated_ring_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey_prefix="_2" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -115,7 +115,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         #
         # Sub-category prefix for isolated clusters of size above 2.
         #
-        SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        SET @st=CONCAT( 'SELECT cl_to INTO @isolated_cluster_param_name FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey_prefix="_N" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -133,7 +133,7 @@ CREATE PROCEDURE get_isolated_category_names (targetlang VARCHAR(32))
         #
         # Old-style category name for orphaned articles.
         #
-        SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
+        SET @st=CONCAT( 'SELECT cl_to INTO @old_orphan_category FROM ', dbname, '.page, ', dbname, '.categorylinks WHERE cl_sortkey_prefix="old" and page_id=cl_from and page_namespace=4 and page_title="', @i18n_page, '/IsolatedArticles" ORDER BY cl_to ASC LIMIT 1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -319,6 +319,22 @@ CREATE PROCEDURE obtain_project_settings(targetlang VARCHAR(32))
     # Amount of links from [[MediaWiki:Disambiguationspage]] to template ns.
     #
     CALL count_disambiguation_templates( targetlang );
+  END;
+//
+
+DROP PROCEDURE IF EXISTS out_project_settings//
+CREATE PROCEDURE out_project_settings()
+  BEGIN
+    SELECT CONCAT( ':: echo connectivity_project_root: "', @connectivity_project_root, '"' );
+    SELECT CONCAT( ':: echo isolated_category_name: "', @isolated_category_name, '"' );
+    SELECT CONCAT( ':: echo orphan_param_name: "', @orphan_param_name, '"' );
+    SELECT CONCAT( ':: echo isolated_ring_param_name: "', @isolated_ring_param_name, '"' );
+    SELECT CONCAT( ':: echo isolated_cluster_param_name: "', @isolated_cluster_param_name, '"' );
+    SELECT CONCAT( ':: echo old_orphan_category: "', @old_orphan_category, '"' );
+    SELECT CONCAT( ':: echo deadend_category_name: "', @deadend_category_name, '"' );
+    SELECT CONCAT( ':: echo non_categorized_articles_category: "', @non_categorized_articles_category, '"' );
+    SELECT CONCAT( ':: echo template_documentation_subpage_name: "', @template_documentation_subpage_name, '"' );
+    SELECT CONCAT( ':: echo disambiguation_templates_initialized: "', @disambiguation_templates_initialized, '"' );
   END;
 //
 

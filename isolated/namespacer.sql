@@ -468,6 +468,16 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     #        2) One of the key points here is that we didn't try
     #           saving pl_title, the table this way might be too huge.
     #        3) Thanks to Magnus Manske for query optimization.
+    #
+    # INSERT /* SLOW_OK */ INTO pl
+    # SELECT pl_from, 
+    #        page_id AS pl_to 
+    #        FROM <dbname>.page,
+    #             <dbname>.pagelinks
+    #        WHERE pl_title=page_title and
+    #              page_namespace=namespace and
+    #              pl_namespace=namespace;
+    #
     SET @st=CONCAT( 'INSERT /* SLOW_OK */ INTO pl SELECT pl_from, page_id AS pl_to FROM ', @dbname, '.page, ', @dbname, '.pagelinks WHERE pl_title=page_title and page_namespace=', namespace, ' and pl_namespace=', namespace, ';' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
