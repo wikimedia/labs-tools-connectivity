@@ -61,7 +61,11 @@ class Melog {
 	/**
 	 * Initiates task file processing
 	 */
-	public function processTask() {
+	public function processTask($task) { // method wrap left for compatibility reasons
+		$this->_processTask($task);
+	}
+	
+	/*public function processTask() {
 		$task = file_get_contents( __DIR__ . '/../task.'.$this->_lang.'.txt' );
 		if(!$task) {
 			pecho('Task file not found or empty.', array(PECHO_LOG, PECHO_FATAL));
@@ -77,7 +81,7 @@ class Melog {
 		
 		$this->_processTask($task);
 		return true;
-	}
+	}*/
 	
 	/**
 	 * Returns the language bot is working with

@@ -1,18 +1,14 @@
 <?php
 
 // language
-$mlLang = $_SERVER['argv'][1];
+//$mlLang = $_SERVER['argv'][1];
 
 // check if $lang is worth processing
-if(!in_array($mlLang, explode("\n", trim(file_get_contents(__DIR__ . '/../wikis.txt')))))
-	die($mlLang . ".wikipedia.org is not ready for processing.\n");
+/*if(!in_array($mlLang, explode("\n", trim(file_get_contents(__DIR__ . '/../wikis.txt')))))
+	die($mlLang . ".wikipedia.org is not ready for processing.\n");*/
 
-
-// getting credentials from .cnf
-$mwcredentials = parse_ini_file('/home/'.get_current_user().'/.'.$mlLang.'.cnf');
-
-// require_once( __DIR__ . '/melog.db.php');
-require_once( __DIR__ . '/melog.class.php');
+require_once( __DIR__ .'/get_l10ns.php' );
+require_once( __DIR__ . '/melog.class.php' );
 require_once( __DIR__ . '/../mwpeachy/Init.php' );
 
 /**
@@ -35,8 +31,25 @@ function prepareShutdown() {
 
 register_shutdown_function('prepareShutdown');
 
+function parseStdInput() {
+	pecho('Parsing stdin, retrieving language code and list of articles to process.', PECHO_LOG);
+	$task = file_get_contents('php://stdin');
+	if(empty($task)) {
+		pecho('Task is empty, exiting now.', array(PECHO_LOG, PECHO_FATAL));
+		return false;
+	}
+	$task = explode("\n", trim($task));
+	$mlLang = trim(array_shift($task));
+	return array($mlLang, $task);
+}
+
+$request = parseStdInput();
+
+// getting credentials from .cnf
+$mwcredentials = parse_ini_file('/home/'.get_current_user().'/.'.$request[0].'.cnf');
+
 pecho('Creating Melog instance and starting processing.', PECHO_LOG);
 // creating Melog object
-$melog = new Melog($mlLang, $mwcredentials['login'], $mwcredentials['password']);
-$melog->processTask();
+$melog = new Melog($request[0], $mwcredentials['login'], $mwcredentials['password']);
+$melog->processTask($request[1]);
 

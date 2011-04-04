@@ -160,6 +160,9 @@ class i18n {
 	 * Formation of l10n storage
 	 */
 	private function _getLocalization() {
+		pecho("Updating localization cache for {$this->_lang}wiki.", PECHO_LOG);
+		createI18nCache($this->_lang);
+		
 		pecho("Localization resources loading for {$this->_lang}wiki.", PECHO_LOG);
 		// isolated
 		$this->_appendStorage('isolated', $this->_loadArray('isolated'));

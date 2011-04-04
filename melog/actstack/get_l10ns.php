@@ -1,25 +1,25 @@
 <?php
 
-// loading auth. data
-$dbconf = parse_ini_file("/home/".get_current_user()."/.my.cnf");
-
 // loading DbSimple
-require_once( __DIR__ . '/../../lib/DbSimple/Generic.php' );
+require_once( __DIR__ . '/DbSimple/Generic.php' );
 
 function databaseErrorHandler($message, $info) {
 	if (!error_reporting()) return;
-	echo "SQL Error: {$message}<br><pre>"; 
+	echo "SQL Error: {$message}\n\n"; 
 	print_r($info);
-	echo "</pre>";
 	exit();
 }
 
 // getting the list of wikis to update l10n
-$wikis = file_get_contents( __DIR__ . '/../wikis.txt' );
+/*$wikis = file_get_contents( __DIR__ . '/../wikis.txt' );
 $wikis = explode( "\n", trim( $wikis ) );
 
-foreach($wikis as $lang) {
-
+foreach($wikis as $lang) {*/
+//$lang = $_SERVER['argv'][1];
+function createI18nCache($lang) {
+	// loading auth. data
+	$dbconf = parse_ini_file("/home/".get_current_user()."/.my.cnf");
+	
 	$wiki = DbSimple_Generic::connect( 'mysql://' . $dbconf['user'] . ':' . $dbconf['password'] . '@sql-s3/'.strtr( $lang, '-', '_' ).'wiki_p' );
 	$wiki->setErrorHandler('databaseErrorHandler');
 	
@@ -52,6 +52,7 @@ foreach($wikis as $lang) {
 	// get project root
 	$root = getProjectRoot( $wiki );
 	file_put_contents( __DIR__ . '/../i18n/root.'.$lang.'.txt', $root );
+	//}
 }
 
 function getIsolated(&$db) {
