@@ -38,6 +38,10 @@ function parseStdInput() {
 		pecho('Task is empty, exiting now.', array(PECHO_LOG, PECHO_FATAL));
 		return false;
 	}
+	
+	if(substr($task, 0,3) == pack('CCC',0xef,0xbb,0xbf)) { // cutting BOM identifier
+		$task=substr($task, 3);
+	} 
 	$task = explode("\n", trim($task));
 	$mlLang = trim(array_shift($task));
 	return array($mlLang, $task);

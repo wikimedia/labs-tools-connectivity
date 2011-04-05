@@ -92,6 +92,38 @@ class Melog {
 	}
 	
 	/**
+	 * Docodes cluster chain of _n_m_o_p_r kind to a human-readable one
+	 * @param string $chain		chain to decode
+	 * @return string
+	 */
+	private function _decodeChain($chain)
+	{
+		$chain = explode('_', trim($chain));
+		$result = '';
+		
+		array_shift($chain); // deleting empty item
+		
+		$orphan = 0;
+		for($i=0;$i<sizeof($chain);$i++) {
+			if($chain[$i]>1) {
+				if($orphan>0) {
+		        	$result .= "orphan".($orphan-1);
+					$orphan = 0;
+				}
+				switch($chain[$i]){
+					case 2: $result.="ring2"; break;
+					default: $result.="cluster{$chain[$i]}"; break;
+				}
+			} else
+				$orphan++;
+		}
+		if($orphan>0)
+			$result .= "orphan".($orphan-1);
+
+		return $result;
+	}
+	
+	/**
 	 * Loads localization-specific data
 	 * @return array	localizations
 	 */
@@ -173,7 +205,7 @@ class Melog {
 			}
 			
 			if(!empty($cluster)) {
-				$chain = (($cluster=='_1')?'':'|'.system(__DIR__ . '/chain_parser '.$cluster));
+				$chain = (($cluster=='_1')?'':'|'.$this->_decodeChain($cluster));
 				$chain = str_replace(array('orphan', 'ring', 'cluster'), $this->_l10n->getIsolatedMnemonics(), $chain);
 				pecho("Cluster given. Resolving {$cluster} into ".(($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') ).'.', PECHO_LOG);
 			} else {
