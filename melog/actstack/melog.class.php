@@ -52,7 +52,10 @@ class Melog {
 		if(file_exists(__DIR__ . '/../options/options.'.$this->_lang.'.php')) {
 			include( __DIR__ . '/../options/options.'.$this->_lang.'.php' );
 			$optclassname = 'Options_'.strtr($this->_lang, '-', '_');
-			$this->_options = new $optclassname(&$this->_l10n);
+			$this->_options = new $optclassname($this->_l10n);
+		} else {
+			include( __DIR__ . '/../options/options.blank.php');
+			$this->_options = new Options_blank($this->_l10n); // dummy options
 		}
 		
 		$this->_wiki = Peachy::newWiki( null, $login, $password, 'http://'.$this->_lang.'.wikipedia.org/w/api.php' );

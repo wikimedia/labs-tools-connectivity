@@ -6,6 +6,7 @@ abstract class Options {
 	
 	public function __construct($i18n) {
 		$this->_l10n = $i18n;
+		
 	}
 
 	public function __call($name, $arguments) {

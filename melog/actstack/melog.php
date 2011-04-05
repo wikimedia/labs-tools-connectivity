@@ -48,12 +48,12 @@ function parseStdInput() {
 }
 
 $request = parseStdInput();
-
+$mlLang = $request[0]; //compat.
 // getting credentials from .cnf
-$mwcredentials = parse_ini_file('/home/'.get_current_user().'/.'.$request[0].'.cnf');
+$mwcredentials = parse_ini_file('/home/'.get_current_user().'/.'.$request[0].'.cnf', false);
 
 pecho('Creating Melog instance and starting processing.', PECHO_LOG);
 // creating Melog object
-$melog = new Melog($request[0], $mwcredentials['login'], $mwcredentials['password']);
+$melog = new Melog($request[0], $mwcredentials['user'], $mwcredentials['password']);
 $melog->processTask($request[1]);
 
