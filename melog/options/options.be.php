@@ -2,7 +2,7 @@
 
 require( __DIR__ .'/options.php');
 
-class Options_be_x_old extends Options {
+class Options_be extends Options {
 	
 	private $_text;
 	
