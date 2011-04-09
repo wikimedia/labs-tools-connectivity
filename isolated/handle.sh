@@ -10,6 +10,7 @@
  #             are supported:
  #                            nomr   - prevents multiple redirects resolving
  #                            nostat - prevents cluster chains statistics upload
+ #                            melog  - invokes melog for templates maintaining
  #
  # Use: Just pipe all the output of your script to this handler and form it
  #      in the following format:
@@ -53,7 +54,7 @@
 
 # set the maximal replication lag value in minutes, which is allowed for apply
 # probably, less than script actually works
-maxlag=10
+maxlag=60
 # upload stat if replication time difference to the latest upload made
 # is greater then statintv minutes
 statintv=720
@@ -121,7 +122,7 @@ handle ()
       } >> $out
       if [ "$do_mr" = "1" ]
       then
-        if [ -f no_mr.log ]
+        if [ -f ${language}.no_mr.log ]
         then
           do_mr=0
         else
@@ -211,6 +212,20 @@ handle ()
        do
          sleep 2
        done
+
+       if [ "$do_templates" = 1 ]
+       then
+         if [ -f ${language}.no_templates.log ]
+         then
+           do_templates=0
+         else
+           echo "melog is invoked for $language.*.task.txt"
+           {
+             echo $language
+             tail --bytes=+4 ./${language}.*.task.txt
+           } | php -f ../melog/actstack/melog.php &
+         fi
+       fi
 
        # pack templates management info for delivery to AWB host
        rm -f $language.today.7z

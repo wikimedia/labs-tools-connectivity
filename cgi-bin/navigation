@@ -1001,8 +1001,8 @@ the_content ()
   #
   case $listby in
    'category')
-    echo $example
     echo "<fieldset title=\"hidden\">"
+    echo $example
     echo "<form action=\"./go.sh\" method=\"get\">"
     echo "<input type=\"hidden\" name=\"language\" value=\"$language\" />"
     echo "<input type=\"hidden\" name=\"interface\" value=\"$interface\" />"

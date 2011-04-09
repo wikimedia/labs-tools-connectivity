@@ -109,8 +109,9 @@ CREATE PROCEDURE combineandout ()
     ) ENGINE=MEMORY;
 
     SELECT max(length(ns_name)) INTO @cnt
-           FROM toolserver.namespace
-           WHERE dbname=@dbname;
+           FROM toolserver.namespacename
+           WHERE dbname=@dbname AND
+                 ns_type='primary';
 
     IF @cnt>0
       THEN

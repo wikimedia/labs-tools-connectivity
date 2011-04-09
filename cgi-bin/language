@@ -13,40 +13,40 @@ scale_to_time ()
   # measurement scale selection
   if [ "$tsd" != '?' ]
   then
-    local tmp=$((tsd${lb}/60))
+    local tmp=$((tsd*${lb}/60))
     if [ $tmp -eq 0 ]
     then
-      value="1/$2 a sec"
+      value="1 a sec"
     else
       tsd=$((tsd/60))
-      tmp=$((tsd${lb}/60))
+      tmp=$((tsd*${lb}/60))
       if [ $tmp -eq 0 ]
       then
-        value="60/$2 a min"
+        value="60 a min"
       else
         tsd=$((tsd/60))
-        tmp=$((tsd${lb}/24))
+        tmp=$((tsd*${lb}/24))
         if [ $tmp -eq 0 ]
         then
-          value="3600/$2 an hr"
+          value="3600 an hr"
         else
           tsd=$((tsd/24))
-          tmp=$((tsd${lb}/7))
+          tmp=$((tsd*${lb}/7))
           if [ $tmp -eq 0 ]
           then
-            value="86400/$2 a day"
+            value="86400 a day"
           else
-            tmp=$((tsd${lb}/31))
+            tmp=$((tsd*${lb}/31))
             if [ $tmp -eq 0 ]
             then
-              value="604800/$2 a week"
+              value="604800 a week"
             else
-              tmp=$((tsd${lb}/366))
+              tmp=$((tsd*${lb}/366))
               if [ $tmp -eq 0 ]
               then
-                value="2678400/$2 a month"
+                value="2678400 a month"
               else
-                value="31536000/$2 a year"
+                value="31536000 a year"
               fi
             fi
           fi
@@ -121,10 +121,12 @@ format_diff ()
   local res=''
   local in=$1
   local tmul=$2
+  local ts_diff=$3
+  local half_ts_diff=$4
 
   if [ "$1" != '?' ]
   then
-    res=$((in*$tmul))
+    res=$(((in*$tmul+${half_ts_diff})/${ts_diff}))
 
     if [ $1 -ge 0 ]
     then
@@ -190,9 +192,14 @@ handle_a_table ()
       bldc='</b>'
     fi
 
-    local tunits=$( scale_to_time '*2' $ts_diff )
+    local tunits=$( scale_to_time 2 $ts_diff )
     tunits=( $tunits )
     local tmul=${tunits[0]}
+    local half_ts_diff=0
+    if [ "$ts_diff" != '?' ]
+    then
+      half_ts_diff=$((ts_diff/2))
+    fi
     local tmeas="${tunits[1]} ${tunits[2]}"
 
     isor_diff=$( echo "scale=4; $isor-100*($iso-(${iso_diff}))/($art-(${art_diff}))" | bc )
@@ -229,7 +236,7 @@ handle_a_table ()
 
     if [ "$art_diff" != '?' ]
     then
-      art_diff_txt=$((art_diff*$tmul))
+      art_diff_txt=$(((art_diff*$tmul+${half_ts_diff})/$ts_diff))
 
       if [ $art_diff -ge 0 ]
       then
@@ -267,7 +274,7 @@ handle_a_table ()
       echo "<td><center>$bld$art$bldc</center></td>"
     else
       echo "<td><span title=\"${art_diff_txt} $tmeas\">$bld$art$bldc</span></td>"
-      echo "<td><span title=\"$( format_diff $dsmbg_diff $tmul ) $tmeas\">$bld$dsmbg$bldc</span></td>"
+      echo "<td><span title=\"$( format_diff $dsmbg_diff $tmul ${ts_diff} ${half_ts_diff} ) $tmeas\">$bld$dsmbg$bldc</span></td>"
     fi
 
     if [ "$tmst" = 'never processed yet' ]
@@ -284,7 +291,7 @@ handle_a_table ()
       echo "<td><b>$core</b></td>"
     else
       local core_diff=$(( (${art_diff}) - (${iso_diff}) ))
-      local core_diff_txt=$((core_diff*$tmul))
+      local core_diff_txt=$(((core_diff*$tmul+${half_ts_diff})/${ts_diff}))
 
       if [ $core_diff -ge 0 ]
       then
@@ -292,7 +299,7 @@ handle_a_table ()
       fi
       echo "<td><span title=\"${core_diff_txt} $tmeas\"><b>$core</b></span></td>"
     fi
-    echo "<td><span title=\"$( format_diff $iso_diff $tmul ) $tmeas\">$bld$iso$bldc</span></td>"
+    echo "<td><span title=\"$( format_diff $iso_diff $tmul ${ts_diff} ${half_ts_diff} ) $tmeas\">$bld$iso$bldc</span></td>"
 
     if [ "$cl" = '0' ]
     then

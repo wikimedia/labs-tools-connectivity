@@ -488,9 +488,10 @@ CREATE PROCEDURE inter_langs( srv INT )
     #
     DELETE res
            FROM res,
-                toolserver.namespace
+                toolserver.namespacename
            WHERE dbname=CONCAT( @target_lang, 'wiki_p') AND
                  ns_id!=0 AND
+                 ns_type='primary' AND
                  suggestn like CONCAT( ns_name , ':%' );
 
     #

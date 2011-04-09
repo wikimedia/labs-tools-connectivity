@@ -322,9 +322,10 @@ CREATE FUNCTION getnsprefix ( ns INT, targetlang VARCHAR(32) )
     DECLARE wrconstruct VARCHAR(255);
 
     SELECT ns_name INTO wrconstruct
-           FROM toolserver.namespace
+           FROM toolserver.namespacename
            WHERE dbname=dbname_for_lang(targetlang) and
-                 ns_id=ns;
+                 ns_id=ns AND
+                 ns_type='primary';
 
     IF wrconstruct != ''
       THEN

@@ -20,9 +20,10 @@
  # Use: Bash command prompt (or better use with screen)
  #
  # ./isolated.sh <lang> nomr nostat - to run just for analysis
- # ./isolated.sh <lang> nostat      - to enable multiple redirects resolving
- # ./isolated.sh <lang> nomr        - to enable cluster chains statistics upload
- # ./isolated.sh <lang>             - like we do in Ruwiki
+ # ./isolated.sh <lang> nostat      - enables multiple redirects resolving
+ # ./isolated.sh <lang> nomr        - enables cluster chains statistics upload
+ # ./isolated.sh <lang>             - enables statistics and multiple redirects
+ # ./isolated.sh <lang> melog       - enables templates handling
  # ./isolated.sh <lang> ... limit=3 - reduces largest allowed cluster size down
  #                                    from 20 (default) to 3,
  #                                    zero states for no limit
