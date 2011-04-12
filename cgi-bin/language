@@ -544,7 +544,8 @@ table_opens
                                         GROUP BY lang
                                ) _ls
                                ON ls.lang = _ls._lang AND
-                                  ls.ts = _ls._ts
+                                  ls.ts = _ls._ts AND
+                                  ls.disambig_recognition=0
                     INNER JOIN toolserver.language
                                ON ls.lang=LOWER(language.lang)
                     INNER JOIN (
@@ -554,8 +555,7 @@ table_opens
                                          WHERE is_closed=0 and
                                                family='wikipedia'
                                ) tsw
-                               ON domain=CONCAT(ls.lang,'.wikipedia.org')
-               WHERE disambig_recognition=0
+                               ON ls.lang=TRIM(TRAILING '.wikipedia.org' FROM domain)
                ORDER BY size DESC;"
 
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | { 
