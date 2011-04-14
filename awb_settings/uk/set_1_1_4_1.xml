@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<AutoWikiBrowserPreferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xml:space="preserve" Version="4.1.3.0">
+  <Project>wikipedia</Project>
+  <LanguageCode>uk</LanguageCode>
+  <CustomProject />
+  <List>
+    <ListSource />
+    <Source>TextFile</Source>
+    <ArticleList />
+  </List>
+  <FindAndReplace>
+    <Enabled>true</Enabled>
+    <IgnoreSomeText>true</IgnoreSomeText>
+    <IgnoreMoreText>false</IgnoreMoreText>
+    <AppendSummary>true</AppendSummary>
+    <AfterOtherFixes>false</AfterOtherFixes>
+    <Replacements>
+      <Replacement>
+        <Find>(\{\{сирота\}\}|\{\{Ізольована[\s_]стаття[^\}]*\}\}|\[\[Категорія\:Вікіпедія\:ізольовані[\s_]статті[^\]]*\]\])[
+\s\t]*</Find>
+        <Replace />
+        <IsRegex>true</IsRegex>
+        <Enabled>true</Enabled>
+        <RegularExpressionOptions>None</RegularExpressionOptions>
+      </Replacement>
+
+    </Replacements>
+    <AdvancedReps />
+    <SubstTemplates />
+  </FindAndReplace>
+  <Editprefs>
+    <GeneralFixes>false</GeneralFixes>
+    <Tagger>false</Tagger>
+    <Unicodify>true</Unicodify>
+    <Recategorisation>0</Recategorisation>
+    <NewCategory />
+    <NewCategory2 />
+    <ReImage>0</ReImage>
+    <ImageFind />
+    <Replace />
+    <SkipIfNoCatChange>false</SkipIfNoCatChange>
+    <SkipIfNoImgChange>false</SkipIfNoImgChange>
+    <AppendText>true</AppendText>
+    <Append>false</Append>
+    <Text>{{Ізольована стаття|сирота1кластер4сирота0}}</Text>
+    <Newlines>1</Newlines>
+    <AutoDelay>0</AutoDelay>
+    <QuickSave>true</QuickSave>
+    <SuppressTag>false</SuppressTag>
+    <OverrideWatchlist>false</OverrideWatchlist>
+    <RegexTypoFix>false</RegexTypoFix>
+  </Editprefs>
+  <General>
+    <AutoSaveEdit>
+      <Enabled>false</Enabled>
+      <SavePeriod>60</SavePeriod>
+      <SaveFile>Edit Box.txt</SaveFile>
+    </AutoSaveEdit>
+    <SelectedSummary>+ {{Ізольована стаття|сирота1кластер4сирота0}}</SelectedSummary>
+    <Summaries>
+      <string>clean up</string>
+      <string>re-categorisation per [[WP:CFD|CFD]]</string>
+      <string>clean up and  re-categorisation per [[WP:CFD|CFD]]</string>
+      <string>removing category per [[WP:CFD|CFD]]</string>
+      <string>[[Wikipedia:Template substitution|subst:'ing]]</string>
+      <string>[[Wikipedia:WikiProject Stub sorting|stub sorting]]</string>
+      <string>[[WP:AWB/T|Typo fixing]]</string>
+      <string>bad link repair</string>
+      <string>Fixing [[Wikipedia:Disambiguation pages with links|links to disambiguation pages]]</string>
+      <string>Unicodifying</string>
+    </Summaries>
+    <PasteMore>
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+    </PasteMore>
+    <FindText />
+    <FindRegex>false</FindRegex>
+    <FindCaseSensitive>false</FindCaseSensitive>
+    <WordWrap>true</WordWrap>
+    <ToolBarEnabled>false</ToolBarEnabled>
+    <BypassRedirect>false</BypassRedirect>
+    <NoAutoChanges>false</NoAutoChanges>
+    <OnLoadAction>0</OnLoadAction>
+    <Minor>false</Minor>
+    <Watch>false</Watch>
+    <TimerEnabled>false</TimerEnabled>
+    <SortInterwikiOrder>false</SortInterwikiOrder>
+    <AddIgnoredToLog>false</AddIgnoredToLog>
+    <EditToolbarEnabled>false</EditToolbarEnabled>
+    <TextBoxSize>10</TextBoxSize>
+    <TextBoxFont>Courier New</TextBoxFont>
+    <LowThreadPriority>false</LowThreadPriority>
+    <Beep>false</Beep>
+    <Flash>false</Flash>
+    <Minimize>false</Minimize>
+    <LockSummary>false</LockSummary>
+    <SaveArticleList>false</SaveArticleList>
+    <TimeOutLimit>30</TimeOutLimit>
+    <IgnoreNoBots>false</IgnoreNoBots>
+    <CustomWikis />
+  </General>
+  <SkipOptions>
+    <SkipNonexistent>true</SkipNonexistent>
+    <Skipexistent>false</Skipexistent>
+    <SkipWhenNoChanges>false</SkipWhenNoChanges>
+    <SkipSpamFilterBlocked>false</SkipSpamFilterBlocked>
+    <SkipInuse>false</SkipInuse>
+    <SkipDoes>true</SkipDoes>
+    <SkipDoesNot>false</SkipDoesNot>
+    <SkipDoesText>(\#REDIRECT|\#ПЕРЕНАПРАВЛЕННЯ|\{\{DisambigG\}\}|\{\{DisambigN\}\}|\{\{Неоднозначність\}\}|\{\{Багатозначність\}\}|\{\{Виправ[\s_]багатозначності\}\}|\{\{Edited\}\}|\{\{Редагую\}\}|\{\{Пишу\}\}|\{\{В[\s_]роботі\}\}|\{\{У[\s_]роботі\}\}|\{\{Ще[\s_]є[\s_]імена\}\}|\{\{disambig\}\}|\{\{Ізольована[\s_]стаття\|сирота1кластер4сирота0\}\}|\[\[Категорія\:Вікіпедія\:ізольовані[\s_]статті\/сирота1кластер4сирота0\]\])</SkipDoesText>
+    <SkipDoesNotText />
+    <Regex>true</Regex>
+    <CaseSensitive>false</CaseSensitive>
+    <SkipNoFindAndReplace>false</SkipNoFindAndReplace>
+    <SkipNoRegexTypoFix>false</SkipNoRegexTypoFix>
+    <SkipNoDisambiguation>false</SkipNoDisambiguation>
+    <GeneralSkip>0</GeneralSkip>
+  </SkipOptions>
+  <Module>
+    <Enabled>false</Enabled>
+    <Language>0</Language>
+    <Code>        public string ProcessArticle(string ArticleText, string ArticleTitle, int wikiNamespace, out string Summary, out bool Skip)
+        {
+            Skip = false;
+            Summary = "test";
+
+            ArticleText = "test \r\n\r\n" + ArticleText;
+
+            return ArticleText;
+        }</Code>
+  </Module>
+  <Disambiguation>
+    <Enabled>false</Enabled>
+    <Link />
+    <Variants />
+    <ContextChars>20</ContextChars>
+  </Disambiguation>
+  <Logging>
+    <LogVerbose>false</LogVerbose>
+    <LogWiki>false</LogWiki>
+    <LogXHTML>false</LogXHTML>
+    <UploadYN>false</UploadYN>
+    <UploadAddToWatchlist>false</UploadAddToWatchlist>
+    <UploadOpenInBrowser>false</UploadOpenInBrowser>
+    <UploadToWikiProjects>false</UploadToWikiProjects>
+    <DebugUploading>false</DebugUploading>
+    <UploadMaxLines>1000</UploadMaxLines>
+    <LogFolder />
+    <UploadJobName />
+    <UploadLocation />
+    <LogCategoryName />
+  </Logging>
+  <Plugin>
+    <PluginPrefs>
+      <Name>CFD-Plugin</Name>
+    </PluginPrefs>
+  </Plugin>
+</AutoWikiBrowserPreferences>

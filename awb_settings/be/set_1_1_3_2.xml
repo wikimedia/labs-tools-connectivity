@@ -1,0 +1,176 @@
+<?xml version="1.0"?>
+<AutoWikiBrowserPreferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xml:space="preserve" Version="4.3.2.0">
+  <Project>wikipedia</Project>
+  <LanguageCode>be</LanguageCode>
+  <CustomProject />
+  <List>
+    <ListSource />
+    <Source>TextFile</Source>
+    <ArticleList />
+  </List>
+  <FindAndReplace>
+    <Enabled>true</Enabled>
+    <IgnoreSomeText>true</IgnoreSomeText>
+    <IgnoreMoreText>false</IgnoreMoreText>
+    <AppendSummary>true</AppendSummary>
+    <AfterOtherFixes>false</AfterOtherFixes>
+    <Replacements>
+      <Replacement>
+        <Find>(\{\{ізаляваны[\s_]артыкул[^\}]*\}\}|\[\[Катэгорыя\:Вікіпедыя\:Ізаляваны[\s_]артыкулы[^\]]*\]\])</Find>
+        <Replace />
+        <IsRegex>true</IsRegex>
+        <Enabled>true</Enabled>
+        <RegularExpressionOptions>None</RegularExpressionOptions>
+      </Replacement>
+
+    </Replacements>
+    <AdvancedReps />
+    <SubstTemplates />
+    <IncludeComments>true</IncludeComments>
+    <ExpandRecursively>false</ExpandRecursively>
+    <IgnoreUnformatted>false</IgnoreUnformatted>
+  </FindAndReplace>
+  <Editprefs>
+    <GeneralFixes>false</GeneralFixes>
+    <Tagger>false</Tagger>
+    <Unicodify>true</Unicodify>
+    <Recategorisation>0</Recategorisation>
+    <NewCategory />
+    <NewCategory2 />
+    <ReImage>0</ReImage>
+    <ImageFind />
+    <Replace />
+    <SkipIfNoCatChange>false</SkipIfNoCatChange>
+    <SkipIfNoImgChange>false</SkipIfNoImgChange>
+    <AppendText>true</AppendText>
+    <Append>false</Append>
+    <Text>{{ізаляваны артыкул|сірата1кластар3кальцо2}}</Text>
+    <Newlines>1</Newlines>
+    <AutoDelay>1</AutoDelay>
+    <SuppressTag>false</SuppressTag>
+    <OverrideWatchlist>false</OverrideWatchlist>
+    <RegexTypoFix>false</RegexTypoFix>
+  </Editprefs>
+  <General>
+    <AutoSaveEdit>
+      <Enabled>false</Enabled>
+      <SavePeriod>60</SavePeriod>
+      <SaveFile>Edit Box.txt</SaveFile>
+    </AutoSaveEdit>
+    <SelectedSummary>+ {{ізаляваны артыкул|сірата1кластар3кальцо2}}</SelectedSummary>
+    <PasteMore>
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+    </PasteMore>
+    <FindText />
+    <FindRegex>false</FindRegex>
+    <FindCaseSensitive>false</FindCaseSensitive>
+    <WordWrap>true</WordWrap>
+    <ToolBarEnabled>false</ToolBarEnabled>
+    <BypassRedirect>false</BypassRedirect>
+    <NoAutoChanges>false</NoAutoChanges>
+    <OnLoadAction>0</OnLoadAction>
+    <Minor>false</Minor>
+    <Watch>false</Watch>
+    <TimerEnabled>false</TimerEnabled>
+    <SortListAlphabetically>false</SortListAlphabetically>
+    <AddIgnoredToLog>false</AddIgnoredToLog>
+    <EditToolbarEnabled>false</EditToolbarEnabled>
+    <filterNonMainSpace>false</filterNonMainSpace>
+    <AutoFilterDuplicates>false</AutoFilterDuplicates>
+    <FocusAtEndOfEditBox>false</FocusAtEndOfEditBox>
+    <TextBoxSize>10</TextBoxSize>
+    <TextBoxFont>Courier New</TextBoxFont>
+    <LowThreadPriority>false</LowThreadPriority>
+    <Beep>false</Beep>
+    <Flash>false</Flash>
+    <Minimize>false</Minimize>
+    <LockSummary>false</LockSummary>
+    <SaveArticleList>false</SaveArticleList>
+    <SupressUsingAWB>false</SupressUsingAWB>
+    <TimeOutLimit>30</TimeOutLimit>
+    <IgnoreNoBots>false</IgnoreNoBots>
+    <SortInterWikiOrder>true</SortInterWikiOrder>
+    <ReplaceReferenceTags>true</ReplaceReferenceTags>
+  </General>
+  <SkipOptions>
+    <SkipNonexistent>true</SkipNonexistent>
+    <Skipexistent>false</Skipexistent>
+    <SkipWhenNoChanges>false</SkipWhenNoChanges>
+    <SkipSpamFilterBlocked>false</SkipSpamFilterBlocked>
+    <SkipInuse>false</SkipInuse>
+    <SkipWhenOnlyWhitespaceChanged>false</SkipWhenOnlyWhitespaceChanged>
+    <SkipDoes>true</SkipDoes>
+    <SkipDoesNot>false</SkipDoesNot>
+    <SkipDoesText>(\#REDIRECT|\#перанакіраванне|\{\{Неадназначнасць\}\}|\{\{disambig\}\}|\{\{ізаляваны[\s_]артыкул\|сірата1кластар3кальцо2\}\}|\[\[Катэгорыя\:Вікіпедыя\:Ізаляваны[\s_]артыкулы\/сірата1кластар3кальцо2\]\])</SkipDoesText>
+    <SkipDoesNotText />
+    <Regex>true</Regex>
+    <CaseSensitive>false</CaseSensitive>
+    <SkipNoFindAndReplace>false</SkipNoFindAndReplace>
+    <SkipNoRegexTypoFix>false</SkipNoRegexTypoFix>
+    <SkipNoDisambiguation>false</SkipNoDisambiguation>
+    <GeneralSkip>0</GeneralSkip>
+  </SkipOptions>
+  <Module>
+    <Enabled>false</Enabled>
+    <Language>0</Language>
+    <Code>        public string ProcessArticle(string ArticleText, string ArticleTitle, int wikiNamespace, out string Summary, out bool Skip)
+        {
+            Skip = false;
+            Summary = "test";
+
+            ArticleText = "test \r\n\r\n" + ArticleText;
+
+            return ArticleText;
+        }</Code>
+  </Module>
+  <ExternalProgram>
+    <Enabled>false</Enabled>
+    <Skip>false</Skip>
+    <WorkingDir />
+    <Program />
+    <Parameters />
+    <PassAsFile>true</PassAsFile>
+    <OutputFile />
+  </ExternalProgram>
+  <Disambiguation>
+    <Enabled>false</Enabled>
+    <Link />
+    <Variants />
+    <ContextChars>20</ContextChars>
+  </Disambiguation>
+  <Logging>
+    <LogVerbose>false</LogVerbose>
+    <LogWiki>false</LogWiki>
+    <LogXHTML>false</LogXHTML>
+    <UploadYN>false</UploadYN>
+    <UploadAddToWatchlist>false</UploadAddToWatchlist>
+    <UploadOpenInBrowser>false</UploadOpenInBrowser>
+    <UploadToWikiProjects>false</UploadToWikiProjects>
+    <DebugUploading>false</DebugUploading>
+    <UploadMaxLines>1000</UploadMaxLines>
+    <LogFolder />
+    <UploadJobName />
+    <UploadLocation />
+    <LogCategoryName />
+  </Logging>
+  <Special>
+    <remDupes>false</remDupes>
+    <filterTitlesThatContain>false</filterTitlesThatContain>
+    <filterTitlesThatContainText />
+    <filterTitlesThatDontContain>false</filterTitlesThatDontContain>
+    <filterTitlesThatDontContainText />
+    <areRegex>false</areRegex>
+    <opType>-1</opType>
+    <remove />
+  </Special>
+  <Plugin />
+</AutoWikiBrowserPreferences>

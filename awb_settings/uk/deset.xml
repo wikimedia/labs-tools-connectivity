@@ -1,0 +1,227 @@
+<?xml version="1.0"?>
+<AutoWikiBrowserPreferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xml:space="preserve" Version="4.6.0.0">
+  <Project>wikipedia</Project>
+  <LanguageCode>uk</LanguageCode>
+  <CustomProject />
+  <PHP5>false</PHP5>
+  <List>
+    <ListSource />
+    <Source>Text file</Source>
+    <ArticleList />
+  </List>
+  <FindAndReplace>
+    <Enabled>true</Enabled>
+    <IgnoreSomeText>true</IgnoreSomeText>
+    <IgnoreMoreText>false</IgnoreMoreText>
+    <AppendSummary>true</AppendSummary>
+    <AfterOtherFixes>true</AfterOtherFixes>
+    <Replacements>
+      <Replacement>
+        <Find>Безвихідна\ стаття</Find>
+        <Replace>Стаття, з якої нема посилань</Replace>
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>Статті,\ з\ яких\ нема\ посилань}</Find>
+        <Replace>Стаття, з якої нема посилань}</Replace>
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+    </Replacements>
+    <AdvancedReps />
+    <SubstTemplates />
+    <IncludeComments>false</IncludeComments>
+    <ExpandRecursively>true</ExpandRecursively>
+    <IgnoreUnformatted>false</IgnoreUnformatted>
+  </FindAndReplace>
+  <Editprefs>
+    <GeneralFixes>false</GeneralFixes>
+    <Tagger>false</Tagger>
+    <Unicodify>true</Unicodify>
+    <Recategorisation>0</Recategorisation>
+    <NewCategory />
+    <NewCategory2 />
+    <ReImage>0</ReImage>
+    <ImageFind />
+    <Replace />
+    <SkipIfNoCatChange>false</SkipIfNoCatChange>
+    <RemoveSortKey>false</RemoveSortKey>
+    <SkipIfNoImgChange>false</SkipIfNoImgChange>
+    <AppendText>true</AppendText>
+    <Append>false</Append>
+    <Text>{{Статті, з яких нема посилань}}</Text>
+    <Newlines>1</Newlines>
+    <AutoDelay>0</AutoDelay>
+    <SupressTag>false</SupressTag>
+    <OverrideWatchlist>false</OverrideWatchlist>
+    <RegexTypoFix>false</RegexTypoFix>
+  </Editprefs>
+  <General>
+    <AutoSaveEdit>
+      <Enabled>false</Enabled>
+      <SavePeriod>60</SavePeriod>
+      <SaveFile>Edit Box.txt</SaveFile>
+    </AutoSaveEdit>
+    <SelectedSummary>+ {{Стаття, з якої нема посилань}}</SelectedSummary>
+    <Summaries>
+      <string>clean up</string>
+      <string>re-categorisation per [[WP:CFD|CFD]]</string>
+      <string>clean up and  re-categorisation per [[WP:CFD|CFD]]</string>
+      <string>removing category per [[WP:CFD|CFD]]</string>
+      <string>[[Wikipedia:Template substitution|subst:'ing]]</string>
+      <string>[[Wikipedia:WikiProject Stub sorting|stub sorting]]</string>
+      <string>[[WP:AWB/T|Typo fixing]]</string>
+      <string>bad link repair</string>
+      <string>Fixing [[Wikipedia:Disambiguation pages with links|links to disambiguation pages]]</string>
+      <string>Unicodifying</string>
+    </Summaries>
+    <PasteMore>
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+    </PasteMore>
+    <FindText />
+    <FindRegex>false</FindRegex>
+    <FindCaseSensitive>false</FindCaseSensitive>
+    <WordWrap>true</WordWrap>
+    <ToolBarEnabled>false</ToolBarEnabled>
+    <BypassRedirect>false</BypassRedirect>
+    <AutoSaveSettings>false</AutoSaveSettings>
+    <noSectionEditSummary>false</noSectionEditSummary>
+    <restrictDefaultsortAddition>false</restrictDefaultsortAddition>
+    <noMOSComplianceFixes>false</noMOSComplianceFixes>
+    <syntaxHighlightEditBox>false</syntaxHighlightEditBox>
+    <PreParseMode>false</PreParseMode>
+    <NoAutoChanges>false</NoAutoChanges>
+    <OnLoadAction>0</OnLoadAction>
+    <Minor>false</Minor>
+    <Watch>false</Watch>
+    <DoNotWatch>false</DoNotWatch>
+    <TimerEnabled>false</TimerEnabled>
+    <SortListAlphabetically>false</SortListAlphabetically>
+    <AddIgnoredToLog>false</AddIgnoredToLog>
+    <EditToolbarEnabled>false</EditToolbarEnabled>
+    <filterNonMainSpace>false</filterNonMainSpace>
+    <AutoFilterDuplicates>false</AutoFilterDuplicates>
+    <FocusAtEndOfEditBox>false</FocusAtEndOfEditBox>
+    <scrollToUnbalancedBrackets>false</scrollToUnbalancedBrackets>
+    <TextBoxSize>10</TextBoxSize>
+    <TextBoxFont>Courier New</TextBoxFont>
+    <LowThreadPriority>false</LowThreadPriority>
+    <Beep>false</Beep>
+    <Flash>false</Flash>
+    <Minimize>false</Minimize>
+    <LockSummary>false</LockSummary>
+    <SaveArticleList>false</SaveArticleList>
+    <SuppressUsingAWB>false</SuppressUsingAWB>
+    <AddUsingAWBToActionSummaries>false</AddUsingAWBToActionSummaries>
+    <TimeOutLimit>30</TimeOutLimit>
+    <IgnoreNoBots>false</IgnoreNoBots>
+    <SortInterWikiOrder>true</SortInterWikiOrder>
+    <ReplaceReferenceTags>true</ReplaceReferenceTags>
+  </General>
+  <SkipOptions>
+    <SkipNonexistent>true</SkipNonexistent>
+    <Skipexistent>false</Skipexistent>
+    <SkipWhenNoChanges>false</SkipWhenNoChanges>
+    <SkipSpamFilterBlocked>false</SkipSpamFilterBlocked>
+    <SkipInuse>false</SkipInuse>
+    <SkipWhenOnlyWhitespaceChanged>false</SkipWhenOnlyWhitespaceChanged>
+    <SkipOnlyGeneralFixChanges>true</SkipOnlyGeneralFixChanges>
+    <SkipOnlyMinorGeneralFixChanges>false</SkipOnlyMinorGeneralFixChanges>
+    <SkipOnlyCasingChanged>false</SkipOnlyCasingChanged>
+    <SkipIfRedirect>false</SkipIfRedirect>
+    <SkipIfNoAlerts>false</SkipIfNoAlerts>
+    <SkipDoes>true</SkipDoes>
+    <SkipDoesNot>false</SkipDoesNot>
+    <SkipDoesText>(\{\{Безвихідна[\s_]стаття\}\}|\[\[Категорія\:Вікіпедія\:Статті,[\s_]з[\s_]яких[\s_]нема[\s_]посилань\]\]|\[\[Категорія\:Вікіпедія\:Безвихідні[\s_]статті\]\]|\#REDIRECT|\#ПЕРЕНАПРАВЛЕННЯ|\{\{DisambigG\}\}|\{\{DisambigN\}\}|\{\{Неоднозначність\}\}|\{\{Багатозначність\}\}|\{\{Виправ[\s_]багатозначності\}\}|\{\{Edited\}\}|\{\{Редагую\}\}|\{\{Пишу\}\}|\{\{В[\s_]роботі\}\}|\{\{У[\s_]роботі\}\}|\{\{Ще[\s_]є[\s_]імена\}\}|\{\{disambig\}\}|\{\{Статті,[\s_]з[\s_]яких[\s_]нема[\s_]посилань\}\})</SkipDoesText>
+    <SkipDoesNotText />
+    <Regex>true</Regex>
+    <CaseSensitive>false</CaseSensitive>
+    <SkipNoFindAndReplace>false</SkipNoFindAndReplace>
+    <SkipNoRegexTypoFix>false</SkipNoRegexTypoFix>
+    <SkipNoDisambiguation>false</SkipNoDisambiguation>
+    <SkipNoLinksOnPage>false</SkipNoLinksOnPage>
+    <GeneralSkipList />
+    <GeneralSkip />
+  </SkipOptions>
+  <Module>
+    <Enabled>false</Enabled>
+    <Language>0</Language>
+    <Code>        public string ProcessArticle(string ArticleText, string ArticleTitle, int wikiNamespace, out string Summary, out bool Skip)
+        {
+            Skip = false;
+            Summary = "test";
+            ArticleText = "test \r\n\r\n" + ArticleText;
+            return ArticleText;
+        }</Code>
+  </Module>
+  <ExternalProgram>
+    <Enabled>false</Enabled>
+    <Skip>false</Skip>
+    <WorkingDir />
+    <Program />
+    <Parameters />
+    <PassAsFile>true</PassAsFile>
+    <OutputFile />
+  </ExternalProgram>
+  <Disambiguation>
+    <Enabled>false</Enabled>
+    <Link />
+    <Variants />
+    <ContextChars>20</ContextChars>
+  </Disambiguation>
+  <Logging>
+    <LogVerbose>false</LogVerbose>
+    <LogWiki>false</LogWiki>
+    <LogXHTML>false</LogXHTML>
+    <UploadYN>false</UploadYN>
+    <UploadAddToWatchlist>false</UploadAddToWatchlist>
+    <UploadOpenInBrowser>false</UploadOpenInBrowser>
+    <UploadToWikiProjects>false</UploadToWikiProjects>
+    <DebugUploading>false</DebugUploading>
+    <UploadMaxLines>1000</UploadMaxLines>
+    <LogFolder />
+    <UploadJobName />
+    <UploadLocation />
+    <LogCategoryName />
+  </Logging>
+  <Special>
+    <namespaceValues>
+      <int>1</int>
+      <int>3</int>
+      <int>5</int>
+      <int>7</int>
+      <int>11</int>
+      <int>15</int>
+      <int>0</int>
+      <int>2</int>
+      <int>4</int>
+      <int>6</int>
+      <int>10</int>
+      <int>14</int>
+    </namespaceValues>
+    <remDupes>true</remDupes>
+    <sortAZ>true</sortAZ>
+    <filterTitlesThatContain>false</filterTitlesThatContain>
+    <filterTitlesThatContainText />
+    <filterTitlesThatDontContain>false</filterTitlesThatDontContain>
+    <filterTitlesThatDontContainText />
+    <areRegex>false</areRegex>
+    <opType>-1</opType>
+    <remove />
+  </Special>
+  <Plugin />
+</AutoWikiBrowserPreferences>

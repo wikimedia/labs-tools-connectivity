@@ -1,0 +1,555 @@
+<?xml version="1.0"?>
+<AutoWikiBrowserPreferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xml:space="preserve" Version="5.2.0.0">
+  <Project>wikipedia</Project>
+  <LanguageCode>uk</LanguageCode>
+  <CustomProject />
+  <UsingSecure>false</UsingSecure>
+  <PHP5>false</PHP5>
+  <List>
+    <ListSource />
+    <SelectedProvider>RandomPagesSpecialPageProvider</SelectedProvider>
+    <ArticleList />
+  </List>
+  <FindAndReplace>
+    <Enabled>true</Enabled>
+    <IgnoreSomeText>false</IgnoreSomeText>
+    <IgnoreMoreText>false</IgnoreMoreText>
+    <AppendSummary>true</AppendSummary>
+    <AfterOtherFixes>false</AfterOtherFixes>
+    <Replacements>
+      <Replacement>
+        <Find>\{\{Без\ категорій}}</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>\{\{Recat}}</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>\{\{Категорія}}</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>(\{\{Проблеми[\|a-zA-Zа-яА-ЯёЁIіЇїЄєҐґ0-9]*)\|без[ ]*категорій([\|=a-zA-Zа-яА-ЯёЁIіЇїЄєҐґ0-9\|]*\}\})</Find>
+        <Replace>$1$2</Replace>
+        <Comment />
+        <IsRegex>true</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>(\{\{проблеми[\|a-zA-Zа-яА-ЯёЁIіЇїЄєҐґ0-9]*)\|без[ ]*категорій([\|=a-zA-Zа-яА-ЯёЁIіЇїЄєҐґ0-9\|]*\}\})</Find>
+        <Replace>$1$2</Replace>
+        <Comment />
+        <IsRegex>true</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>\|без\ категорій</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>\{\{Проблеми}}</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>\{\{Шаблон:Без\ категорій}}</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+      <Replacement>
+        <Find>\|cat</Find>
+        <Replace />
+        <Comment />
+        <IsRegex>false</IsRegex>
+        <Enabled>true</Enabled>
+        <Minor>false</Minor>
+        <RegularExpressionOptions>IgnoreCase</RegularExpressionOptions>
+      </Replacement>
+    </Replacements>
+    <AdvancedReps />
+    <SubstTemplates />
+    <IncludeComments>false</IncludeComments>
+    <ExpandRecursively>true</ExpandRecursively>
+    <IgnoreUnformatted>false</IgnoreUnformatted>
+  </FindAndReplace>
+  <Editprefs>
+    <GeneralFixes>true</GeneralFixes>
+    <Tagger>false</Tagger>
+    <Unicodify>true</Unicodify>
+    <Recategorisation>0</Recategorisation>
+    <NewCategory />
+    <NewCategory2 />
+    <ReImage>0</ReImage>
+    <ImageFind />
+    <Replace />
+    <SkipIfNoCatChange>false</SkipIfNoCatChange>
+    <RemoveSortKey>false</RemoveSortKey>
+    <SkipIfNoImgChange>false</SkipIfNoImgChange>
+    <AppendText>false</AppendText>
+    <AppendTextMetaDataSort>false</AppendTextMetaDataSort>
+    <Append>true</Append>
+    <Text>{{Без категорій}}</Text>
+    <Newlines>1</Newlines>
+    <AutoDelay>0</AutoDelay>
+    <BotMaxEdits>0</BotMaxEdits>
+    <SupressTag>false</SupressTag>
+    <RegexTypoFix>false</RegexTypoFix>
+  </Editprefs>
+  <General>
+    <AutoSaveEdit>
+      <Enabled>false</Enabled>
+      <SavePeriod>30</SavePeriod>
+      <SaveFile />
+    </AutoSaveEdit>
+    <SelectedSummary>більше не розпізнається як некатегорізірованная</SelectedSummary>
+    <Summaries>
+      <string>більше не розпізнається як некатегорізірованная</string>
+    </Summaries>
+    <PasteMore>
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+      <string />
+    </PasteMore>
+    <FindText />
+    <FindRegex>false</FindRegex>
+    <FindCaseSensitive>false</FindCaseSensitive>
+    <WordWrap>true</WordWrap>
+    <ToolBarEnabled>false</ToolBarEnabled>
+    <BypassRedirect>true</BypassRedirect>
+    <AutoSaveSettings>false</AutoSaveSettings>
+    <noSectionEditSummary>false</noSectionEditSummary>
+    <restrictDefaultsortAddition>true</restrictDefaultsortAddition>
+    <restrictOrphanTagging>true</restrictOrphanTagging>
+    <noMOSComplianceFixes>false</noMOSComplianceFixes>
+    <syntaxHighlightEditBox>false</syntaxHighlightEditBox>
+    <highlightAllFind>false</highlightAllFind>
+    <PreParseMode>false</PreParseMode>
+    <NoAutoChanges>false</NoAutoChanges>
+    <OnLoadAction>0</OnLoadAction>
+    <DiffInBotMode>false</DiffInBotMode>
+    <Minor>false</Minor>
+    <AddToWatchlist>2</AddToWatchlist>
+    <TimerEnabled>false</TimerEnabled>
+    <SortListAlphabetically>false</SortListAlphabetically>
+    <AddIgnoredToLog>false</AddIgnoredToLog>
+    <EditToolbarEnabled>false</EditToolbarEnabled>
+    <filterNonMainSpace>false</filterNonMainSpace>
+    <AutoFilterDuplicates>false</AutoFilterDuplicates>
+    <FocusAtEndOfEditBox>false</FocusAtEndOfEditBox>
+    <scrollToUnbalancedBrackets>false</scrollToUnbalancedBrackets>
+    <TextBoxSize>10</TextBoxSize>
+    <TextBoxFont>Courier New</TextBoxFont>
+    <LowThreadPriority>false</LowThreadPriority>
+    <Beep>false</Beep>
+    <Flash>false</Flash>
+    <Minimize>true</Minimize>
+    <LockSummary>false</LockSummary>
+    <SaveArticleList>false</SaveArticleList>
+    <SuppressUsingAWB>false</SuppressUsingAWB>
+    <AddUsingAWBToActionSummaries>false</AddUsingAWBToActionSummaries>
+    <IgnoreNoBots>false</IgnoreNoBots>
+    <ClearPageListOnProjectChange>false</ClearPageListOnProjectChange>
+    <SortInterWikiOrder>true</SortInterWikiOrder>
+    <ReplaceReferenceTags>true</ReplaceReferenceTags>
+    <LoggingEnabled>true</LoggingEnabled>
+  </General>
+  <SkipOptions>
+    <SkipNonexistent>true</SkipNonexistent>
+    <Skipexistent>false</Skipexistent>
+    <SkipWhenNoChanges>true</SkipWhenNoChanges>
+    <SkipSpamFilterBlocked>false</SkipSpamFilterBlocked>
+    <SkipInuse>false</SkipInuse>
+    <SkipWhenOnlyWhitespaceChanged>true</SkipWhenOnlyWhitespaceChanged>
+    <SkipOnlyGeneralFixChanges>true</SkipOnlyGeneralFixChanges>
+    <SkipOnlyMinorGeneralFixChanges>false</SkipOnlyMinorGeneralFixChanges>
+    <SkipOnlyCasingChanged>true</SkipOnlyCasingChanged>
+    <SkipIfRedirect>true</SkipIfRedirect>
+    <SkipIfNoAlerts>false</SkipIfNoAlerts>
+    <SkipDoes>false</SkipDoes>
+    <SkipDoesNot>false</SkipDoesNot>
+    <SkipDoesText />
+    <SkipDoesNotText />
+    <Regex>false</Regex>
+    <CaseSensitive>false</CaseSensitive>
+    <AfterProcessing>false</AfterProcessing>
+    <SkipNoFindAndReplace>false</SkipNoFindAndReplace>
+    <SkipMinorFindAndReplace>false</SkipMinorFindAndReplace>
+    <SkipNoRegexTypoFix>false</SkipNoRegexTypoFix>
+    <SkipNoDisambiguation>false</SkipNoDisambiguation>
+    <SkipNoLinksOnPage>false</SkipNoLinksOnPage>
+    <GeneralSkipList />
+  </SkipOptions>
+  <Module>
+    <Enabled>false</Enabled>
+    <Language>C# 2.0</Language>
+    <Code>        public string ProcessArticle(string ArticleText, string ArticleTitle, int wikiNamespace, out string Summary, out bool Skip)
+        {
+            Skip = false;
+            Summary = "test";
+            ArticleText = "test \r\n\r\n" + ArticleText;
+            return ArticleText;
+        }</Code>
+  </Module>
+  <ExternalProgram>
+    <Enabled>false</Enabled>
+    <Skip>false</Skip>
+    <Program />
+    <Parameters />
+    <PassAsFile>true</PassAsFile>
+    <OutputFile />
+  </ExternalProgram>
+  <Disambiguation>
+    <Enabled>false</Enabled>
+    <Link />
+    <Variants />
+    <ContextChars>20</ContextChars>
+  </Disambiguation>
+  <Logging>
+    <LogVerbose>false</LogVerbose>
+    <LogWiki>false</LogWiki>
+    <LogXHTML>false</LogXHTML>
+    <UploadYN>false</UploadYN>
+    <UploadAddToWatchlist>false</UploadAddToWatchlist>
+    <UploadOpenInBrowser>false</UploadOpenInBrowser>
+    <UploadToWikiProjects>false</UploadToWikiProjects>
+    <DebugUploading>false</DebugUploading>
+    <UploadMaxLines>1000</UploadMaxLines>
+    <LogFolder />
+    <UploadJobName />
+    <UploadLocation />
+    <LogCategoryName />
+  </Logging>
+  <Special>
+    <namespaceValues>
+      <int>0</int>
+      <int>1</int>
+      <int>2</int>
+      <int>3</int>
+      <int>4</int>
+      <int>5</int>
+      <int>6</int>
+      <int>7</int>
+      <int>10</int>
+      <int>11</int>
+      <int>14</int>
+      <int>15</int>
+    </namespaceValues>
+    <remDupes>true</remDupes>
+    <sortAZ>true</sortAZ>
+    <filterTitlesThatContain>false</filterTitlesThatContain>
+    <filterTitlesThatContainText />
+    <filterTitlesThatDontContain>false</filterTitlesThatDontContain>
+    <filterTitlesThatDontContainText />
+    <areRegex>false</areRegex>
+    <opType>-1</opType>
+    <remove>
+      <string>1957 год в истории общественного транспорта</string>
+      <string>3G</string>
+      <string>71-608</string>
+      <string>71-619</string>
+      <string>DFM</string>
+      <string>UTV (телеканал)</string>
+      <string>Административно-территориальное деление Башкортостана</string>
+      <string>Алштан</string>
+      <string>Арчибасова, Марго Владимировна</string>
+      <string>Базар</string>
+      <string>Балталы</string>
+      <string>Бальза (приток Белой)</string>
+      <string>Барча</string>
+      <string>Башкортостан</string>
+      <string>Бекетов, Василий Семёнович</string>
+      <string>Беркутла</string>
+      <string>Большая Кайракла</string>
+      <string>Большие Балыклы</string>
+      <string>Булякай</string>
+      <string>Буранчино (Ишимбай)</string>
+      <string>Водоёмы Салавата</string>
+      <string>Водохозяйственный участок</string>
+      <string>Вторая лига чемпионата России по хоккею с шайбой</string>
+      <string>Вторая Мряушля</string>
+      <string>Газпром нефтехим Салават</string>
+      <string>Георгиева, Гузель Рафиковна</string>
+      <string>Даркин, Сергей Александрович</string>
+      <string>Дорожное радио</string>
+      <string>Европейский маршрут E30</string>
+      <string>Екатеринбургское время</string>
+      <string>Елга (приток Тори)</string>
+      <string>Зирган</string>
+      <string>Зирган-тау</string>
+      <string>Изместьев, Игорь Владимирович</string>
+      <string>Иртюбяк (приток Белой)</string>
+      <string>История Салавата</string>
+      <string>Ишимбай</string>
+      <string>Ишимбай (автовокзал)</string>
+      <string>Кандышла</string>
+      <string>Кара-Бугат</string>
+      <string>Карагайка (река)</string>
+      <string>Кармалка (приток Ашкадари)</string>
+      <string>Каширина, Анжелика Валерьевна</string>
+      <string>Кладбища Салавата</string>
+      <string>Командный чемпионат России по спидвею</string>
+      <string>Командный чемпионат России по спидвею 1996</string>
+      <string>Командный чемпионат России по спидвею 1997</string>
+      <string>Командный чемпионат России по спидвею 1999</string>
+      <string>Командный чемпионат России по спидвею 2000</string>
+      <string>Командный чемпионат России по спидвею 2001</string>
+      <string>Командный чемпионат России по спидвею 2002</string>
+      <string>Командный чемпионат России по спидвею 2003</string>
+      <string>Командный чемпионат России по спидвею 2004</string>
+      <string>Командный чемпионат России по спидвею 2005</string>
+      <string>Командный чемпионат России по спидвею 2006</string>
+      <string>Командный чемпионат России по спидвею 2007</string>
+      <string>Командный чемпионат России по спидвею 2008</string>
+      <string>Командный чемпионат России по спидвею 2010</string>
+      <string>Командный чемпионат России по спидвею среди юниоров</string>
+      <string>Комсомольская площадь (Салават)</string>
+      <string>Крадено-Михайловка</string>
+      <string>Красюк, Иван Андреевич</string>
+      <string>Кривля</string>
+      <string>Кубок России по волейболу среди мужчин 2003</string>
+      <string>Кубок России по спидвею среди юниоров (парный)</string>
+      <string>Кудакаево</string>
+      <string>Кузнецов, Антон Георгиевич</string>
+      <string>Куксыр</string>
+      <string>Кундряк</string>
+      <string>Лагеря ГУЛАГ в Салавате</string>
+      <string>Личный чемпионат России по спидвею</string>
+      <string>Личный чемпионат России по спидвею на льду</string>
+      <string>Личный чемпионат России по спидвею среди юниоров</string>
+      <string>Личный чемпионат СССР по спидвею</string>
+      <string>Личный чемпионат СССР по спидвею среди юниоров</string>
+      <string>Лысая гора (Салават)</string>
+      <string>Мажит Гафури</string>
+      <string>Малые Балыклы</string>
+      <string>Массовое избиение в Благовещенске</string>
+      <string>Матросов, Александр Матвеевич</string>
+      <string>Маяк (радиостанция)</string>
+      <string>Мекатевли</string>
+      <string>Меню (приток Белой)</string>
+      <string>Мряушля</string>
+      <string>Мусино</string>
+      <string>Мусино (Салават)</string>
+      <string>Назгуль</string>
+      <string>Население Башкортостана</string>
+      <string>Населённые пункты Башкортостана</string>
+      <string>Ново-Салаватская ТЭЦ</string>
+      <string>Ночаелга</string>
+      <string>Паршиков, Геннадий Петрович</string>
+      <string>Первая Мряушля</string>
+      <string>Первенство России по хоккею с шайбой среди клубных команд регионов</string>
+      <string>Площадь Ленина</string>
+      <string>Площадь Ленина (Салават)</string>
+      <string>Почетный гражданин города Салават</string>
+      <string>Промышленность России</string>
+      <string>Проспект Нефтяников (Салават)</string>
+      <string>Радио Ваня</string>
+      <string>Радио Дача</string>
+      <string>Радиостанции Башкортостана</string>
+      <string>Расселение чувашей в России</string>
+      <string>Революционная улица (Салават)</string>
+      <string>Ромадановка (Мелеузовский район)</string>
+      <string>Садовый проезд (Салават)</string>
+      <string>Сайфутдинов, Эмиль Дамирович</string>
+      <string>Салават (гоноратив)</string>
+      <string>Салават (город)</string>
+      <string>Салаватнефтемаш</string>
+      <string>Салаватская картинная галерея</string>
+      <string>Салаватская ТЭЦ</string>
+      <string>Салаватский краеведческий музей</string>
+      <string>Салаватский трамвай</string>
+      <string>Салаватский троллейбус</string>
+      <string>Салаватский филиал УГНТУ</string>
+      <string>Салаватстекло</string>
+      <string>Салауат</string>
+      <string>Салауат йыйыны</string>
+      <string>Советская улица (Салават)</string>
+      <string>Солнечное затмение 20 апреля 2061 года</string>
+      <string>Список арабских имён</string>
+      <string>Список городов России</string>
+      <string>Список городов России с населением более 100 тысяч жителей</string>
+      <string>Список городов России с территорией больше 100 квадратных километров</string>
+      <string>Список городских трамвайных систем России</string>
+      <string>Список телефонных кодов зон и городов России на 3</string>
+      <string>Список транспортных систем Евразии по городам</string>
+      <string>Список улиц Салавата</string>
+      <string>Спортивно-концертный комплекс Салават</string>
+      <string>Сталинская архитектура</string>
+      <string>Сухайля</string>
+      <string>Суханыш</string>
+      <string>Сухой Кундряк</string>
+      <string>Сухоруков, Алексей Яковлевич</string>
+      <string>Сыров, Игорь Анатольевич</string>
+      <string>Тевлин, Борис Григорьевич</string>
+      <string>Телевизионные каналы городов России</string>
+      <string>Терекла (приток Кривля)</string>
+      <string>Тереклашка</string>
+      <string>Тихий переулок (Салават)</string>
+      <string>Трест "Салаватстрой"</string>
+      <string>Трубанов, Владимир Евгеньевич</string>
+      <string>Трудовой переулок (Салават)</string>
+      <string>Тюрюшля (приток Ашкадари)</string>
+      <string>Узя (приток Белой)</string>
+      <string>Узя (приток Нугуши)</string>
+      <string>Улица 21 съезда КПСС (Салават)</string>
+      <string>Улица 30 лет Победы (Салават)</string>
+      <string>Улица 7-го ноября (Салават)</string>
+      <string>Улица Ахтямова (Салават)</string>
+      <string>Улица Бекетова (Салават)</string>
+      <string>Улица Береговая (Салават)</string>
+      <string>Улица Богдана Хмельницкого (Салават)</string>
+      <string>Улица Бочкарева (Салават)</string>
+      <string>Улица Вокзальная (Салават)</string>
+      <string>Улица Волжская (Салават)</string>
+      <string>Улица Восточная (Салават)</string>
+      <string>Улица Гагарина (Салават)</string>
+      <string>Улица Гайдара (Салават)</string>
+      <string>Улица Гафури (Салават)</string>
+      <string>Улица Геологическая (Салават)</string>
+      <string>Улица Гончарова (Салават)</string>
+      <string>Улица Горького</string>
+      <string>Улица Горького (Салават)</string>
+      <string>Улица Губайдуллина (Салават)</string>
+      <string>Улица Губкина (Салават)</string>
+      <string>Улица Джамбула (Салават)</string>
+      <string>Улица Джамиля (Салават)</string>
+      <string>Улица Дзержинского (Салават)</string>
+      <string>Улица Дружбы (Салават)</string>
+      <string>Улица Железнодорожная (Салават)</string>
+      <string>Улица Жукова (Салават)</string>
+      <string>Улица Заводская (Салават)</string>
+      <string>Улица Западная (Салават)</string>
+      <string>Улица Заречная (Салават)</string>
+      <string>Улица Зои Космодемьянской (Салават)</string>
+      <string>Улица Индустриальная (Салават)</string>
+      <string>Улица Инициативная (Салават)</string>
+      <string>Улица Калинина</string>
+      <string>Улица Калинина (Салават)</string>
+      <string>Улица Кирова (Салават)</string>
+      <string>Улица Ключевая (Салават)</string>
+      <string>Улица Кожедуба (Салават)</string>
+      <string>Улица Колхозная (Салават)</string>
+      <string>Улица Кольцевая (Салават)</string>
+      <string>Улица Комсомольская (Салават)</string>
+      <string>Улица Космонавтов (Салават)</string>
+      <string>Улица Красноармейская (Салават)</string>
+      <string>Улица Крупской (Салават)</string>
+      <string>Улица Крылова (Салават)</string>
+      <string>Улица Ленина (Салават)</string>
+      <string>Улица Ленинградская (Салават)</string>
+      <string>Улица Лесопарковая (Салават)</string>
+      <string>Улица Маркса (Салават)</string>
+      <string>Улица Матросова (Салават)</string>
+      <string>Улица Маяковского (Салават)</string>
+      <string>Улица Молодогвардейцев (Салават)</string>
+      <string>Улица Монтажников (Салават)</string>
+      <string>Улица Мостовая (Салават)</string>
+      <string>Улица Мусинская (Салават)</string>
+      <string>Улица Набережная (Салават)</string>
+      <string>Улица Новаторов (Салават)</string>
+      <string>Улица Нуриманова (Салават)</string>
+      <string>Улица Островского (Салават)</string>
+      <string>Улица Пархоменко (Салават)</string>
+      <string>Улица Первая (Салават)</string>
+      <string>Улица Первомайская (Салават)</string>
+      <string>Улица Пионерская (Салават)</string>
+      <string>Улица Победы (Салават)</string>
+      <string>Улица Покрышкина (Салават)</string>
+      <string>Улица Полевая (Салават)</string>
+      <string>Улица Попова (Салават)</string>
+      <string>Улица Пугачева (Салават)</string>
+      <string>Улица Пушкина (Салават)</string>
+      <string>Улица Пятая (Салават)</string>
+      <string>Улица Речная (Салават)</string>
+      <string>Улица Садовая (Салават)</string>
+      <string>Улица Северная (Салават)</string>
+      <string>Улица Спортивная (Салават)</string>
+      <string>Улица Стахановская (Салават)</string>
+      <string>Улица Строителей (Салават)</string>
+      <string>Улица Сухорукова (Салават)</string>
+      <string>Улица Тагирева (Салават)</string>
+      <string>Улица Третья (Салават)</string>
+      <string>Улица Уфимская (Салават)</string>
+      <string>Улица Фурманова (Салават)</string>
+      <string>Улица Хирургическая (Салават)</string>
+      <string>Улица Чапаева (Салават)</string>
+      <string>Улица Чекмарева (Салават)</string>
+      <string>Улица Шаймуратова (Салават)</string>
+      <string>Улица Школьная (Салават)</string>
+      <string>Улица Юлаева (Салават)</string>
+      <string>Уляй</string>
+      <string>Урин, Валерий Григорьевич</string>
+      <string>Уртелга</string>
+      <string>Уфанет</string>
+      <string>Флаг Салавата</string>
+      <string>Химическая промышленность</string>
+      <string>Химическая промышленность России</string>
+      <string>Хлынцев, Иван Анатольевич</string>
+      <string>Хмельницкий, Богдан Михайлович</string>
+      <string>Чемпионат России по волейболу среди мужчин 2002—2003</string>
+      <string>Чемпионат России по волейболу среди мужчин 2003—2004</string>
+      <string>Чемпионат России по волейболу среди мужчин 2006—2007</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2002</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2003</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2004</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2005</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2006</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2007</string>
+      <string>Чемпионат России по конькобежному спорту в классическом многоборье 2008</string>
+      <string>Четырман (приток Ашкадари)</string>
+      <string>Школьный переулок (Салават)</string>
+      <string>Экономика России</string>
+      <string>Экономика Салавата</string>
+      <string>Экономика СССР</string>
+      <string>Южно-Башкортостанская агломерация</string>
+      <string>Юлдашево</string>
+      <string>Юрматы (хоккейный клуб)</string>
+      <string>Яшельтау</string>
+    </remove>
+  </Special>
+  <Tool>
+    <ListComparerUseCurrentArticleList>0</ListComparerUseCurrentArticleList>
+    <ListSplitterUseCurrentArticleList>0</ListSplitterUseCurrentArticleList>
+    <DatabaseScannerUseCurrentArticleList>0</DatabaseScannerUseCurrentArticleList>
+  </Tool>
+  <Plugin />
+</AutoWikiBrowserPreferences>
