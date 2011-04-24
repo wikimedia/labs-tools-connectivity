@@ -1,0 +1,4 @@
+pagetitle="Nuorodų į nepasiekiamus straipsnius pasiūlymai"
+thish1="nuorodų į nepasiekiamus straipsnius pasiūlymai dėl ${language}wiki"
+subclause1name="kategorijos kuriose galimas nuorodų kopijavimas iš ${foreignname}"
+subclause1="Sąrašas kategorijų, kuriose yra straipsnių, kurie galėtų būti vikizuoti į juos įtraukiant nuorodas į nepasiekiamus straipsnius pagal rastus ryšius iš ${foreignname} vikipedijos straipsnių."

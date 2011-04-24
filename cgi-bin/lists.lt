@@ -1,0 +1,13 @@
+pagetitle="Nepasiekiamų straipsnių sąrašas"
+thish1=$isolatedarticles
+available_lists="prieinami nepasiekiamų straipsnių sąrašai"
+fl="pilnas nepasiekiamų straipsnių sąrašas"
+fl_disambig="pilnas nepasiekiamų straipsnių sąrašas su pagalba dėl nuorodinių straipsnių"
+fl_interlink="pilnas nepasiekiamų straipsnių sąrašas su pagalba dėl interwiki nuorodų perėmimo"
+fl_translate="pilnas nepasiekiamų straipsnių sąrašas su pagalba dėl nuorodų pagal vertimus"
+fl_anonym="pilnas nepasiekiamų straipsnių, sukurtų neregistruotų ar neprisijungusių naudotojų, sąrašas"
+isoclustertext="Nuorodos tarp nepasiekiamų straipsnių iš <strong>kitos nepasiekiamų straipsnių grupės</strong>, kurie yra nepasiekiami iš straipsnių nepriklausančių šiai grupei, bet kiekvienoje nepasiekiamų straipsnių grupės straipsnių poroje esantys straipsniai yra tarpusavyje pasiekiami per nuorodas."
+upper_cluster_limit="Viršutinė nepasiekiamų straipsnių grupės dydžio riba analizuojant yra"
+no_upper_limit="Analizė yra atlikta be viršutinės nepasiekiamų straipsnių grupės dydžio ribos."
+linked_core="linked core"
+_isolated="nepasiekiamas"

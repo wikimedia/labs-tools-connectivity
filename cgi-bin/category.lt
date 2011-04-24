@@ -1,0 +1,7 @@
+pagetitle="Nepasiekiami straipsniai pagal kategorijas, esantys ${language}wiki"
+thish1="nepasiekiami straipsniai pagal kategorijas, esantys ${language}wiki"
+example="Pavyzdžiui: Lietuvos vargonininkai‏"
+catnamereq="Įveskite kategorijos vardą"
+top1name="pirmosios 100 kategorijų pagal nepasiekiamų puslapių skaičių"
+top2name="pirmosios 100 kategorijų pagal nepasiekiamų puslapių procentą"
+submenudesc="čia yra sąrašas visų nepasiekiamų $wiki_link_to_category kategorijos"

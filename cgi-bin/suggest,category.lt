@@ -1,0 +1,8 @@
+pagetitle="Pagalba kaip sujungti nepasiekiamus straipsnius"
+thish1="pagalba kaip sujungti nepasiekiamus straipsnius dėl ${language}wiki"
+submenu1desc="sąrašas kategorijoje $wiki_link_to_category esančių nepasiekiamų straipsnių turinčių nuorodas iš nuorodinių straipsnių"
+submenu3desc="sąrašas kategorijoje $wiki_link_to_category esančių nepasiekiamų straipsnių turinčių vertimo pagalbą"
+subclause1="Žemiau išvardintos kategorijos surūšiuotos pagal kiekį jose esančių nepasiekiamų straipsnių turinčių nuorodas iš nuorodinių straipsnių, kurie yra pasiekiami iš kitų straipsnių."
+subclause2name="...koks jūsų vardas..."
+subclause2="Žemiau išvardintos kategorijos surūšiuotos pagal kiekį jose esančių nepasiekiamų straipsnių, kurie gali būti padaromi pasiekiamais, kadangi kai kurios interwiki nuorodos rodo į susijusius straipsnius, kurie turi atgalines interwiki nuorodas."
+subclause3="Žemiau išvardintos kategorijos surūšiuotos pagal kiekį jose esančių nepasiekiamų straipsnių, kurie gali būti padaromi pasiekiamais, kadangi kai kurios interwiki nuorodos rodo į susijusius straipsnius ir susijusių straipsnių nuorodos gali būti išverstos kaip nuorodos į nepasiekiamą straipsnį."

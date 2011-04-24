@@ -2,7 +2,7 @@ isolated_flexies ()
 {
   local isolated=$1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ]
   then
     __isolated=$_isolated
   else
