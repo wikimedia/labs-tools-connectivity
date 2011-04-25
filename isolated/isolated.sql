@@ -587,7 +587,7 @@ CREATE FUNCTION convertcoolcat ( wcoolcat VARCHAR(255) )
 # Identifies isolated singlets (orphanes).
 #
 DROP PROCEDURE IF EXISTS _1//
-CREATE PROCEDURE _1 (category VARCHAR(255))
+CREATE PROCEDURE _1 (category VARCHAR(255), targetset VARCHAR(255))
   BEGIN
     DECLARE catknown INT;
     DECLARE cntr INT;
@@ -612,7 +612,6 @@ CREATE PROCEDURE _1 (category VARCHAR(255))
                    convertcoolcat( category ) as cat,
                    category as coolcat;
             SET @freecatid=@freecatid+1;
-
         END IF;
 
         INSERT INTO isolated (id, cat, act)
@@ -654,7 +653,7 @@ CREATE FUNCTION smart_action(cluster_size INT, acnt INT)
 # Orphaned strongly connected components (oscc) with 1 < size <= maxsize.
 #
 DROP PROCEDURE IF EXISTS oscc//
-CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
+CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255), targetset VARCHAR(255))
   BEGIN
     DECLARE lcnt INT;
     DECLARE res VARCHAR(255);
@@ -766,7 +765,7 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255))
 # Look for isolated components of size less or equal to maxsize.
 #
 DROP PROCEDURE IF EXISTS isolated_layer//
-CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
+CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255), targetset VARCHAR(255))
   BEGIN
     IF maxsize>=1
       THEN
@@ -778,10 +777,10 @@ CREATE PROCEDURE isolated_layer (maxsize INT, upcat VARCHAR(255))
                FROM l
                GROUP BY l_to;
         
-        CALL _1( CONCAT(upcat, '_1') );
+        CALL _1( CONCAT(upcat, '_1'), targetset );
 
         IF maxsize>=2
-          THEN CALL oscc( maxsize, upcat );
+          THEN CALL oscc( maxsize, upcat, targetset );
         END IF;
 
         # used only for ..._1 clusters detection,
@@ -818,7 +817,7 @@ CREATE PROCEDURE forest_walk (targetset VARCHAR(255), maxsize INT, cluster_type 
     DECLARE comment_right VARCHAR(8) DEFAULT '';
     DECLARE pos INT DEFAULT '0';
 
-    CALL isolated_layer(maxsize, cluster_type);
+    CALL isolated_layer(maxsize, cluster_type, targetset);
 
     IF maxsize>=2
       THEN
@@ -1357,6 +1356,38 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     #
     # linker unload
     DROP TABLE l;
+
+    #
+    # Isolated categories to be created.
+    #
+    IF targetset='articles'
+      THEN
+        SELECT count( * ) INTO cnt
+               FROM orcat
+               WHERE cat NOT IN (
+                                  SELECT title
+                                         FROM categories
+                                         WHERE SUBSTRING( title FROM 1 FOR LENGTH( @isolated_category_name ) )=@isolated_category_name
+                                ) AND
+                     LOCATE( CONCAT( '_', @principle_component_size ), coolcat )=0 AND
+                     coolcat!='_wrong_categoryname_';
+
+        IF cnt>0
+          THEN
+            SELECT CONCAT( ':: upload cc ', @fprefix, 'newisocat.txt' );
+            SELECT CONCAT( getnsprefix( 14, @target_lang ), cat , '|', coolcat )
+                   FROM orcat
+                   WHERE cat NOT IN (
+                                      SELECT title
+                                             FROM categories
+                                             WHERE SUBSTRING( title FROM 1 FOR LENGTH( @isolated_category_name ) )=@isolated_category_name
+                                    ) AND
+                         LOCATE( CONCAT( '_', @principle_component_size ), coolcat )=0 AND
+                         coolcat!='_wrong_categoryname_'
+                   ORDER BY coolcat ASC;
+            SELECT ':: sync';
+        END IF;
+    END IF;
 
     SELECT CONCAT( ':: echo isolated ', targetset, ' processing time: ', timediff(now(), @starttime));
   END;

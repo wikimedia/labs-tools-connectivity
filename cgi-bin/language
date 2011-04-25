@@ -126,7 +126,17 @@ format_diff ()
 
   if [ "$1" != '?' ]
   then
-    res=$(((in*$tmul+${half_ts_diff})/${ts_diff}))
+    if [ "$in" -eq 0 ]
+    then
+      res=0
+    else
+      if [ "$in" -gt 0 ]
+      then
+        res=$(((in*$tmul+${half_ts_diff})/${ts_diff}))
+      else
+        res=$(((in*$tmul-${half_ts_diff})/${ts_diff}))
+      fi
+    fi
 
     if [ $1 -ge 0 ]
     then
@@ -236,12 +246,11 @@ handle_a_table ()
 
     if [ "$art_diff" != '?' ]
     then
-      art_diff_txt=$(((art_diff*$tmul+${half_ts_diff})/$ts_diff))
+      art_diff_txt=$( format_diff $art_diff $tmul ${ts_diff} ${half_ts_diff} )
 
       if [ $art_diff -ge 0 ]
       then
         art_diff="+${art_diff}"
-        art_diff_txt="+${art_diff_txt}"
       fi
     fi
 
@@ -291,12 +300,8 @@ handle_a_table ()
       echo "<td><b>$core</b></td>"
     else
       local core_diff=$(( (${art_diff}) - (${iso_diff}) ))
-      local core_diff_txt=$(((core_diff*$tmul+${half_ts_diff})/${ts_diff}))
+      local core_diff_txt=$( format_diff $core_diff $tmul ${ts_diff} ${half_ts_diff} )
 
-      if [ $core_diff -ge 0 ]
-      then
-        core_diff_txt="+${core_diff_txt}"
-      fi
       echo "<td><span title=\"${core_diff_txt} $tmeas\"><b>$core</b></span></td>"
     fi
     echo "<td><span title=\"$( format_diff $iso_diff $tmul ${ts_diff} ${half_ts_diff} ) $tmeas\">$bld$iso$bldc</span></td>"

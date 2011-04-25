@@ -376,6 +376,34 @@ if_lang ()
   echo "<h4 class=\"interface\">$interface_text: ${english_str} - ${native_str}</h4>"
 }
 
+if_lang_more ()
+{
+  local file=''
+
+  echo "<center>"
+  echo "<ul class=\"iflang\">"
+
+  for file in ${listby}.*
+  do
+    file=${file//\./ }
+    file=( $file )
+    lng=${file[1]}
+    if [ $lng != 'en' ] && [ $lng != $language ]
+    then
+      if [ $lng = $interface ]
+      then
+        echo "<li><strong>$lng</strong></li>"
+      else
+        lswch=$( url_params $language_url $lng $listby_url $shift_url )
+        echo "<li><a href=\"./go.sh?$lswch\">$lng</a></li>"
+      fi
+    fi
+  done
+
+  echo "</ul>"
+  echo "</center>"
+}
+
 the_menu_part ()
 {
   local sg_type=$1
@@ -818,7 +846,6 @@ the_menu ()
 
   if [ -f feedback.${interface} ]
   then
-#    source ./feedback.info
     cat ./feedback.${interface}
   else
     echo "<li><a href=\"http://ru.wikipedia.org/wiki/User Talk:%D0%93%D0%BE%D0%BB%D0%B5%D0%BC\">$commondisc</a></li>"
@@ -952,22 +979,25 @@ EOM
   #
   # The page header at the center
   #
-  if [ "${project_page}" = '' ]
+  local ptitle=$mainh1
+
+  if [ "${project_page}" != '' ]
   then
-    echo "<h1>[[$mainh1]]"
-    if [ "$language" != '' ]
-    then
-      echo " <a id=\"language\" href=\"#languages\">$language</a>"
-    fi
-    echo "</h1>"
-  else
-    echo "<h1>[[<a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">$mainh1</a>]] <a id=\"language\" href=\"#languages\">$language</a></h1>"
+    ptitle="<a href=\"http://$language.wikipedia.org/w/index.php?title=${project_page}\">$mainh1</a>"
+  fi
+
+  echo "<h1>[[$ptitle]]"
+  if [ "$language" != '' ]
+  then
+    echo " <span title=\"$nativename\"><a id=\"language\" href=\"http://$language.wikipedia.org/\">$language</a></span>"
   fi
 
   if [ "$language" != '' ]
   then
 
     if_lang
+
+    if_lang_more
 
   fi
 
@@ -1001,9 +1031,8 @@ the_content ()
   #
   case $listby in
    'category')
-    echo "<fieldset title=\"hidden\">"
-    echo $example
     echo "<form action=\"./go.sh\" method=\"get\">"
+    echo "<fieldset title=\"hidden\">"
     echo "<input type=\"hidden\" name=\"language\" value=\"$language\" />"
     echo "<input type=\"hidden\" name=\"interface\" value=\"$interface\" />"
     echo "<input type=\"hidden\" name=\"listby\" value=\"$listby\" />"
@@ -1012,7 +1041,10 @@ the_content ()
       echo "<input type=\"hidden\" name=\"shift\" value=\"$shift\" />"
     fi
     echo "</fieldset>"
+    echo "<table><tr><td>"
+    echo "<p class=\"example\">$example</p>"
     echo "<p class=\"lookat\">$catnamereq: <input name=\"category\" type=\"text\" /> $activateform</p>"
+    echo "</td></tr></table>"
     echo "</form>"
     ;;
    'suggest' | 'suggest,category' | 'suggest,category,foreign' | 'suggest,foreign' | 'suggest,foeign,category' | 'suggest,title')

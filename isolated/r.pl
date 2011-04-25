@@ -158,9 +158,16 @@ if( $time_to_upload ) {
   my $is_minor = 0;
   # Note: This does not warn of edit conflicts, 
   #       it just overwrites existing text.
-  $editor->edit($article, $text, $edit_summary, $is_minor);
+  my $response=$editor->edit($article, $text, $edit_summary, $is_minor);
 
-  print ":: echo data successfully uploaded\n";
+  if ($response) {
+    print ":: echo data successfully uploaded\n";
+  }
+  else
+  {
+    print ":: echo error uploading data: ".$editor->{errstr}."\n";
+  }
+
   print ":: s".$reply_to." done wikistat\n";
 }
 

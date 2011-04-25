@@ -20,6 +20,7 @@
 
 use strict; # 'strict' insists that all variables be declared
 
+my $operation_mode=shift;
 my $wikilang=shift;
 my $user=shift;
 
@@ -45,33 +46,11 @@ print $user."\n";
 use Perlwikipedia;
 use Encode;
 
-my $m_P=decode('utf8', 'П');
-my $m_p=decode('utf8', 'п');
-my $m_E=decode('utf8', 'Е');
-my $m_e=decode('utf8', 'е');
-my $m_R=decode('utf8', 'Р');
-my $m_r=decode('utf8', 'р');
-my $m_N=decode('utf8', 'Н');
-my $m_n=decode('utf8', 'н');
-my $m_A=decode('utf8', 'А');
-my $m_a=decode('utf8', 'а');
-my $m_V=decode('utf8', 'В');
-my $m_v=decode('utf8', 'в');
-my $m_L=decode('utf8', 'Л');
-my $m_l=decode('utf8', 'л');
-my $m_I=decode('utf8', 'И');
-my $m_i=decode('utf8', 'и');
-
-
-#
-# All three constants are needed for edit descriptions 
-#     and the first pair is also used in the text.
-# No way to {{subst:an edit description}},
-#     so constants could not be stored just for templating.
-#
-my $self_redirect_text=decode('utf8', 'перенаправление ссылается само на себя');
-my $ring_of_two_redirects=decode('utf8', 'кольцо из двух перенаправлений');
-my $regular_edit_text=decode('utf8', 'исправление [[ВП:Двойные перенаправления|двойных перенаправлений]] с помощью perlwikipedia');
+my $success_count=0;
+my $failed_count=0;
+# my @timings;
+my $perminallowed=10;
+my @timings=();
 
 my $editor=Perlwikipedia->new($user);
 $editor->{debug} = 0;
@@ -81,17 +60,6 @@ my $loginstatus=$editor->login($user, $pass);
 if ( $loginstatus eq '1' ) {
   die 'invalid login; possibly ~/.'.$wikilang.'.cnf contains wrong data'.". the error returned: ".$editor->{errstr};
 }
-
-my $success_count=0;
-my $failed_count=0;
-my $ntd_count=0;
-my $self_redir=0;
-my $redir_pair=0;
-
-my @timings;
-my $perminallowed=10;
-
-my @timings=();
 
 sub do_edit
 {
@@ -131,128 +99,152 @@ sub do_edit
   }
 }
 
-while( <> )
+if ( ${operation_mode} eq 'mr' )
 {
-  my $mr=decode('utf8', $_);
-  chomp $mr;
+  my $m_P=decode('utf8', 'П');
+  my $m_p=decode('utf8', 'п');
+  my $m_E=decode('utf8', 'Е');
+  my $m_e=decode('utf8', 'е');
+  my $m_R=decode('utf8', 'Р');
+  my $m_r=decode('utf8', 'р');
+  my $m_N=decode('utf8', 'Н');
+  my $m_n=decode('utf8', 'н');
+  my $m_A=decode('utf8', 'А');
+  my $m_a=decode('utf8', 'а');
+  my $m_V=decode('utf8', 'В');
+  my $m_v=decode('utf8', 'в');
+  my $m_L=decode('utf8', 'Л');
+  my $m_l=decode('utf8', 'л');
+  my $m_I=decode('utf8', 'И');
+  my $m_i=decode('utf8', 'и');
 
-  my $mr_text=$editor->get_text($mr);
+  #
+  # All three constants are needed for edit descriptions 
+  #     and the first pair is also used in the text.
+  # No way to {{subst:an edit description}},
+  #     so constants could not be stored just for templating.
+  #
+  my $self_redirect_text=decode('utf8', 'перенаправление ссылается само на себя');
+  my $ring_of_two_redirects=decode('utf8', 'кольцо из двух перенаправлений');
+  my $regular_edit_text=decode('utf8', 'исправление [[ВП:Двойные перенаправления|двойных перенаправлений]] с помощью perlwikipedia');
 
-#  print ":: echo ".length( $mr_text )."bytes\n";
+  my $ntd_count=0;
+  my $self_redir=0;
+  my $redir_pair=0;
 
-  if( $editor->{errstr} ne '' )
+  while( <> )
   {
-    $failed_count+=1;
-    $editor->{errstr}='';
-    print ":: echo error getting ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
-  }
-  else
-  {
-    if(
-        $mr_text=~m{
-                     \A[\s\t\n\r]*
-                     \#
-                     (?:
-                       # I know about "i" modifier but it doesn't work for utf8.
-                       # Just to show the principle for utf-8 matched below.
-                       (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
-                     |
-                       (?:$m_P|$m_p)(?:$m_E|$m_e)(?:$m_R|$m_r)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_A|$m_a)(?:$m_P|$m_p)(?:$m_R|$m_r)(?:$m_A|$m_a)(?:$m_V|$m_v)(?:$m_L|$m_l)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_I|$m_i)(?:$m_E|$m_e)
-                     )
-                     [\s]*
-                     \[\[
-                          ([^\]]+)
-                     \]\]
-                   }mx 
-      )
+    my $mr=decode('utf8', $_);
+    chomp $mr;
+
+    my $mr_text=$editor->get_text($mr);
+
+#    print ":: echo ".length( $mr_text )."bytes\n";
+
+    if( $editor->{errstr} ne '' )
     {
-      my $r=$1;
+      $failed_count+=1;
+      $editor->{errstr}='';
+      print ":: echo error getting ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
+    }
+    else
+    {
+      if(
+          $mr_text=~m{
+                       \A[\s\t\n\r]*
+                       \#
+                       (?:
+                         # I know about "i" modifier but it doesn't work for utf8.
+                         # Just to show the principle for utf-8 matched below.
+                         (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
+                       |
+                         (?:$m_P|$m_p)(?:$m_E|$m_e)(?:$m_R|$m_r)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_A|$m_a)(?:$m_P|$m_p)(?:$m_R|$m_r)(?:$m_A|$m_a)(?:$m_V|$m_v)(?:$m_L|$m_l)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_I|$m_i)(?:$m_E|$m_e)
+                       )
+                       [\s]*
+                       \[\[
+                            ([^\]]+)
+                       \]\]
+                     }mx 
+        )
+      {
+        my $r=$1;
 
-      # just in case there is an anchor in the link
-      my $anchor="";
-      if( $r =~ /^([^\#]+)\#([^\#]+)$/ )
-      {
-        $r=$1;
-        $anchor=$2;
-      }
+        # just in case there is an anchor in the link
+        my $anchor="";
+        if( $r =~ /^([^\#]+)\#([^\#]+)$/ )
+        {
+          $r=$1;
+          $anchor=$2;
+        }
 
-      if( $r eq $mr )
-      {
-        do_edit( $r, '{{db|'.$self_redirect_text.'}}', '{{db|'.$self_redirect_text.'}}'."\n#REDIRECT [[$r]]" );
-        if( $editor->{errstr} ne '' )
+        if( $r eq $mr )
         {
-          $failed_count+=1;
-          $editor->{errstr}='';
-          print ":: echo error editing happy double self-redirext\n";
-        }
-        else
-        {
-          $self_redir+=1;
-        }
-      }
-      else
-      {
-        my $r_text=$editor->get_text($r);
-      
-        if( $editor->{errstr} ne '' )
-        {
-          $failed_count+=1;
-          $editor->{errstr}='';
-          print ":: echo error getting in chain started from ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
-        }
-        else
-        {
-          if(
-              $r_text=~m{
-                          \A[\s\t\n\r]*
-                          \#
-                          (?:
-                            # I know about "i" modifier.
-                            # Just to show the principle for utf-8 matched below.
-                            (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
-                            |
-                            (?:$m_P|$m_p)(?:$m_E|$m_e)(?:$m_R|$m_r)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_A|$m_a)(?:$m_P|$m_p)(?:$m_R|$m_r)(?:$m_A|$m_a)(?:$m_V|$m_v)(?:$m_L|$m_l)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_I|$m_i)(?:$m_E|$m_e)
-                          )
-                          [\s]*
-                          \[\[
-                               ([^\]]+)
-                          \]\]
-                        }mx 
-            )
+          do_edit( $r, '{{db|'.$self_redirect_text.'}}', '{{db|'.$self_redirect_text.'}}'."\n#REDIRECT [[$r]]" );
+          if( $editor->{errstr} ne '' )
           {
-            my $target=$1;
-          
-            if( $target eq $r )
+            $failed_count+=1;
+            $editor->{errstr}='';
+            print ":: echo error editing happy double self-redirext\n";
+          }
+          else
+          {
+            $self_redir+=1;
+          }
+        }
+        else
+        {
+          my $r_text=$editor->get_text($r);
+      
+          if( $editor->{errstr} ne '' )
+          {
+            $failed_count+=1;
+            $editor->{errstr}='';
+            print ":: echo error getting in chain started from ".($failed_count+$success_count)."st/nd/rd/th name in the list\n";
+          }
+          else
+          {
+            if(
+                $r_text=~m{
+                            \A[\s\t\n\r]*
+                            \#
+                            (?:
+                              # I know about "i" modifier.
+                              # Just to show the principle for utf-8 matched below.
+                              (?:R|r)(?:E|e)(?:D|d)(?:I|i)(?:R|r)(?:E|e)(?:C|c)(?:T|t)
+                              |
+                              (?:$m_P|$m_p)(?:$m_E|$m_e)(?:$m_R|$m_r)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_A|$m_a)(?:$m_P|$m_p)(?:$m_R|$m_r)(?:$m_A|$m_a)(?:$m_V|$m_v)(?:$m_L|$m_l)(?:$m_E|$m_e)(?:$m_N|$m_n)(?:$m_I|$m_i)(?:$m_E|$m_e)
+                            )
+                            [\s]*
+                            \[\[
+                                 ([^\]]+)
+                            \]\]
+                          }mx 
+              )
             {
-              # Multiple redirects in the list we are working on can be pointing
-              # this happy self-redirect.
-              # Here we rely on web-API smartness and suppose edits with
-              # the same content will not occur.
-              do_edit( $r, '{{db|'.$self_redirect_text.'}}', '{{db|'.$self_redirect_text.'}}'."\n#REDIRECT [[$r]]" );
-              if( $editor->{errstr} ne '' )
+              my $target=$1;
+         
+              if( $target eq $r )
               {
-                $failed_count+=1;
-                $editor->{errstr}='';
-                print ":: echo error editing a happy self-redirect\n";
+                # Multiple redirects in the list we are working on can be pointing
+                # this happy self-redirect.
+                # Here we rely on web-API smartness and suppose edits with
+                # the same content will not occur.
+                do_edit( $r, '{{db|'.$self_redirect_text.'}}', '{{db|'.$self_redirect_text.'}}'."\n#REDIRECT [[$r]]" );
+                if( $editor->{errstr} ne '' )
+                {
+                  $failed_count+=1;
+                  $editor->{errstr}='';
+                  print ":: echo error editing a happy self-redirect\n";
+                }
+                else
+                {
+                  $self_redir+=1;
+                  print ":: echo happy self-redirect\n";
+                }
               }
-              else
+              elsif( $target eq $mr )
               {
-                $self_redir+=1;
-                print ":: echo happy self-redirect\n";
-              }
-            }
-            elsif( $target eq $mr )
-            {
-              do_edit( $r, '{{db|'.$ring_of_two_redirects.'}}', '{{db|'.$ring_of_two_redirects.'}}'."\n#REDIRECT [[$r]]" );
-              if( $editor->{errstr} ne '' )
-              {
-                $failed_count+=1;
-                $editor->{errstr}='';
-                print ":: echo error editing a ring of two redirects\n";
-              }
-              else
-              {
-                do_edit( $mr, '{{db|'.$ring_of_two_redirects.'}}', '{{db|'.$ring_of_two_redirects.'}}'."\n#REDIRECT [[$mr]]" );
+                do_edit( $r, '{{db|'.$ring_of_two_redirects.'}}', '{{db|'.$ring_of_two_redirects.'}}'."\n#REDIRECT [[$r]]" );
                 if( $editor->{errstr} ne '' )
                 {
                   $failed_count+=1;
@@ -261,50 +253,63 @@ while( <> )
                 }
                 else
                 {
-                  $redir_pair+=1;
-                  print ":: echo a ring of two redirects\n";
+                  do_edit( $mr, '{{db|'.$ring_of_two_redirects.'}}', '{{db|'.$ring_of_two_redirects.'}}'."\n#REDIRECT [[$mr]]" );
+                  if( $editor->{errstr} ne '' )
+                  {
+                    $failed_count+=1;
+                    $editor->{errstr}='';
+                    print ":: echo error editing a ring of two redirects\n";
+                  }
+                  else
+                  {
+                    $redir_pair+=1;
+                    print ":: echo a ring of two redirects\n";
+                  }
+                }
+              }
+              else
+              {
+                # applying an anchor if required
+                if( $anchor ne '' )
+                {
+                  $target=$target.'#'.$anchor;
+                }
+
+                # resolving the double redirect
+                do_edit( $mr, $regular_edit_text, "#REDIRECT [[$target]]");
+                if( $editor->{errstr} ne '' )
+                {
+                  $failed_count+=1;
+                  $editor->{errstr}='';
+                  print ":: echo error editing to resolve double redirect\n";
+                }
+                else
+                {
+                  print ":: echo a redirect resolved\n";
                 }
               }
             }
             else
             {
-              # applying an anchor if required
-              if( $anchor ne '' )
-              {
-                $target=$target.'#'.$anchor;
-              }
-
-              # resolving the double redirect
-              do_edit( $mr, $regular_edit_text, "#REDIRECT [[$target]]");
-              if( $editor->{errstr} ne '' )
-              {
-                $failed_count+=1;
-                $editor->{errstr}='';
-                print ":: echo error editing to resolve double redirect\n";
-              }
-              else
-              {
-                print ":: echo a redirect resolved\n";
-              }
+              print ":: echo not a multiple redirect actually\n";
+              $ntd_count+=1;
             }
-          }
-          else
-          {
-            print ":: echo not a multiple redirect actually\n";
-            $ntd_count+=1;
           }
         }
       }
-    }
-    else
-    {
-      print ":: echo first redirect not found\n";
-      $ntd_count+=1;
+      else
+      {
+        print ":: echo first redirect not found\n";
+        $ntd_count+=1;
+      }
     }
   }
-}
 
-print ":: echo $self_redir redirects point itself, $redir_pair rings of two redirects\n";
-print ":: echo $success_count successfull edits, $ntd_count items with nothing to do, $failed_count failed edits\n";
+  print ":: echo $self_redir redirects point itself, $redir_pair rings of two redirects\n";
+  print ":: echo $success_count successfull edits, $ntd_count items with nothing to do, $failed_count failed edits\n";
+}
+elsif( ${operation_mode} eq 'cc' ) {
+  print ":: echo isolated categories creation is not yet fully supported\n";
+}
 
 # </pre>

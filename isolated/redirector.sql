@@ -331,7 +331,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
                WHERE l_from=r_id;
     END IF;
 
-    CALL outifexists( 'mr', 'redirects linking redirects', 'mr.info', 'mr_title', 'upload' );
+    CALL outifexists( 'mr', 'redirects linking redirects', 'mr.info', 'mr_title', 'upload mr' );
 
     DROP TABLE mr;
 

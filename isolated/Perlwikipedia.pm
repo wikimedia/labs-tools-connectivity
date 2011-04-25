@@ -112,6 +112,12 @@ sub _put {
     my $extra   = shift;
     my $res     = $self->_get( $page, 'edit', $extra );
 
+# debug output
+#    my $content = $res->decoded_content();
+#    open DEBUGFILE, '>edit.content.txt' or die ":: echo $!";
+#    print DEBUGFILE $content;
+#    close DEBUGFILE;
+
     unless ($res) { return; }
     if ( ( $res->decoded_content ) =~ m/<textarea .+?readonly=['"]readonly['"]/ ) {
         $self->{errstr} = "Error editing $page: Page is protected";
@@ -119,6 +125,17 @@ sub _put {
         return 0;
     }
     $res = $self->{mech}->submit_form( %{$options} );
+# debug output
+#    print "response code: ".$res->code."\n";
+#    print "response message: ".$res->message."\n";
+#    print "response status_line: ".$res->status_line."\n";
+#    print "response is_info: ".$res->is_info."\n";
+#    print "response is_success: ".$res->is_success."\n";
+#    print "response is_redirect: ".$res->is_redirect."\n";
+#    my $content = $res->decoded_content();
+#    open DEBUGFILE, '>response.content.txt' or die ":: echo $!";
+#    print DEBUGFILE $content;
+#    close DEBUGFILE;
     return $res;
 }
 

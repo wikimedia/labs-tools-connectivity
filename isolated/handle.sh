@@ -22,9 +22,12 @@
  #                                   if replagdependent operations possible
  #         :: out <fn>             - opens file <fn> and switches all output
  #                                   there till the next command came
- #         :: upload <fn> <url>    - resolves multiple redirects given with
- #                                   use of mr.pl and stores data to a 
- #                                   a file as 'out' does
+ #         :: upload <mode> <fn>   - mode 'mr' enables resolving of
+ #                                             multiple redirects
+ #                                   mode 'cc' initiates category pages
+ #                                             creation for isolates
+ #                                   always stores data to a file like ':: out'
+ #                                 - 
  #         :: stat <curts> <uts>   - uploads latest *.articles.stat file if
  #                                   difference between timestamp is above
  #                                   some threshold
@@ -87,7 +90,9 @@ extminutes ()
 }
 
 state=0
-out='';
+out=''
+upload_mode=''
+
 handle ()
 {
   local line=$1
@@ -120,23 +125,48 @@ handle ()
           iter=$(($iter+1))
         done
       } >> $out
-      if [ "$do_mr" = "1" ]
-      then
-        if [ -f ${language}.no_mr.log ]
+
+      case ${upload_mode} in
+      'mr')
+        if [ "$do_mr" = "1" ]
         then
-          do_mr=0
-        else
-          {
-            iter=0
-            while (($iter < $elem))
-            do
-              echo ${collection[$iter]}
-              iter=$(($iter+1))
-            done
-            sync
-          } | perl mr.pl $language $usr | ./handle.sh $cmdl &
+          if [ -f ${language}.no_mr.log ]
+          then
+            do_mr=0
+          else
+            {
+              iter=0
+              while (($iter < $elem))
+              do
+                echo ${collection[$iter]}
+                iter=$(($iter+1))
+              done
+              sync
+            } | perl mr.pl mr $language $usr | ./handle.sh $cmdl &
+          fi
         fi
-      fi
+        ;;
+      'cc')
+        if [ "$do_templates" = 1 ]
+        then
+          if [ -f ${language}.no_templates.log ]
+          then
+            do_templates=0
+          else
+            {
+              iter=0
+              while (($iter < $elem))
+              do
+                echo ${collection[$iter]}
+                iter=$(($iter+1))
+              done
+              sync
+            } | perl mr.pl cc $language $usr | ./handle.sh $cmdl &
+          fi
+        fi
+        ;;
+      *) ;;
+      esac
       unset collection
       ;;
     *) ;;
@@ -165,7 +195,7 @@ handle ()
        sync
        ;;
     'out')
-       out=${language}.${line:7}
+       out=${language}.${sline[2]}
        state=1 # file output
        if [ ! -f $out ]
        then
@@ -177,10 +207,10 @@ handle ()
        fi
        ;;
     'upload')
-       out=${language}.${line:10}
+       upload_mode=${sline[2]}
+       out=${language}.${sline[3]}
        state=2 # upload and file output
        # need better way for url definition, maybe sql driven
-       outpage=${out:15:2}
        if [ ! -f $out ]
        then
          echo -ne \\0357\\0273\\0277 > $out

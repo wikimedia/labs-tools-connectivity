@@ -1,34 +1,34 @@
 body {
-    background: white;
-    font-family: 'Arial', 'Liberation Sans', sans-serif;
-    font-size: 10pt;
-    color: black;
-    position: absolute;
-    margin: 1.5em 5%;
+  background: white;
+  font-family: 'Arial', 'Liberation Sans', sans-serif;
+  font-size: 10pt;
+  color: black;
+  position: absolute;
+  margin: 1.5em 5%;
 }
 
 #heading h1 {
-    text-align: center;
-    letter-spacing: 1px;
-    margin: 0;
-    font-weight: normal;
+  text-align: center;
+  letter-spacing: 1px;
+  margin: 0;
+  font-weight: normal;
 }
 
 #heading h4 {
-    margin: 0;
-    font-weight: normal;
-    font-size: 85%;
-    color: #AAA;
-    text-align: center;
+  margin: 0;
+  font-weight: normal;
+  font-size: 85%;
+  color: #AAA;
+  text-align: center;
 }
 
 #language {
-    color: white;
-    font-size: 85%;
-    padding: 0 0.3em;
-    background: #F60;
-    text-decoration: none;
-    letter-spacing: 0;
+  color: white;
+  font-size: 85%;
+  padding: 0 0.3em;
+  background: #F60;
+  text-decoration: none;
+  letter-spacing: 0;
 }
 
 #curlang {
@@ -39,8 +39,17 @@ body {
   letter-spacing: 0;
 }
 
+p.example {
+  margin: 0;
+  font-weight: normal;
+  font-size: 100%;
+  color: #AAA;
+  text-align: center;
+}
+
 p.lookat {
   color: red;
+  margin: 0;
 }
 
 ul.warning {
@@ -48,14 +57,14 @@ ul.warning {
 }
 
 ul.clean {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
 ul.clean li {
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
 }
 
 ul.list {
@@ -86,21 +95,35 @@ ul.disambigmenu {
   font-size: 12pt;
 }
 
+ul.iflang {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  font-size:85%;
+}
+
+ul.iflang li {
+  display: inline-block;
+  padding: 0 0.4em;
+  color: #AAA;
+  white-space: nowrap;
+}
+
 #updated {
-    float: left;
-    position: absolute;
-    color: #AAA;
-    font-size: 85%;
-    width: 30em;
+  float: left;
+  position: absolute;
+  color: #AAA;
+  font-size: 85%;
+  width: 30em;
 }
 
 #powered-by {
-    float: right;
-    color: #CCC;
-    text-align: right;
-    width: 12em;
-    position: absolute;
-    right: 0;
+  float: right;
+  color: #CCC;
+  text-align: right;
+  width: 12em;
+  position: absolute;
+  right: 0;
 }
 
 div.shifter {
@@ -109,204 +132,205 @@ div.shifter {
 }
 
 a {
-    color: rgb(16, 82, 204);
-    text-decoration: none;
+  color: rgb(16, 82, 204);
+  text-decoration: none;
 }
 
 a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 a:visited {
-    color: rgb(82, 16, 204);
+  color: rgb(82, 16, 204);
 }
 
 a:active {
-    color: rgb(240, 120, 60);
+  color: rgb(240, 120, 60);
 }
 
 #languages {
-    clear: both;
-    margin-top: 1em;
-    padding: 1em 0;
-    border-top: 3px solid #CCC;
+  clear: both;
+  margin-top: 1em;
+  padding: 1em 0;
+  border-top: 3px solid #CCC;
 }
 
 #languages2 {
-    clear: both;
-    margin-top: 1em;
-    padding: 1em 0;
-    border-top: 3px solid #CCC;
+  clear: both;
+  margin-top: 1em;
+  padding: 1em 0;
+  border-top: 3px solid #CCC;
 }
 
 .langgroup {
-    float: left;
-    width: 30%;
-    margin-right: 3%;
+  float: left;
+  width: 30%;
+  margin-right: 3%;
 }
 
 .langgroup h6 {
-    font-weight: normal;
-    font-size: 110%;
-    margin: 0 0 1em;
-    color: #888;
+  font-weight: normal;
+  font-size: 110%;
+  margin: 0 0 1em;
+  color: #888;
 }
 
 .langgroup ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    line-height: 1.5em;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  line-height: 1.5em;
 }
 
 .langgroup ul li {
-    display: inline-block;
-    padding: 0 0.4em;
-    white-space: nowrap;
+  display: inline-block;
+  padding: 0 0.4em;
+  white-space: nowrap;
 }
 
 .widelanggroup {
-    float: left;
-    width: 100%;
-    margin-right: 0;
+  float: left;
+  width: 100%;
+  margin-right: 0;
 }
 
 .widelanggroup h6 {
-    font-weight: normal;
-    font-size: 110%;
-    margin: 0 0 1em;
-    color: #888;
+  font-weight: normal;
+  font-size: 110%;
+  margin: 0 0 1em;
+  color: #888;
 }
 
 .widelanggroup ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    line-height: 1.5em;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  line-height: 1.5em;
 }
 
 .widelanggroup ul li {
-    display: inline-block;
-    padding: 0 0.4em;
-    white-space: nowrap;
+  display: inline-block;
+  padding: 0 0.4em;
+  white-space: nowrap;
 }
 
 #wrapper {
-    margin-top: 4em;
-    margin-bottom: 2em;
-    width: 100%;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  width: 100%;
 }
 
 #widecontent {
-    float: right;
-    width: 100%;
+  float: right;
+  width: 100%;
 }
 
 #content {
-    float: right;
-    width: 70%;
-    overflow: hidden;
+  float: right;
+  width: 70%;
+  overflow: hidden;
 }
 
 #navigation {
-    float: left;
-    width: 30%;
+  float: left;
+  width: 30%;
 }
 
 .data {
-    font-weight: bold;
-    font-size: 130%;
+  font-weight: bold;
+  font-size: 130%;
 }
 
 .content-block {
-    overflow: hidden;
-    padding-bottom: 1em;
+  overflow: hidden;
+  padding-bottom: 1em;
 }
 
 .aside {
-    float: right;
-    width: 55%;
-    margin-left: 5%;
-    padding-left: 3%;
-    border-left: 5px solid #BBB;
+  float: right;
+  width: 55%;
+  margin-left: 5%;
+  padding-left: 3%;
+  border-left: 5px solid #BBB;
 }
 
 .large {
-    font-size: 150%;
+  font-size: 150%;
 }
 
 #navigation ul {
-    list-style-type: none;
-    padding: 0;
+  list-style-type: none;
+  padding: 0;
 }
 
 #navigation li ul {
-    padding-left: 1.25em;
+  padding-left: 1.25em;
 }
 
 #navigation li {
-    padding: 0;
-    margin: 0.35em 0.25em 0 0;
+  padding: 0;
+  margin: 0.35em 0.25em 0 0;
 }
 
 .beta {
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding-left: 0.6em;
-    color: #AAA;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding-left: 0.6em;
+  color: #AAA;
 }
 
 #navigation a {
-    padding: 0 3px;
-    display: inline-block;
+  padding: 0 3px;
+  display: inline-block;
 }
 
 #navigation em {
-    font-style: normal;
-    font-weight: normal;
-    padding-left: 3px;
+  font-style: normal;
+  font-weight: normal;
+  padding-left: 3px;
 }
 
 a.bolded {
-    font-size: 110%;
-    font-weight: bold;
+  font-size: 110%;
+  font-weight: bold;
 }
 
 a.current {
-    color: white !important;
-    background: rgb(16, 82, 204);
-    padding-top: 3px;
+  color: white !important;
+  background: rgb(16, 82, 204);
+  padding-top: 3px;
 }
 
 a.current:visited {
-    background: rgb(82, 16, 204);
+  background: rgb(82, 16, 204);
 }
 
 a.current:active {
-    background: rgb(240, 120, 60);
+  background: rgb(240, 120, 60);
 }
+
 a.language {
-    color: #A94;
+  color: #A94;
 }
 
 a.category {
-    color: #B25;
+  color: #B25;
 }
 
 a.language.current {
-    background: #A94;
+  background: #A94;
 }
 
 a.category.current {
-    background: #B25;
+  background: #B25;
 }
 
 a.title.current {
-    background: #F55;
+  background: #F55;
 }
 
 a.creator.current {
-    background: #F55;
+  background: #F55;
 }
 
 img {
