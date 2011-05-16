@@ -2,6 +2,8 @@ isolated_flexies ()
 {
   local isolated=$1
 
+  __isolated=$_isolated1
+
   if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ]
   then
     __isolated=$_isolated
@@ -33,7 +35,8 @@ isoarticles ()
 {
   local articles=$1
   local ia=$2
-  local lim=$3
+  local iatc=$3
+  local lim=$4
 
   if no_sql_error $ia
   then
@@ -54,7 +57,17 @@ isoarticles ()
     isolated_flexies $ia
     echo "<li class=\"large\"><strong class=\"data\">&ndash; $ia</strong> $__isolated</li>"
     echo "<li><strong class=\"data\"><center> = $((articles-ia))</strong> $linked_core</center></li>"
+
     echo "<li>&nbsp;</li>"
+
+    local iaratio=$( echo "scale=3; 100*$ia/$articles" | bc )
+
+    types_flexies $iatc
+
+    echo "<li><strong class=\"data\">$iaratio %</strong> $_of_articles_are_isolated_of <strong class=\"data\">$iatc</strong> $__types.</li>"
+
+    echo "<li>&nbsp;</li>"
+
     if [ "$language" = 'en' ]
     then
       lim=1
@@ -73,7 +86,8 @@ isoarticles ()
 {
   echo SELECT articles \
               FROM zns\;
-  echo SELECT isolated \
+  echo SELECT isolated, \
+              isotypes  \
               FROM inda\;
   echo SELECT cluster_limit                        \
               FROM u_${usr}_golem_p.language_stats \

@@ -102,42 +102,6 @@ lists_flexies ()
   fi
 }
 
-types_flexies ()
-{
-  local types=$1
-
-  __types=$_types1
-
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ]
-  then
-    if [ "$types" != '1' ]
-    then
-      __types=$_types
-    fi
-  else
-    if [ "${types:(-1)}" = '5' ] ||
-       [ "${types:(-1)}" = '6' ] ||
-       [ "${types:(-1)}" = '7' ] ||
-       [ "${types:(-1)}" = '8' ] ||
-       [ "${types:(-1)}" = '9' ] ||
-       [ "${types:(-1)}" = '0' ] ||
-       [ "${types:(-2)}" = '11' ] ||
-       [ "${types:(-2)}" = '12' ] ||
-       [ "${types:(-2)}" = '13' ] ||
-       [ "${types:(-2)}" = '14' ]
-    then
-      __types=$_types5678901234
-    else
-      if [ "${types:(-1)}" = '2' ] ||
-         [ "${types:(-1)}" = '3' ] ||
-         [ "${types:(-1)}" = '4' ]
-      then
-        __types=$_types234
-      fi
-    fi
-  fi
-}
-
 deadend_flexies ()
 {
   local deadend=$1
@@ -415,13 +379,20 @@ isoarticles ()
 resume ()
 {
     {
-      echo SELECT \* \
+      echo SELECT articles, \
+                  chrono,   \
+                  disambig, \
+                  cllt      \
                   FROM zns\;
-      echo SELECT \* \
+      echo SELECT isolated, \
+                  isotypes, \
+                  deadend   \
                   FROM inda\;
-      echo SELECT \* \
+      echo SELECT clinks, \
+                  alinks  \
                   FROM fch\;
-      echo SELECT \* \
+      echo SELECT clratio, \
+                  linksc   \
                   FROM tch\;
     } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | { 
                       read -r line
