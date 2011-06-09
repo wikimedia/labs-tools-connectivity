@@ -220,7 +220,8 @@ class Wiki {
 		
 		if( isset( $configuration['editsperminute'] ) && $configuration['editsperminute'] != 0) {
 			$this->edit_rate = $configuration['editsperminute'];
-		}
+		} else 
+			$this->edit_rate = 10; // FIXME: EDIT RATE DIRTY HACK
 		
 		if( isset( $configuration['proxyaddr'] ) ) {
 			$pgProxy['addr'] = $configuration['proxyaddr'];

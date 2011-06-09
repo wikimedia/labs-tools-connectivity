@@ -131,11 +131,15 @@ class Peachy {
 		pecho( "Loading Peachy (version " . PEACHYVERSION . ")...\n\n", PECHO_NORMAL );
 		
 		//throw new APIError( array( 'code' => "nopage", 'text' => "nopage exists" ) );
-		if( !is_null( $config_name ) ) {
+		if(is_array($config_name)) {
+			$config_params = $config_name;
+			$config_params['username'] = $username;
+			$config_params['password'] = $password;
+			$config_params['baseurl'] = $base_url;
+		} elseif( !is_null( $config_name ) ) {
 			$config_params = self::parse_config( $config_name );
 		
-		}
-		else {
+		} else {
 			$config_params = array(
 				'username' => $username,
 				'password' => $password,
