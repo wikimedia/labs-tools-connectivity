@@ -179,6 +179,8 @@ class Melog {
 		}
 		
 		$this->_finishSummary();
+		
+		$this->_text = preg_replace('~\n{3,}~', '\n\n', $this->_text); // deleting excessive line breaks
 		$rev = $page->edit(trim($this->_text), $this->_summary, true, true, null, 'never');
 		if(is_int($rev)) {
 			pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);

@@ -185,6 +185,15 @@ class Template {
         return;
     }
     
+    /**
+     * Overloading for empty to work correctly with private fields got thtough __get
+     * @param mixed $var
+     * @return boolean
+     */
+	public function __isset($var) {
+		return isset($this->$var);
+	}
+    
     public function __toString() {
         $return = $this->open;
         $return .= $this->name;

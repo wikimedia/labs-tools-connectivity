@@ -69,7 +69,7 @@ class Options_ru extends Options {
 	private function _deleteRqArguments( $arguments ) {
 		if(is_array($arguments))
 			foreach($arguments as $argument)
-				deleteRqArguments($argument);
+				$this->_deleteRqArguments($argument);
 		
 		if(!is_string($arguments))
 			return;
@@ -77,6 +77,7 @@ class Options_ru extends Options {
 		$template = new Template($this->_text, 'rq');
 		if($template) {
 			$template->removeanonfield($arguments);
+			
 			// delete {{rq}} if there are no arguments for it left
 			$this->_text = (empty($template->fields))? $template->deleteTemplate() : $template->wholePage();
 		}
