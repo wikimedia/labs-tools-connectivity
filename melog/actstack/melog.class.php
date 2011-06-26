@@ -157,9 +157,17 @@ class Melog {
 	 */
 	private function _processArticle($title, $noncat, $deadend, $iso, $cluster='') {
 		$page = new Page($this->_wiki, $title, null, false, true);
+		pecho("== {$title} ==", PECHO_LOG);
+		
+		// Avoiding non-existent pages creating
+		if(!$page->get_id()) {
+			pecho("Page does not exist. Skipping.", PECHO_LOG);
+			return;
+		}
+		pecho("Page ID: ".$page->get_id(), PECHO_LOG);
+		
 		$this->_text = $page->get_text();
 		$this->_summary = '';
-		pecho("== {$title} ==", PECHO_LOG);
 		
 		if($this->_skipGlobal()) { // global skip rules
 			unset($page);
@@ -180,8 +188,8 @@ class Melog {
 		
 		$this->_finishSummary();
 		
-		$this->_text = preg_replace('~\n{3,}~', '\n\n', $this->_text); // deleting excessive line breaks
-		$rev = $page->edit(trim($this->_text), $this->_summary, true, true, null, 'never');
+		$this->_text = preg_replace('~\n{3,}~', "\n\n", $this->_text); // deleting excessive line breaks
+		$rev = $page->edit(trim($this->_text), $this->_summary, true, true, null);
 		if(is_int($rev)) {
 			pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);
 		} else {
@@ -221,7 +229,7 @@ class Melog {
 			if(preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).':|\[\[[a-z\-]{2,8}:)/ui', $this->_text)) {
 				$this->_text = preg_replace('/\n*(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:)/ui', "\n\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}\n\n\\1", $this->_text, 1);
 			} else {
-				$this->_text .= "\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}";
+				$this->_text .= "\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}\n";
 			}
 			$this->_appendSummary('tagged isolated of cluster '. (($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') ));
 			pecho("Isolated template set with cluster chain ".(($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') ).".", PECHO_LOG);

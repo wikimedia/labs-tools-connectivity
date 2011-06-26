@@ -86,7 +86,7 @@ require_once( $IP . 'Script.php' );
 
 $pgProxy = array();
 // $pgVerbose = array(0,1,2,3,4);
-$pgVerbose = array(3,4); // only error and fatal messages are passed to output
+$pgVerbose = array(1,2,3,4); // only error and fatal messages are passed to output
 $pgLog = '';
 $pgUA = 'Peachy MediaWiki Bot API Version ' . PEACHYVERSION;
 $mwVersion = null;
