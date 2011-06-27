@@ -39,6 +39,12 @@ class Melog {
 	private $_summary;
 	
 	/**
+	 * Edit fail counter
+	 * @var int
+	 */
+	private $_editFailCount;
+	
+	/**
 	 * Melog class constructor
 	 * @param string $lang		language to work with
 	 * @param string $login		login for API
@@ -59,6 +65,7 @@ class Melog {
 		}
 		
 		$this->_wiki = Peachy::newWiki( null, $login, $password, 'http://'.$this->_lang.'.wikipedia.org/w/api.php' );
+		$this->_editFailCount = 0; // resetting fail counter
 	}
 	
 	/**
@@ -67,24 +74,6 @@ class Melog {
 	public function processTask($task) { // method wrap left for compatibility reasons
 		$this->_processTask($task);
 	}
-	
-	/*public function processTask() {
-		$task = file_get_contents( __DIR__ . '/../task.'.$this->_lang.'.txt' );
-		if(!$task) {
-			pecho('Task file not found or empty.', array(PECHO_LOG, PECHO_FATAL));
-			return false;
-		}
-		
-		// deleting BOM if found
-		if(substr($task, 0,3) == pack('CCC',0xef,0xbb,0xbf)) { 
-	        $task=substr($task, 3); 
-	    } 
-		
-		$task = explode( "\n", trim($task) );
-		
-		$this->_processTask($task);
-		return true;
-	}*/
 	
 	/**
 	 * Returns the language bot is working with
@@ -143,7 +132,11 @@ class Melog {
 	private function _processTask($tasks=array()) {
 		foreach($tasks as $task) {
 			list($title, $ncaact, $deact, $isoact, $cluster) = explode(" ", $task);
-			$this->_processArticle(trim($title), trim($ncaact), trim($deact), trim($isoact), trim($cluster));
+			
+			while(($this->_editFailCount++) < 3) {
+				if($this->_processArticle(trim($title), trim($ncaact), trim($deact), trim($isoact), trim($cluster)))
+					break;
+			}
 		}
 	}
 
@@ -162,7 +155,7 @@ class Melog {
 		// Avoiding non-existent pages creating
 		if(!$page->get_id()) {
 			pecho("Page does not exist. Skipping.", PECHO_LOG);
-			return;
+			return true;
 		}
 		pecho("Page ID: ".$page->get_id(), PECHO_LOG);
 		
@@ -172,7 +165,7 @@ class Melog {
 		if($this->_skipGlobal()) { // global skip rules
 			unset($page);
 			pecho("Global skip options went off, skipping article.", PECHO_LOG);
-			return;
+			return true;
 		}
 		
 		$this->_fixIsolated($iso, $cluster);
@@ -181,21 +174,24 @@ class Melog {
 		
 		// preventing from wiping pages
 		if(trim($this->_text) == '') {
-			pecho('All contents are deleted, leaving the article unprocessed.', array(PECHO_WARN, PECHO_LOG));
+			pecho('All contents are to be deleted, leaving the article unprocessed.', array(PECHO_WARN, PECHO_LOG));
 			unset($page);
-			return;
+			return true; // it's not true indeed, but trying more makes no sense
 		}
 		
 		$this->_finishSummary();
 		
 		$this->_text = preg_replace('~\n{3,}~', "\n\n", $this->_text); // deleting excessive line breaks
-		$rev = $page->edit(trim($this->_text), $this->_summary, true, true, null);
+		$rev = $page->edit(trim($this->_text), $this->_summary, true, true);
+		unset($page);
 		if(is_int($rev)) {
+			$this->_editFailCount = 0;
 			pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);
+			return true;
 		} else {
 			pecho("Article was not commited due to unrevealed problems.", PECHO_LOG);
+			return false;
 		}
-		unset($page);
 	}
 	
 	/**
