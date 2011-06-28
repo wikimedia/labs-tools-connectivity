@@ -242,8 +242,8 @@ class Melog {
 			return;
 
 		if($status == -1) {
-			$this->_text = preg_replace('/\[\['.$this->_l10n->getNamespaceName(14).':'.$this->_l10n->getArray('noncategorized', 'category').'\]\]\n/i', '', $this->_text);
-			$this->_text = preg_replace('/\{\{'.$this->_l10n->getArray('noncategorized', 'template').'\}\}(\n{1,2})*/i', '', $this->_text);
+			$this->_text = preg_replace('/\[\['.$this->_l10n->getNamespaceName(14).':'.$this->_l10n->getArray('noncategorized', 'category').'\]\]\n*/i', '', $this->_text);
+			$this->_text = preg_replace('/\{\{'.$this->_l10n->getArray('noncategorized', 'template').'\}\}\n*/i', '', $this->_text);
 			
 			$this->_appendSummary('untagged non-categorized');
 			pecho("Non-categorized template deleted.", PECHO_LOG);
@@ -270,7 +270,7 @@ class Melog {
 			return;
 
 		if($status == -1) {
-			$this->_text = preg_replace('/\{\{'.$this->_l10n->getStorage('deadend').'\}\}(\n{1,2})/i', '', $this->_text);
+			$this->_text = preg_replace('/\{\{'.$this->_l10n->getStorage('deadend').'\}\}\n*/i', '', $this->_text);
 			
 			$this->_appendSummary('untagged dead-end');
 			pecho("Dead-end template deleted.", PECHO_LOG);
