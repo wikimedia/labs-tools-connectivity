@@ -56,7 +56,7 @@ function createI18nCache($lang) {
 }
 
 function getIsolated(&$db) {
-	$query1 = 'SELECT cl.cl_to FROM categorylinks cl JOIN page p ON cl.cl_from = p.page_id WHERE p.page_title = "ConnectivityProjectInternationalization/IsolatedArticles" ORDER BY cl.cl_sortkey ASC';
+	$query1 = 'SELECT cl.cl_to FROM categorylinks cl JOIN page p ON cl.cl_from = p.page_id WHERE p.page_title = "ConnectivityProjectInternationalization/IsolatedArticles" AND cl_to NOT LIKE "%сироты%"  ORDER BY cl.cl_sortkey ASC'; // NASY HACK to avoid deprecated category in the result (for ruwiki)
 	$query2 = 'SELECT pl.pl_title FROM pagelinks pl JOIN page p ON pl.pl_from = p.page_id WHERE p.page_title = "ConnectivityProjectInternationalization/IsolatedArticles" AND pl.pl_namespace IN (10, 14) ORDER BY pl.pl_namespace ASC';
 	
 	$data = $db->selectCol($query1);
