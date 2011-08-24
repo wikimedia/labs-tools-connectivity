@@ -34,15 +34,37 @@ DROP PROCEDURE IF EXISTS cleanup_wrong_redirects//
 CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
   BEGIN
     DECLARE st VARCHAR(255);
+    DECLARE res VARCHAR(255);
+    DECLARE eng VARCHAR(7) DEFAULT 'MEMORY';
+
+    SELECT cry_for_memory( 32*@redirects_count ) INTO @res;
+    IF @res!=''
+      THEN
+        SELECT CONCAT( ':: echo ', @res );
+        IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+          THEN
+            SELECT 'MyISAM' INTO @eng;
+        END IF;
+    END IF;
 
     # the amount of links from redirect pages in a given namespace
     DROP TABLE IF EXISTS rlc;
-    CREATE TABLE rlc (
-      rlc_cnt int(8) unsigned NOT NULL default '0',
-      rlc_id int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO rlc (rlc_cnt, rlc_id) SELECT count(*) as rlc_cnt, r_id as rlc_id  FROM pl, r', namespace, ' WHERE pl_from=r_id GROUP BY r_id;' );
+    SET @st=CONCAT( "CREATE TABLE rlc ( rlc_cnt int(8) unsigned NOT NULL default '0', rlc_id int(8) unsigned NOT NULL default '0' ) ENGINE=", @eng, ";" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    #
+    # INSERT INTO rlc (rlc_cnt, rlc_id)
+    # SELECT count(*) as rlc_cnt,
+    #        r_id as rlc_id
+    #        FROM pl,
+    #             r<namespace>
+    #        WHERE pl_from=r_id
+    #        GROUP BY r_id;
+    #
+    SET @st=CONCAT( 'INSERT INTO rlc (rlc_cnt, rlc_id) SELECT count(*) as rlc_cnt, r_id as rlc_id FROM pl, r', namespace, ' WHERE pl_from=r_id GROUP BY r_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -182,25 +204,19 @@ DROP PROCEDURE IF EXISTS fast_nr2X2nr//
 CREATE PROCEDURE fast_nr2X2nr (namespace INT)
   BEGIN
     DECLARE st VARCHAR(255);
-    DECLARE cnt INT;
     DECLARE portion INT;
     DECLARE shift INT DEFAULT '0';
     DECLARE pcnt INT;
     DECLARE iteration INT DEFAULT '0';
 
-    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM pl, r', namespace, ' WHERE pl_to=r_id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    SELECT CAST(@@max_heap_table_size/32 AS UNSIGNED) INTO portion;
 
-    SELECT CONCAT( ':: echo nr2r links amount is estimated as ', @cnt, ' records' );
+    SET pcnt=portion;
 
-    SELECT CAST(@memory_table_capacity/32 AS UNSIGNED) INTO portion;
-
-    SELECT CONCAT( ':: echo MEMORY table capacity is limited to store up to ', portion, ' indexed nr2r records' );
+    SELECT CONCAT( ':: echo ... MEMORY table capacity is limited to store up to ', portion, ' indexed nr2r records' );
 
     DROP TABLE IF EXISTS nr2r;
-    WHILE @cnt>0 DO
+    WHILE pcnt=portion DO
 
       CREATE TABLE nr2r (
         nr2r_to int(8) unsigned NOT NULL default '0',
@@ -208,6 +224,20 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
         KEY (nr2r_to)
       ) ENGINE=MEMORY;
 
+      #
+      # INSERT INTO nr2r (nr2r_to, nr2r_from)
+      # SELECT r_id as nr2r_to,
+      #        pl_from as nr2r_from
+      #        FROM pl,
+      #             r<namespace>
+      #        WHERE pl_from in (
+      #                           SELECT id
+      #                                  FROM nr<namespace>
+      #                         ) and
+      #              pl_to=r_id
+      #        ORDER BY r_id
+      #        LIMIT <shift>,<portion>;
+      #
       SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
       PREPARE stmt FROM @st;
       EXECUTE stmt;
@@ -218,16 +248,13 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
 
       IF pcnt>0
         THEN
-
           SELECT CONCAT( ':: echo ', pcnt, ' links from non-redirects to redirects encountered at iteration ', iteration );
 
           CALL nr2X2nr();
-
       END IF;
 
       DROP TABLE nr2r;
 
-      SELECT @cnt-portion INTO @cnt;
       SELECT shift+portion INTO shift;
       SELECT iteration+1 INTO iteration;
 
@@ -282,7 +309,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
       THEN
-        SELECT ':: echo MyISAM engine is chosen for redirect identifiers table';
+        SELECT ':: echo ... MyISAM engine is chosen for redirect identifiers table';
         SELECT 'MyISAM' INTO @r_identifiers_engine;
       ELSE
         SELECT 'MEMORY' INTO @r_identifiers_engine;
@@ -395,11 +422,24 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     # All links from our namespace redirects to non-redirects.
     DROP TABLE IF EXISTS r2nr;
-    CREATE TABLE r2nr (
-      r2nr_to int(8) unsigned NOT NULL default '0',
-      r2nr_from int(8) unsigned NOT NULL default '0'
-    ) ENGINE=MEMORY;
 
+    SET @st=CONCAT( "CREATE TABLE r2nr ( r2nr_to int(8) unsigned NOT NULL default '0', r2nr_from int(8) unsigned NOT NULL default '0' ) ENGINE=", @nr_eng, ";" );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    #
+    # INSERT INTO r2nr (r2nr_to, r2nr_from)
+    # SELECT nr<namespace>.id as r2nr_to,
+    #        pl_from as r2nr_from
+    #        FROM pl,
+    #             nr<namespace>
+    #        WHERE pl_from in (
+    #                           SELECT pid
+    #                                  FROM rrr
+    #                         ) and
+    #              pl_to=nr<namespace>.id;
+    #
     SET @st=CONCAT( 'INSERT INTO r2nr (r2nr_to, r2nr_from) SELECT nr', namespace, '.id as r2nr_to, pl_from as r2nr_from FROM pl, nr', namespace, ' WHERE pl_from in ( SELECT pid FROM rrr ) and pl_to=nr', namespace, '.id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
@@ -432,51 +472,54 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
         SELECT d_id as cnad_id
                FROM d;
 
-        #
-        # Redirects to pages not forming valid links.
-        #
-        DROP TABLE IF EXISTS cnar;
-        CREATE TABLE cnar (
-          cnar_id int(8) unsigned NOT NULL default '0',
-          KEY (cnar_id)
-        ) ENGINE=MEMORY AS
-        SELECT DISTINCT r2nr_from as cnar_id
-               FROM r2nr,
-                    cna
-               WHERE r2nr_to=cna_id;
+        IF @iwspy!='off'
+          THEN
+            #
+            # Redirects to pages not forming valid links.
+            #
+            DROP TABLE IF EXISTS cnar;
+            CREATE TABLE cnar (
+              cnar_id int(8) unsigned NOT NULL default '0',
+              KEY (cnar_id)
+            ) ENGINE=MEMORY AS
+            SELECT DISTINCT r2nr_from as cnar_id
+                   FROM r2nr,
+                        cna
+                   WHERE r2nr_to=cna_id;
 
-        #
-        # For redundant titles filtering in iwikispy.
-        #
-        DROP TABLE IF EXISTS iw_filter;
-        CREATE TABLE iw_filter (
-          name varchar(255) binary NOT NULL default '',
-          PRIMARY KEY (name)
-        ) ENGINE=MEMORY;
+            #
+            # For redundant titles filtering in iwikispy.
+            #
+            DROP TABLE IF EXISTS iw_filter;
+            CREATE TABLE iw_filter (
+              name varchar(255) binary NOT NULL default '',
+              PRIMARY KEY (name)
+            ) ENGINE=MEMORY;
 
-        INSERT INTO iw_filter (name)
-        SELECT title as name
-               FROM nr0,
-                    cna
-               WHERE cna_id=id;
+            INSERT INTO iw_filter (name)
+            SELECT title as name
+                   FROM nr0,
+                        cna
+                   WHERE cna_id=id;
 
-        #
-        # Note: Redirects are being merged to articles,
-        #       so key violation looks impossible.
-        #       However, better to prevent, because data is live and could
-        #       change during selection.
-        #
-        INSERT INTO iw_filter (name)
-        SELECT r_title as name
-               FROM r0,
-                    cnar
-               WHERE cnar_id=r_id
-        ON DUPLICATE KEY UPDATE name=r_title;
+            #
+            # Note: Redirects are being merged to articles,
+            #       so key violation looks impossible.
+            #       However, better to prevent, because data is live and could
+            #       change during selection.
+            #
+            INSERT INTO iw_filter (name)
+            SELECT r_title as name
+                   FROM r0,
+                        cnar
+                   WHERE cnar_id=r_id
+            ON DUPLICATE KEY UPDATE name=r_title;
 
-        SELECT CONCAT( ':: echo ', count(*), ' distinct page titles correspond to pages not forming valid links' )
-               FROM iw_filter;
+            SELECT CONCAT( ':: echo ', count(*), ' distinct page titles correspond to pages not forming valid links' )
+                   FROM iw_filter;
 
-        DROP TABLE cnar;
+            DROP TABLE cnar;
+        END IF;
     END IF;
 
     #

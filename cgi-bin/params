@@ -57,6 +57,7 @@ language_sql=${language//\-/_}
 # Any working server should be queried here
 #
 anysrv=2
+www=1
 source ./ts ${anysrv}
 anydbserver=$anysrv
 
@@ -122,22 +123,33 @@ then
   convertedcat=${categorysql// /_}
 fi
 
+get_lname()
+{
+  local l=$1
+
+  local n=$(
+             {
+               echo "SELECT CONCAT( REPLACE(english_name,' ','_'), ' / ', REPLACE(native_name,' ','_') ) FROM toolserver.language WHERE LOWER(lang)='$l';"
+             } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | {
+                              while read -r line
+                                do echo $line
+                              done
+             }
+           )
+  n=${n//_/ }
+  if [ "$n" = '' ]
+  then
+    n="$l.wikipedia.org"
+  fi
+
+  echo $n
+}
+
+nativename=$( get_lname $language )
+
 if [ "$foreign" != '' ]
 then
-  foreignname=$(
-                 {
-                    echo "SELECT CONCAT( REPLACE(english_name,' ','_'), ' / ', REPLACE(native_name,' ','_') ) FROM toolserver.language WHERE LOWER(lang)='${foreign}';"
-                 } | $( sql ${dbserver} u_${usr}_golem_s${dbserver}_${language_sql} ) 2>&1 | {
-                                   while read -r line
-                                     do echo $line
-                                   done
-                 }
-               )
-  foreignname=${foreignname//_/ }
-  if [ "$foreignname" = '' ]
-  then
-    foreignname="$foreign.wikipedia.org"
-  fi
+  foreignname=$( get_lname $foreign )
 fi
 
 if [ "$title" != '' ]

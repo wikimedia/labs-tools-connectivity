@@ -88,10 +88,16 @@ CREATE PROCEDURE combineandout ()
   BEGIN
     DECLARE cnt INT;
     DECLARE st VARCHAR(511);
+    DECLARE tcest INT;
+    DECLARE res VARCHAR(255);
 
     SELECT ':: echo COMBINATOR';
 
     SET @starttime=now();
+
+    SELECT count(*) INTO @tcest
+           FROM isolated
+           WHERE act!=0;
 
     #
     # Create common for isolated and deadend analysis list of articles
@@ -123,6 +129,14 @@ CREATE PROCEDURE combineandout ()
       ELSE
         ALTER TABLE task 
               ADD COLUMN title VARCHAR(511) binary NOT NULL default '';
+    END IF;
+
+    SELECT cry_for_memory( 560*@tcest ) INTO @res;
+
+    IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+      THEN
+        ALTER TABLE task ENGINE=MyISAM;
+        SELECT ':: echo MyISAM engine chosen for task table';
     END IF;
 
     #
@@ -204,6 +218,14 @@ CREATE PROCEDURE combineandout ()
           tc_title VARCHAR(511) binary NOT NULL default '',
           PRIMARY KEY (tc_id)
         ) ENGINE=MEMORY;
+
+        SELECT cry_for_memory( 530*@tcest ) INTO @res;
+
+        IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+          THEN
+            ALTER TABLE task_cache ENGINE=MyISAM;
+            SELECT ':: echo MyISAM engine chosen for task_cache table';
+        END IF;
 
         SET @st=CONCAT( 'INSERT INTO task_cache (tc_id, tc_title) SELECT id, CONCAT( getnsprefix(page.page_namespace,"', @target_lang, '"), page.page_title ) FROM task, ', @dbname, '.page WHERE id=page.page_id;' );
         PREPARE stmt FROM @st;

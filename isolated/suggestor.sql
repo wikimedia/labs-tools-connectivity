@@ -39,7 +39,6 @@ CREATE PROCEDURE suggestor ( srv INT )
       CALL inter_langs( srv );
     END IF;
 
-    DROP TABLE iw_filter;
     DROP TABLE nrcatl0;
 
     DROP TABLE ll_orcat;

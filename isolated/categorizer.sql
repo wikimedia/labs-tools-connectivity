@@ -108,7 +108,7 @@ CREATE PROCEDURE categorylinks (namespace INT)
 
     IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
       THEN
-        SELECT ':: echo MyISAM engine is chosen for categorizing links table';
+        SELECT ':: echo ... MyISAM engine is chosen for categorizing links table';
         SELECT 'MyISAM' INTO @res;
       ELSE
         SELECT 'MEMORY' INTO @res;
@@ -143,11 +143,13 @@ CREATE PROCEDURE notcategorized ()
       PRIMARY KEY (nc_id)
     ) ENGINE=MEMORY;
 
+
     DROP TABLE IF EXISTS yescat;
-    CREATE TABLE yescat ( 
-      yc_id INT(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (yc_id)
-    ) ENGINE=MEMORY;
+
+    SET @st=CONCAT( "CREATE TABLE yescat ( yc_id INT(8) unsigned NOT NULL default '0', PRIMARY KEY (yc_id) ) ENGINE=", @articles_eng, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     INSERT INTO yescat (yc_id)
     SELECT DISTINCT nrcl_from as yc_id

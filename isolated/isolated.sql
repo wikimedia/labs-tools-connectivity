@@ -1056,8 +1056,30 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
     # temporary table
     DROP TABLE IF EXISTS parented;
-    IF targetset!='redirects'
-      THEN
+
+    CASE targetset
+      WHEN 'redirects' THEN
+        SET @st=CONCAT( "CREATE TABLE parented( pid int(8) unsigned NOT NULL default '0', PRIMARY KEY (pid) ) ENGINE=", @r_identifiers_engine, ";" );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SET @st=CONCAT( 'INSERT INTO parented (pid) SELECT r_id as pid FROM r', namespace, ';' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      WHEN 'articles' THEN
+        SET @st=CONCAT( "CREATE TABLE parented( pid int(8) unsigned NOT NULL default '0', PRIMARY KEY (pid) ) ENGINE=", @articles_eng, ";" );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        INSERT INTO parented (pid)
+        SELECT id as pid
+               FROM articles
+               # not sure if sorting does help
+               ORDER by id ASC;
+      ELSE
         CREATE TABLE parented(
           pid int(8) unsigned NOT NULL default '0',
           PRIMARY KEY (pid)
@@ -1068,17 +1090,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
                FROM articles
                # not sure if sorting does help
                ORDER by id ASC;
-      ELSE
-        SET @st=CONCAT( "CREATE TABLE parented( pid int(8) unsigned NOT NULL default '0', PRIMARY KEY (pid) ) ENGINE=", @r_identifiers_engine, ";" );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-        SET @st=CONCAT( 'INSERT INTO parented (pid) SELECT r_id as pid FROM r', namespace, ';' );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-    END IF;
+    END CASE;  
 
     SELECT count(*) INTO cnt
            FROM parented;
@@ -1095,7 +1107,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DROP TABLE IF EXISTS isolated;
     IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
       THEN
-        SELECT ':: echo MyISAM engine is chosen for isolates table';
+        SELECT ':: echo ... MyISAM engine is chosen for isolates table';
 
         CREATE TABLE isolated (
           id int(8) unsigned NOT NULL default '0',
@@ -1269,11 +1281,10 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
     # temporary table
     DROP TABLE IF EXISTS lc;
-    CREATE TABLE lc(
-      lc_pid int(8) unsigned NOT NULL default '0',
-      lc_amnt int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (lc_pid)
-    ) ENGINE=MEMORY;
+    SET @st=CONCAT( "CREATE TABLE lc( lc_pid int(8) unsigned NOT NULL default '0', lc_amnt int(8) unsigned NOT NULL default '0', PRIMARY KEY (lc_pid) ) ENGINE=", @articles_eng, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
     SET @principle_component_size=0;
 

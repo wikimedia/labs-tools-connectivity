@@ -22,7 +22,7 @@ source ./allyouneed
 
   case "${wiknspref:0:20}" in
   'ERROR 2005 (HY000): ' )
-    errorstring=$nodata
+    errorstring="$nodata:<br>${wiknspref:20}"
     ;;
   'ERROR 2003 (HY000): ' )
     errorstring="$dbhost $nohost"

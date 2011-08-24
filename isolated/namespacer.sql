@@ -38,8 +38,14 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
     #
     # Non-redirects
     #
-    SELECT 'MEMORY' INTO @eng;
+    SELECT 'MEMORY' INTO @nr_eng;
 
+    #
+    # SELECT count(*) INTO @cnt
+    #        FROM <dbname>.page
+    #        WHERE page_namespace=<namespace> and
+    #              page_is_redirect=0;
+    #
     SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
@@ -55,6 +61,12 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
         ) ENGINE=MEMORY;
         SET @nr_len=255;
       ELSE
+        #
+        # SELECT MAX(LENGTH(page_title)) INTO @nr_len
+        #        FROM <dbname>.page
+        #        WHERE page_namespace=<namespace> and
+        #              page_is_redirect=0;
+        #
         SET @st=CONCAT( 'SELECT MAX(LENGTH(page_title)) INTO @nr_len FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -66,21 +78,37 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
             SELECT CONCAT( ':: echo ', @res );
             IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
               THEN
-                SELECT 'MyISAM' INTO @eng;
+                SELECT 'MyISAM' INTO @nr_eng;
             END IF;
         END IF;
 
-        SET @st=CONCAT( 'CREATE TABLE nr ( id int(8) unsigned NOT NULL default ', "'0'", ', title varchar(', @nr_len, ') binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=', @eng, ';' );
+        #
+        # CREATE TABLE nr (
+        #   id int(8) unsigned NOT NULL default '0',
+        #   title varchar(<nr_len>) binary NOT NULL default '',
+        #   PRIMARY KEY (id)
+        # ) ENGINE=<nr_eng>;
+        #
+        SET @st=CONCAT( 'CREATE TABLE nr ( id int(8) unsigned NOT NULL default ', "'0'", ', title varchar(', @nr_len, ') binary NOT NULL default ', "''", ', PRIMARY KEY (id) ) ENGINE=', @nr_eng, ';' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
+
+        #
+        # INSERT INTO nr (id, title)
+        # SELECT page_id as id,
+        #        page_title as title
+        #        FROM <dbname>.page
+        #        WHERE page_namespace=<namespace> and
+        #              page_is_redirect=0;
+        #
         SET @st=CONCAT( 'INSERT INTO nr (id, title) SELECT page_id as id, page_title as title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
     END IF;
 
-    SELECT CONCAT( ':: echo . non-redirects: ', count(*), ' (', @eng, ' table)' )
+    SELECT CONCAT( ':: echo . non-redirects: ', count(*), ' (', @nr_eng, ' table)' )
            FROM nr;
 
     #
@@ -88,13 +116,19 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
     #
     SELECT 'MEMORY' INTO @eng;
 
-    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=1;' );
+    #
+    # SELECT count(*) INTO @redirects_count
+    #        FROM <dbname>.page
+    #        WHERE page_namespace=<namespace> and
+    #              page_is_redirect=1;
+    #
+    SET @st=CONCAT( 'SELECT count(*) INTO @redirects_count FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
     DROP TABLE IF EXISTS r;
-    IF @cnt=0
+    IF @redirects_count=0
       THEN
         CREATE TABLE r (
           r_id int(8) unsigned NOT NULL default '0',
@@ -103,12 +137,18 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
         ) ENGINE=MEMORY;
         SET @r_len=255;
       ELSE
+        #
+        # SELECT MAX(LENGTH(page_title)) INTO @r_len
+        #        FROM <dbname>.page
+        #        WHERE page_namespace=<namespace> and
+        #              page_is_redirect=1;
+        #
         SET @st=CONCAT( 'SELECT MAX(LENGTH(page_title)) INTO @r_len FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
 
-        SELECT cry_for_memory( (@r_len+72)*@cnt ) INTO @res;
+        SELECT cry_for_memory( (@r_len+72)*@redirects_count ) INTO @res;
         IF @res!=''
           THEN
             SELECT CONCAT( ':: echo ', @res );
@@ -118,10 +158,26 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
             END IF;
         END IF;
 
+        #
+        # CREATE TABLE r (
+        #   r_id int(8) unsigned NOT NULL default '0',
+        #   r_title varchar(<r_len>) binary NOT NULL default '',
+        #   PRIMARY KEY rid (r_id)
+        # ) ENGINE=<eng>;
+        #
         SET @st=CONCAT( 'CREATE TABLE r ( r_id int(8) unsigned NOT NULL default ', "'0'", ', r_title varchar(', @r_len, ') binary NOT NULL default ', "''", ', PRIMARY KEY rid (r_id) ) ENGINE=', @eng, ';' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
+
+        #
+        # INSERT INTO r (r_id, r_title)
+        # SELECT page_id as r_id,
+        #        page_title as r_title
+        #        FROM <dbname>.page
+        #        WHERE page_namespace=<namespace> and
+        #              page_is_redirect=1;
+        #
         SET @st=CONCAT( 'INSERT INTO r (r_id, r_title) SELECT page_id as r_id, page_title as r_title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=1;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -157,7 +213,6 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
   END;
 //
 
-
 #
 # Categorized non-articles are given for each project by page named
 #    @i18n_page/CategorizedNonArticles
@@ -174,6 +229,18 @@ CREATE PROCEDURE get_categorized_non_articles (namespace INT)
       PRIMARY KEY  (cllt_id)
     ) ENGINE=MEMORY;
 
+    #
+    # INSERT INTO cllt (cllt_id)
+    # SELECT DISTINCT cl_from as cllt_id
+    #        FROM <dbname>.page,
+    #             <dbname>.pagelinks,
+    #             <dbname>.categorylinks
+    #        WHERE pl_title=cl_to and
+    #              pl_namespace=14 and
+    #              page_id=pl_from and
+    #              page_namespace=4 and
+    #              page_title="<i18n_page>/CategorizedNonArticles";
+    #
     SET @st=CONCAT( 'INSERT INTO cllt (cllt_id) SELECT DISTINCT cl_from as cllt_id FROM ', @dbname, '.page, ', @dbname, '.pagelinks, ', @dbname, '.categorylinks WHERE pl_title=cl_to and pl_namespace=14 and page_id=pl_from and page_namespace=4 and page_title="', @i18n_page, '/CategorizedNonArticles";' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
@@ -250,6 +317,8 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
     DECLARE r_flag INT;
     DECLARE main_page_id INT;
     DECLARE mp_ns INT;
+    DECLARE acnt VARCHAR(255);
+    DECLARE res VARCHAR(255) DEFAULT '';
 
     CALL categorylinks( namespace );
 
@@ -375,20 +444,46 @@ CREATE PROCEDURE classify_namespace (IN namespace INT, IN targetset VARCHAR(255)
     END IF;
     DROP TABLE cllt;
 
-    # Articles (i.e. non-redirects and non-disambigs for current namespace)
-    DROP TABLE IF EXISTS articles;
-    CREATE TABLE articles (
-      id int(8) unsigned NOT NULL default '0',
-      PRIMARY KEY (id)
-    ) ENGINE=MEMORY;
+    SELECT 'MEMORY' INTO @articles_eng;
 
     IF namespace!=10
       THEN
+        SET @st=CONCAT( 'SELECT count(distinct id) INTO @acnt FROM nr', namespace, ' WHERE id NOT IN ( SELECT DISTINCT cna_id FROM cna );' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        SELECT 'MEMORY' INTO @articles_eng;
+
+        SELECT cry_for_memory( 32*@acnt ) INTO @res;
+        IF @res!=''
+          THEN
+            SELECT CONCAT( ':: echo ', @res );
+            IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+              THEN
+                SELECT CONCAT( ':: echo ... MyISAM engine is chosen for ', targetset, ' table' );
+                SELECT 'MyISAM' INTO @articles_eng;
+            END IF;
+        END IF;
+
+        DROP TABLE IF EXISTS articles;
+        SET @st=CONCAT( 'CREATE TABLE articles ( id int(8) unsigned NOT NULL default ', "'0'", ', PRIMARY KEY (id) ) ENGINE=', @articles_eng, ';' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
         SET @st=CONCAT( 'INSERT INTO articles (id) SELECT id FROM nr', namespace, ' WHERE id NOT IN ( SELECT DISTINCT cna_id FROM cna );' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
       ELSE
+        # Articles (i.e. non-redirects and non-disambigs for current namespace)
+        DROP TABLE IF EXISTS articles;
+        CREATE TABLE articles (
+          id int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (id)
+        ) ENGINE=MEMORY;
+
         ALTER TABLE articles ADD COLUMN title varchar(255) binary NOT NULL default '';
         ALTER TABLE articles ADD UNIQUE KEY title (title);
 
@@ -546,8 +641,10 @@ CREATE PROCEDURE categorybridge ()
     DROP TABLE IF EXISTS pl;
     RENAME TABLE nrcatl TO pl;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links for categorytree' )
+    SELECT count(*) INTO @pl_count
            FROM pl;
+
+    SELECT CONCAT( ':: echo ', @pl_count, ' links for categorytree' );
   END;
 //
 
@@ -562,7 +659,12 @@ CREATE PROCEDURE categorybridge ()
 DROP PROCEDURE IF EXISTS throwNhull4subsets//
 CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255))
   BEGIN
+    DECLARE st VARCHAR(255);
     DECLARE res VARCHAR(255) DEFAULT '';
+    DECLARE plcount INT;
+    DECLARE portion INT;
+    DECLARE shift INT DEFAULT '0';
+    DECLARE iteration INT DEFAULT '0';
 
     # collects wrong redirects and excludes them from r<ns>
     CALL cleanup_wrong_redirects( namespace );
@@ -584,21 +686,23 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
     DROP TABLE IF EXISTS l;
     IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
       THEN
-        SELECT ':: echo MyISAM engine is chosen for article links table';
+        SELECT ':: echo ... MyISAM engine is chosen for article links table';
 
         CREATE TABLE l (
           l_to int(8) unsigned NOT NULL default '0',
-          l_from int(8) unsigned NOT NULL default '0'
+          l_from int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (l_to,l_from)
         ) ENGINE=MyISAM;
       ELSE
         CREATE TABLE l (
           l_to int(8) unsigned NOT NULL default '0',
-          l_from int(8) unsigned NOT NULL default '0'
+          l_from int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (l_to,l_from)
         ) ENGINE=MEMORY;
     END IF;
 
     #
-    # Before any analysis running we need to identify all the valid links
+    # Before any analysis we need to identify all the valid links
     # between articles. Here the links table l is constructed as containing
     #  - direct links from article to article
     #  - links from article to article via a redirect from the namespace given
@@ -607,44 +711,67 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
 
     SET @starttime1=now();
 
-    #
-    # Here we can construct links from articles to articles.
-    #
-    INSERT INTO l /* SLOW_OK */ (l_to, l_from)
-    SELECT id as l_to,
-           pl_from as l_from
-           FROM pl,
-                articles
-           WHERE pl_from in
-                 (
-                  SELECT id 
-                         FROM articles
-                 ) and
-                 pl_to=id and
-                 pl_from!=id;
+    SET @plcount=@pl_count;
 
-    SELECT count(*) INTO @articles_to_articles_links_count
-           FROM l;
+    SELECT CAST(@@max_heap_table_size/32 AS UNSIGNED) INTO portion;
 
-    SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' links from ', targetset, ' to ', targetset );
+    WHILE @plcount>0 DO
 
-    SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' caching time: ', timediff(now(), @starttime1));
+      CALL replag( @target_lang );
 
-    SET @starttime1=now();
+      DROP TABLE IF EXISTS part_pl;
+      CREATE TABLE part_pl (
+        dst int(8) unsigned NOT NULL default '0',
+        src int(8) unsigned NOT NULL default '0'
+      ) ENGINE=MEMORY;
 
-    #
-    # Just unique links are to be kept, and the key is quite helpful.
-    #
-    # Note: Slow enough.
-    #
-    ALTER IGNORE /* SLOW_OK */ TABLE l ADD PRIMARY KEY (l_to,l_from);
+      #
+      # INSERT INTO part_pl /* SLOW_OK */ (dst,src)
+      # SELECT pl_to as dst,
+      #        pl_from as src
+      #        FROM pl
+      #        LIMIT <shift>,<portion>;
+      #
+      SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl LIMIT ', shift, ',', portion, ';' );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+
+      CALL replag( @target_lang );
+
+      #
+      # Here we can construct links from articles to articles.
+      #
+      INSERT IGNORE INTO l /* SLOW_OK */ (l_to, l_from)
+      SELECT id as l_to,
+             src as l_from
+             FROM part_pl,
+                  articles
+             WHERE src in
+                   (
+                    SELECT id 
+                           FROM articles
+                   ) and
+                   dst=id and
+                   src!=id
+             ORDER BY id ASC, src ASC;
+
+      SELECT CONCAT( ':: echo . iteration ', iteration );
+
+      DROP TABLE part_pl;
+
+      SELECT @plcount-portion INTO @plcount;
+      SELECT shift+portion INTO shift;
+      SELECT iteration+1 INTO iteration;
+
+    END WHILE;
 
     SELECT count(*) INTO @articles_to_articles_links_count
            FROM l;
 
     SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' unique links from ', targetset, ' to ', targetset );
 
-    SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' indexing time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' caching time: ', timediff(now(), @starttime1));
   END;
 //
 
@@ -740,6 +867,7 @@ CREATE PROCEDURE store_paraphrases ()
 DROP PROCEDURE IF EXISTS collect_template_pages//
 CREATE PROCEDURE collect_template_pages ( maxsize INT )
   BEGIN
+    DECLARE st VARCHAR(255);
     DECLARE templator_needed INT DEFAULT '0';
     DECLARE res VARCHAR(255) DEFAULT '';
 
@@ -821,7 +949,7 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
         DROP TABLE IF EXISTS ti;
         IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
           THEN
-            SELECT ':: echo MyISAM engine is chosen for templating links table';
+            SELECT ':: echo ... MyISAM engine is chosen for templating links table';
 
             CREATE TABLE ti (
               ti_from int(8) unsigned NOT NULL default '0',
@@ -874,6 +1002,8 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
 DROP PROCEDURE IF EXISTS zero_namespace_connectivity//
 CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
   BEGIN
+    DECLARE st VARCHAR(255);
+
     IF @disambiguation_templates_initialized>0
       THEN
         SELECT ':: echo ZERO NAMESPACE';

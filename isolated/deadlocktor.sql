@@ -72,16 +72,19 @@ CREATE PROCEDURE deadend (namespace INT)
         SELECT count(*) INTO @articles_to_chrono_links_count
                FROM a2cr;
 
-        SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' to be excluded as links to chrono articles' );
+        SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' links to be excluded as links to chrono articles' );
 
-        # deletion of links to timelines, recoverable, since we have a2cr
-        DELETE l 
-               FROM l,
-                    a2cr
-               WHERE l_to=a2cr_to;
+        IF @articles_to_chrono_links_count>0
+          THEN
+            # deletion of links to timelines, recoverable, since we have a2cr
+            DELETE l 
+                   FROM l,
+                        a2cr
+                   WHERE l_to=a2cr_to;
 
-        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
-               FROM l;
+            SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
+                   FROM l;
+        END IF;
 
     END IF;
 
@@ -111,7 +114,8 @@ CREATE PROCEDURE deadend (namespace INT)
     ) ENGINE=MyISAM;
 
     # 
-    # has been killed on s1 - look for distinct values may take long.
+    # Note: Has been killed on s1 for table with primary key 
+    #       look for distinct values may take long.
     #
     INSERT INTO lwl (lwl_id)
     SELECT l_from as lwl_id
@@ -119,8 +123,14 @@ CREATE PROCEDURE deadend (namespace INT)
 
     # kill duplicates and make order
     ALTER IGNORE TABLE lwl ADD PRIMARY KEY (lwl_id);
-    # make it fast, it is now not that huge
-    ALTER TABLE lwl ENGINE=MEMORY;
+    SELECT count(*) INTO @cnt
+           FROM lwl;
+
+    IF CAST(@@max_heap_table_size/32 AS UNSIGNED)>@cnt
+      THEN
+        # make it fast, it is now not that huge
+        ALTER TABLE lwl ENGINE=MEMORY;
+    END IF;
 
     # CURRENT DEAD-END ARTICLES
     INSERT INTO del (id, act)

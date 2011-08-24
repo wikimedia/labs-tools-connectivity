@@ -14,6 +14,48 @@ delimiter //
 SET @memory_table_capacity=134217728;
 #SET @memory_table_capacity=67108864;
 
+DROP PROCEDURE IF EXISTS adjust_memory_capacity//
+CREATE PROCEDURE adjust_memory_capacity ()
+  BEGIN
+    DECLARE ctrl INT;
+    DECLARE capacity INT;
+
+    SET @capacity=@@max_heap_table_size;
+
+    WHILE @@max_heap_table_size<@memory_table_capacity DO
+      SET @ctrl=2*@@max_heap_table_size;
+      SET @@max_heap_table_size=@ctrl;
+      #
+      # I know, it's crazy to check whether the value is assigned,
+      # however the system variable can be limited in its ability
+      # to increase above a limit set in mySQL configuration.
+      #
+      IF @@max_heap_table_size!=@ctrl
+        THEN
+          SET @@max_heap_table_size=@memory_table_capacity;
+
+          #
+          # and once again in case not power of two is initially set
+          #
+          IF @@max_heap_table_size!=@memory_table_capacity
+            THEN
+              #
+              # internal bound to be in sync with real MySQL configuration
+              #
+              SET @memory_table_capacity=@@max_heap_table_size;
+          END IF;
+      END IF;
+    END WHILE;
+
+    #
+    # Memory table size limit to initial value just in case.
+    #
+    SET @@max_heap_table_size=@capacity;
+  END;
+//
+
+CALL adjust_memory_capacity()//
+
 #
 # Requests change for memory table size limit if required/allowed.
 #
@@ -42,17 +84,17 @@ CREATE FUNCTION cry_for_memory ( size VARCHAR(64) )
           SET @ctrl=2*@@max_heap_table_size;
           SET @@max_heap_table_size=@ctrl;
           #
-          # I know, it's crazy to check whether a value is assigned,
+          # I know, it's crazy to check whether the value is assigned,
           # however the system variable can be limited in its ability
           # to increase above a limit set in mySQL configuration.
           #
           IF @@max_heap_table_size!=@ctrl
-          THEN
-            #
-            # Golem's upper bound on memory for future tables.
-            #
-            SET @@max_heap_table_size=@capacity;
-            RETURN CONCAT( '... ... cannot allocate ', size, ' bytes in memory for operation; set to ', @capacity );
+            THEN
+              #
+              # Golem's upper bound on memory for future tables.
+              #
+              SET @@max_heap_table_size=@capacity;
+              RETURN CONCAT( '... ... cannot allocate ', size, ' bytes in memory for operation; set to ', @capacity );
           END IF;
         END WHILE;
 
