@@ -77,7 +77,7 @@ CREATE PROCEDURE deadend (namespace INT)
         IF @articles_to_chrono_links_count>0
           THEN
             # deletion of links to timelines, recoverable, since we have a2cr
-            DELETE l 
+            DELETE /* SLOW_OK */ l
                    FROM l,
                         a2cr
                    WHERE l_to=a2cr_to;

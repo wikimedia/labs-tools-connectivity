@@ -38,7 +38,7 @@ CREATE PROCEDURE creatorizer ()
     # Note: it can be done within the previous query, unfortunately
     #       containing some extra data (not yet used anywhere)
     DROP TABLE IF EXISTS creators;
-    SET @st=CONCAT( 'CREATE TABLE creators ( iid int(8) unsigned NOT NULL default ', "'0'", ', user int(8) unsigned NOT NULL default ', "'0'", ', user_text varchar(255) binary NOT NULL default ', "''", ', stamp varchar(14) binary NOT NULL default ', "''", '  ) ENGINE=MyISAM AS SELECT iid, rev_user as user, rev_user_text as user_text, rev_timestamp as stamp FROM ', @dbname, '.revision, firstrev WHERE revision=rev_id;' );
+    SET @st=CONCAT( 'CREATE /* SLOW_OK */ TABLE creators ( iid int(8) unsigned NOT NULL default ', "'0'", ', user int(8) unsigned NOT NULL default ', "'0'", ', user_text varchar(255) binary NOT NULL default ', "''", ', stamp varchar(14) binary NOT NULL default ', "''", '  ) ENGINE=MyISAM AS SELECT iid, rev_user as user, rev_user_text as user_text, rev_timestamp as stamp FROM ', @dbname, '.revision, firstrev WHERE revision=rev_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
