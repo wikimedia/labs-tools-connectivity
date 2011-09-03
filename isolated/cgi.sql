@@ -185,7 +185,7 @@ CREATE PROCEDURE suggestd (iid VARCHAR(255), target_lang VARCHAR(16), namespace 
   BEGIN
     DECLARE st VARCHAR(255);
 
-    SET @st=CONCAT( 'SELECT DISTINCT name FROM ', dbname_for_lang( target_lang ), ".page, dl", namespace, ", d0site WHERE page_title=\"", iid, "\" AND page_id=dl_from AND d0site.id=dl_to ORDER BY name ASC;" );
+    SET @st=CONCAT( 'SELECT DISTINCT /* SLOW_OK */ name FROM ', dbname_for_lang( target_lang ), ".page, dl", namespace, ", d0site WHERE page_title=\"", iid, "\" AND page_id=dl_from AND d0site.id=dl_to ORDER BY name ASC;" );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

@@ -64,7 +64,7 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
     #        WHERE pl_from=r_id
     #        GROUP BY r_id;
     #
-    SET @st=CONCAT( 'INSERT INTO rlc (rlc_cnt, rlc_id) SELECT count(*) as rlc_cnt, r_id as rlc_id FROM pl, r', namespace, ' WHERE pl_from=r_id GROUP BY r_id;' );
+    SET @st=CONCAT( 'INSERT INTO /* SLOW_OK */ rlc (rlc_cnt, rlc_id) SELECT count(*) as rlc_cnt, r_id as rlc_id FROM pl, r', namespace, ' WHERE pl_from=r_id GROUP BY r_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
