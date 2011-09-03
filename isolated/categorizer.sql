@@ -61,7 +61,7 @@ CREATE PROCEDURE categories ()
       PRIMARY KEY (id)
     ) ENGINE=MEMORY;
 
-    SET @st=CONCAT( 'INSERT INTO visible_categories (id) SELECT id FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
+    SET @st=CONCAT( 'INSERT INTO /* SLOW_OK */ visible_categories (id) SELECT id FROM categories WHERE id NOT IN ( SELECT pp_page FROM ', @dbname, '.page_props WHERE pp_propname="hiddencat" );' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -95,7 +95,7 @@ CREATE PROCEDURE categorylinks (namespace INT)
     DECLARE cnt INT DEFAULT '0';
     DECLARE res VARCHAR(255);
 
-    SET @st=CONCAT( 'SELECT count(*) INTO @cnt FROM ', @dbname, '.categorylinks, nr', namespace, ' WHERE nr', namespace, '.id=cl_from;' );
+    SET @st=CONCAT( 'SELECT count(*) /* SLOW_OK */ INTO @cnt FROM ', @dbname, '.categorylinks, nr', namespace, ' WHERE nr', namespace, '.id=cl_from;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -115,7 +115,7 @@ CREATE PROCEDURE categorylinks (namespace INT)
     END IF;
 
     DROP TABLE IF EXISTS nrcatl;
-    SET @st=CONCAT( 'CREATE TABLE nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=', @res, ' AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @dbname, '.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
+    SET @st=CONCAT( 'CREATE TABLE /* SLOW_OK */ nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=', @res, ' AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @dbname, '.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
