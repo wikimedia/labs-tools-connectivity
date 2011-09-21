@@ -110,31 +110,31 @@ time {
     #
     echo "SET @iwspy='$iwspy';"
 
-    cat toolserver.sql
+    cat toolserver.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
 
     echo "SELECT dbname_for_lang( '$language' ) into @dbname;"
 
-    cat replag.sql
+    cat replag.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
 
     #
     # real start time
     #
     echo "CALL actual_replag( '$language' );"
 
-    cat projector.sql
-    cat memory.sql
-    cat handle.sql
-    cat namespacer.sql
-    cat categorizer.sql
-    cat redirector.sql
-    cat disambig.sql
-    cat deadlocktor.sql
-    cat templator.sql
-    cat isolated.sql
-    cat iwikispy.sql
-    cat suggestor.sql
-    cat creatorizer.sql
-    cat cgi.sql
+    cat projector.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat memory.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat handle.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat namespacer.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat categorizer.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat redirector.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat disambig.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat deadlocktor.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat templator.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat isolated.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat iwikispy.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat suggestor.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat creatorizer.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
+    cat cgi.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
 
     #
     # Categorizer setup, prefetch categories namespace (14)

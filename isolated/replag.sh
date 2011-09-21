@@ -31,7 +31,7 @@ source ../cgi-bin/ts $server
 
   echo "use u_${usr}_golem_p;"
 
-  cat toolserver.sql replag.sql
+  cat toolserver.sql replag.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
 
   #
   # Time is the measure of change.

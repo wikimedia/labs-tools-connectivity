@@ -137,19 +137,20 @@ CREATE PROCEDURE nr2X2nr ()
       #
       # Rectify redirects adding appropriate direct links.
       #
-      # Note: pl has no unique keys, so data is redundant.
-      #
-      INSERT INTO pl (pl_from, pl_to)
+#      # Note: pl has no unique keys, so data is redundant.
+#      #
+#      INSERT INTO pl (pl_from, pl_to)
+      INSERT INTO plr (pl_from, pl_to)
       SELECT nr2r_from as pl_from,
              r2nr_to as pl_to
              FROM nr2r,
                   r2nr
              WHERE nr2r_to=r2nr_from;
 
-      SELECT count(*) INTO @pl_count
-             FROM pl;
-
-      SELECT CONCAT( ':: echo . ', @pl_count, ' links after ', chainlen, '-redirect chains rectification' );
+#      SELECT count(*) INTO @pl_count
+#             FROM pl;
+#
+#      SELECT CONCAT( ':: echo . ', @pl_count, ' links after ', chainlen, '-redirect chains rectification' );
 
       #
       # One step of new long-redirect driven "links to be added" collection.
@@ -208,15 +209,48 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
     DECLARE shift INT DEFAULT '0';
     DECLARE pcnt INT;
     DECLARE iteration INT DEFAULT '0';
+    DECLARE my_plcount INT;
 
     SELECT CAST(@@max_heap_table_size/32 AS UNSIGNED) INTO portion;
 
     SET pcnt=portion;
 
-    SELECT CONCAT( ':: echo ... MEMORY table capacity is limited to store up to ', portion, ' indexed nr2r records' );
+    SELECT @base_pl_count INTO my_plcount;
+
+    SELECT ':: echo starting nr2r iterations';
+#    SELECT CONCAT( ':: echo ... MEMORY table capacity is limited to store up to ', portion, ' indexed nr2r records' );
+
+    SET @starttime1=now();
 
     DROP TABLE IF EXISTS nr2r;
-    WHILE pcnt=portion DO
+
+    WHILE my_plcount>0 DO
+
+      IF portion > my_plcount
+        THEN
+          SELECT my_plcount INTO portion;
+      END IF;
+#    WHILE pcnt=portion DO
+
+      DROP TABLE IF EXISTS part_pl;
+      CREATE TABLE part_pl (
+        dst int(8) unsigned NOT NULL default '0',
+        src int(8) unsigned NOT NULL default '0'
+      ) ENGINE=MEMORY;
+
+      #
+      # INSERT INTO part_pl /* SLOW_OK */ (dst,src)
+      # SELECT pl_to as dst,
+      #        pl_from as src
+      #        FROM pl
+#      #        ORDER BY pl_to
+      #        LIMIT <shift>,<portion>;
+      #
+#      SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl ORDER BY pl_to LIMIT ', shift, ',', portion, ';' );
+      SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl LIMIT ', shift, ',', portion, ';' );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
 
       CREATE TABLE nr2r (
         nr2r_to int(8) unsigned NOT NULL default '0',
@@ -227,18 +261,28 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
       #
       # INSERT INTO nr2r (nr2r_to, nr2r_from)
       # SELECT r_id as nr2r_to,
-      #        pl_from as nr2r_from
-      #        FROM pl,
+      #        src as nr2r_from
+      #        FROM part_pl,
       #             r<namespace>
-      #        WHERE pl_from in (
-      #                           SELECT id
-      #                                  FROM nr<namespace>
-      #                         ) and
-      #              pl_to=r_id
-      #        ORDER BY r_id
-      #        LIMIT <shift>,<portion>;
+      #        WHERE src in (
+      #                       SELECT id
+      #                              FROM nr<namespace>
+      #                     ) and
+      #              dst=r_id;
+#      # SELECT r_id as nr2r_to,
+#      #        pl_from as nr2r_from
+#      #        FROM pl,
+#      #             r<namespace>
+#      #        WHERE pl_from in (
+#      #                           SELECT id
+#      #                                  FROM nr<namespace>
+#      #                         ) and
+#      #              pl_to=r_id
+#      #        ORDER BY r_id
+#      #        LIMIT <shift>,<portion>;
       #
-      SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
+      SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, src as nr2r_from FROM part_pl, r', namespace, ' WHERE src in ( SELECT id FROM nr', namespace, ' ) and dst=r_id ORDER BY r_id;' );
+#      SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
       PREPARE stmt FROM @st;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
@@ -255,10 +299,19 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
 
       DROP TABLE nr2r;
 
+      DROP TABLE part_pl;
+
+      SELECT my_plcount-portion INTO my_plcount;
       SELECT shift+portion INTO shift;
       SELECT iteration+1 INTO iteration;
 
     END WHILE;
+#      SELECT shift+portion INTO shift;
+#      SELECT iteration+1 INTO iteration;
+#
+#    END WHILE;
+
+    SELECT CONCAT( ':: echo nr2r links caching time: ', timediff(now(), @starttime1));
   END;
 //
 
@@ -275,6 +328,8 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     DECLARE st VARCHAR(255);
     DECLARE res VARCHAR(255);
     DECLARE cnt VARCHAR(255);
+    DECLARE est1 VARCHAR(255) DEFAULT '';
+    DECLARE est2 VARCHAR(255) DEFAULT '';
 
     #
     # Long redirects like double and triple do not work in web API,
@@ -399,26 +454,14 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     # Clusters like _1_..._1 are all to be thrown
 
+    SET @starttime1=now();
+
     DROP TABLE IF EXISTS r2r;
     CREATE TABLE r2r (
       r2r_to int(8) unsigned NOT NULL default '0',
       r2r_from int(8) unsigned NOT NULL default '0',
       PRIMARY KEY (r2r_to,r2r_from)
     ) ENGINE=MEMORY;
-
-    INSERT INTO r2r (r2r_to, r2r_from)
-    SELECT id as r2r_to,
-           pl_from as r2r_from
-           FROM pl,
-                ruwikir
-           WHERE pl_from in (
-                              SELECT pid
-                                     FROM rrr
-                            ) and
-                 pl_to=id;
-
-    DROP TABLE orcatr;
-    DROP TABLE ruwikir;
 
     # All links from our namespace redirects to non-redirects.
     DROP TABLE IF EXISTS r2nr;
@@ -428,23 +471,40 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    #
-    # INSERT INTO r2nr (r2nr_to, r2nr_from)
-    # SELECT nr<namespace>.id as r2nr_to,
-    #        pl_from as r2nr_from
-    #        FROM pl,
-    #             nr<namespace>
-    #        WHERE pl_from in (
-    #                           SELECT pid
-    #                                  FROM rrr
-    #                         ) and
-    #              pl_to=nr<namespace>.id;
-    #
-    SET @st=CONCAT( 'INSERT INTO r2nr (r2nr_to, r2nr_from) SELECT nr', namespace, '.id as r2nr_to, pl_from as r2nr_from FROM pl, nr', namespace, ' WHERE pl_from in ( SELECT pid FROM rrr ) and pl_to=nr', namespace, '.id;' );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    # INSERT INTO /* SLOW_OK */ r2r (r2r_to, r2r_from)
+    # SELECT id as r2r_to,
+    #        src as r2r_from
+    #        FROM part_pl,
+    #             ruwikir
+    #        WHERE src in (
+    #                      SELECT pid
+    #                             FROM rrr
+    #                     ) and
+    #              dst=id;
+    SET @est1='INSERT INTO /* SLOW_OK */ r2r (r2r_to, r2r_from) SELECT id as r2r_to, src as r2r_from FROM part_pl, ruwikir WHERE src in ( SELECT pid FROM rrr ) and dst=id;';
 
+    #
+    # INSERT INTO /* SLOW_OK */ r2nr (r2nr_to, r2nr_from)
+    # SELECT nr<namespace>.id as r2nr_to,
+    #        src as r2nr_from
+    #        FROM part_pl,
+    #             nr<namespace>
+    #        WHERE src in (
+    #                      SELECT pid
+    #                             FROM rrr
+    #                     ) and
+    #              dst=nr<namespace>.id;
+    #
+    SET @est2=CONCAT( 'INSERT INTO /* SLOW_OK */ r2nr (r2nr_to, r2nr_from) SELECT nr', namespace, '.id as r2nr_to, src as r2nr_from FROM part_pl, nr', namespace, ' WHERE src in ( SELECT pid FROM rrr ) and dst=nr', namespace, '.id;' );
+
+    SELECT ':: echo starting r2r/r2nr iterations';
+
+    CALL pl_by_parts( @base_pl_count, 0, @est1, @est2 );
+
+    SELECT CONCAT( ':: echo r2r/r2nr links caching time: ', timediff(now(), @starttime1));
+
+    DROP TABLE orcatr;
+    DROP TABLE ruwikir;
     DROP TABLE rrr;
 
     IF namespace=0
@@ -528,8 +588,25 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
     DELETE FROM r2r
            WHERE r2r_to=r2r_from;
 
+    DROP TABLE IF EXISTS plr;
+    CREATE TABLE plr (
+      pl_from int(8) unsigned NOT NULL default '0',
+      pl_to int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
     CALL fast_nr2X2nr( namespace );
 
+    INSERT INTO pl (pl_from, pl_to)
+    SELECT pl_from,
+           pl_to
+           FROM plr;
+
+    DROP TABLE plr;
+
+    SELECT count(*) INTO @pl_count
+           FROM pl;
+
+    SELECT CONCAT( ':: echo ', @pl_count, ' overall (direct & redirected) links count' );
   END;
 //
 

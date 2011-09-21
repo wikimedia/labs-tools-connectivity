@@ -278,10 +278,10 @@ handle ()
        for item in ${line:13}
        do
          local str=$(
+                      #
+                      # Note: New language database may have to be created.
+                      #
                       {
-                        #
-                        # New language database may have to be created.
-                        #
                         echo "CREATE DATABASE IF NOT EXISTS u_${usr}_golem_p;"
 
                         echo "SELECT @@hostname;"
@@ -340,7 +340,7 @@ handle ()
            #
            # Infect with scripts every database should have
            #
-           cat toolserver.sql replag.sql projector.sql
+           cat toolserver.sql replag.sql projector.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
 
          } | $( sql $item u_${usr}_golem_p ) 2>&1 | ./handle.sh $cmdl
 
@@ -413,7 +413,7 @@ handle ()
               #
               # Infecting the database with a script or a set of scripts
               #
-              cat ${line:11}
+              cat ${line:11} | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
             } | $( sql ${line:4:1} ) 2>&1 | ./handle.sh $cmdl
             ;;
          'emit')

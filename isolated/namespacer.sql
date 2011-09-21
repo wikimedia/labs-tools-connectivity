@@ -581,6 +581,8 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
     SELECT count(*) INTO @pl_count
            FROM pl;
 
+    SELECT @pl_count INTO @base_pl_count;
+
     SELECT CONCAT( ':: echo ', @pl_count, ' links point namespace ', namespace );
 
     SELECT CONCAT( ':: echo links to namespace ', namespace, ' caching time: ', timediff(now(), @starttime1));
@@ -644,9 +646,82 @@ CREATE PROCEDURE categorybridge ()
     SELECT count(*) INTO @pl_count
            FROM pl;
 
+    SELECT @pl_count INTO @base_pl_count;
+
     SELECT CONCAT( ':: echo ', @pl_count, ' links for categorytree' );
   END;
 //
+
+
+DROP PROCEDURE IF EXISTS pl_by_parts//
+CREATE PROCEDURE pl_by_parts (IN plcount INT, IN shift INT, IN extst1 VARCHAR(255), IN extst2 VARCHAR(255))
+  BEGIN
+    DECLARE st VARCHAR(255);
+    DECLARE my_plcount INT;
+    DECLARE portion INT;
+    DECLARE iteration INT DEFAULT '0';
+
+    SELECT CAST(@@max_heap_table_size/32 AS UNSIGNED) INTO portion;
+
+    SELECT plcount INTO my_plcount;
+
+    WHILE my_plcount>0 DO
+
+      IF portion > my_plcount
+        THEN
+          SELECT my_plcount INTO portion;
+      END IF;
+
+#      CALL replag( @target_lang );
+
+      DROP TABLE IF EXISTS part_pl;
+      CREATE TABLE part_pl (
+        dst int(8) unsigned NOT NULL default '0',
+        src int(8) unsigned NOT NULL default '0'
+      ) ENGINE=MEMORY;
+
+      #
+      # INSERT INTO part_pl /* SLOW_OK */ (dst,src)
+      # SELECT pl_to as dst,
+      #        pl_from as src
+      #        FROM pl
+      #        LIMIT <shift>,<portion>;
+      #
+      SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl LIMIT ', shift, ',', portion, ';' );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+
+#      CALL replag( @target_lang );
+
+      #
+      # External statements execution.
+      #
+      SELECT extst1 INTO @st;
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+
+      SELECT extst2 INTO @st;
+      IF @st!=''
+        THEN
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+      END IF;
+
+      SELECT CONCAT( ':: echo . iteration ', iteration );
+
+      DROP TABLE part_pl;
+
+      SELECT my_plcount-portion INTO my_plcount;
+      SELECT shift+portion INTO shift;
+      SELECT iteration+1 INTO iteration;
+
+    END WHILE;
+  END;
+//
+
 
 #
 # Inputs: r<ns>, nr<ns>, pl, articles, d.
@@ -659,12 +734,8 @@ CREATE PROCEDURE categorybridge ()
 DROP PROCEDURE IF EXISTS throwNhull4subsets//
 CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255))
   BEGIN
-    DECLARE st VARCHAR(255);
     DECLARE res VARCHAR(255) DEFAULT '';
-    DECLARE plcount INT;
-    DECLARE portion INT;
-    DECLARE shift INT DEFAULT '0';
-    DECLARE iteration INT DEFAULT '0';
+    DECLARE est VARCHAR(255) DEFAULT '';
 
     # collects wrong redirects and excludes them from r<ns>
     CALL cleanup_wrong_redirects( namespace );
@@ -711,60 +782,51 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
 
     SET @starttime1=now();
 
-    SET @plcount=@pl_count;
+    #
+    # Here we can construct links from articles to articles.
+    #
+    # INSERT IGNORE INTO l /* SLOW_OK */ (l_to, l_from)
+    # SELECT id as l_to,
+    #        src as l_from
+    #        FROM part_pl,
+    #             articles
+    #        WHERE src in
+    #              (
+    #               SELECT id 
+    #                      FROM articles
+    #              ) and
+    #              dst=id and
+    #              src!=id
+    #        ORDER BY id ASC, src ASC;
+    SET @est='INSERT IGNORE INTO l /* SLOW_OK */ (l_to, l_from) SELECT id as l_to, src as l_from FROM part_pl, articles WHERE src in ( SELECT id FROM articles ) and dst=id and src!=id ORDER BY id ASC, src ASC;';
 
-    SELECT CAST(@@max_heap_table_size/32 AS UNSIGNED) INTO portion;
+    SELECT ':: echo starting l iterations for redirected links';
 
-    WHILE @plcount>0 DO
-
-      CALL replag( @target_lang );
-
-      DROP TABLE IF EXISTS part_pl;
-      CREATE TABLE part_pl (
-        dst int(8) unsigned NOT NULL default '0',
-        src int(8) unsigned NOT NULL default '0'
-      ) ENGINE=MEMORY;
-
+    IF @pl_count > @base_pl_count
+    THEN
       #
-      # INSERT INTO part_pl /* SLOW_OK */ (dst,src)
-      # SELECT pl_to as dst,
-      #        pl_from as src
-      #        FROM pl
-      #        LIMIT <shift>,<portion>;
+      # Note: Rest of pl contains non ordered links added during redicrect
+      #       chains rectification. On the other hand they consitute
+      #       a minor portion in the overal set.
       #
-      SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl LIMIT ', shift, ',', portion, ';' );
-      PREPARE stmt FROM @st;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
-
-      CALL replag( @target_lang );
-
+      #       Adding those link in the order leads to rundom insertion into a
+      #       huge table for final iterations moving big amount of data.
       #
-      # Here we can construct links from articles to articles.
+      #       In order to avoid such long running queries it is worse to add
+      #       non ordered data first and then always move something,
+      #       but not that much.
       #
-      INSERT IGNORE INTO l /* SLOW_OK */ (l_to, l_from)
-      SELECT id as l_to,
-             src as l_from
-             FROM part_pl,
-                  articles
-             WHERE src in
-                   (
-                    SELECT id 
-                           FROM articles
-                   ) and
-                   dst=id and
-                   src!=id
-             ORDER BY id ASC, src ASC;
+      CALL pl_by_parts( @pl_count-@base_pl_count, @base_pl_count, @est, '' );
+    END IF;
 
-      SELECT CONCAT( ':: echo . iteration ', iteration );
+    SELECT ':: echo starting l iterations for direct links';
 
-      DROP TABLE part_pl;
+    #
+    # Processing lower well-ordered part.
+    #
+    CALL pl_by_parts( @base_pl_count, 0, @est, '' );
 
-      SELECT @plcount-portion INTO @plcount;
-      SELECT shift+portion INTO shift;
-      SELECT iteration+1 INTO iteration;
-
-    END WHILE;
+#    CALL pl_by_parts( @pl_count, 0, @est, '' );
 
     SELECT count(*) INTO @articles_to_articles_links_count
            FROM l;

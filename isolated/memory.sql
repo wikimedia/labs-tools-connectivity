@@ -101,7 +101,7 @@ CREATE FUNCTION cry_for_memory ( size VARCHAR(64) )
         #
         # Note: memory allocation succesfully allowed here, errors are exited
         #
-        # Even successful allocation should be bounded in memory consumption
+        # Even successful allocations should be bounded in memory consumption
         #
         IF size<=@capacity
           THEN

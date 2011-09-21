@@ -58,11 +58,28 @@ CREATE PROCEDURE a2a_templating ()
     SELECT CONCAT( ':: echo ', count(*), ' templating links from articles to redirects' )
            FROM nr2r;
 
+    DROP TABLE IF EXISTS plr;
+    CREATE TABLE plr (
+      pl_from int(8) unsigned NOT NULL default '0',
+      pl_to int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MyISAM;
+
     CALL nr2X2nr();
     DROP TABLE nr2r;
 
-    SELECT CONCAT( ':: echo ', count(*), ' overall (direct & redirected) articles templating links count' )
+    INSERT INTO pl (pl_from, pl_to)
+    SELECT pl_from,
+           pl_to
+           FROM plr;
+
+    DROP TABLE plr;
+
+    SELECT count(*) INTO @pl_count
            FROM pl;
+
+    SELECT CONCAT( ':: echo ', @pl_count, ' overall (direct & redirected) articles templating links count' );
+#    SELECT CONCAT( ':: echo ', count(*), ' overall (direct & redirected) articles templating links count' )
+#           FROM pl;
   END;
 //
 

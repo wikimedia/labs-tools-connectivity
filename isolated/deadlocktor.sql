@@ -74,17 +74,17 @@ CREATE PROCEDURE deadend (namespace INT)
 
         SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' links to be excluded as links to chrono articles' );
 
-        IF @articles_to_chrono_links_count>0
-          THEN
-            # deletion of links to timelines, recoverable, since we have a2cr
-            DELETE /* SLOW_OK */ l
-                   FROM l,
-                        a2cr
-                   WHERE l_to=a2cr_to;
-
-            SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
-                   FROM l;
-        END IF;
+#        IF @articles_to_chrono_links_count>0
+#          THEN
+#            # deletion of links to timelines, recoverable, since we have a2cr
+#            DELETE /* SLOW_OK */ l
+#                   FROM l,
+#                        a2cr
+#                   WHERE l_to=a2cr_to;
+#
+#            SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
+#                   FROM l;
+#        END IF;
 
     END IF;
 
@@ -117,9 +117,26 @@ CREATE PROCEDURE deadend (namespace INT)
     # Note: Has been killed on s1 for table with primary key 
     #       look for distinct values may take long.
     #
-    INSERT INTO lwl (lwl_id)
-    SELECT l_from as lwl_id
-           FROM l;
+#    INSERT INTO lwl (lwl_id)
+#    SELECT l_from as lwl_id
+#           FROM l;
+    IF namespace=0
+      THEN
+        INSERT INTO lwl (lwl_id)
+        SELECT l_from as lwl_id
+               FROM l
+               WHERE NOT EXISTS (
+                                  SELECT a2cr_to,
+                                         a2cr_from
+                                         FROM a2cr
+                                         WHERE a2cr_to=l_to and
+                                               a2cr_from=l_from
+                                );
+      ELSE
+        INSERT INTO lwl (lwl_id)
+        SELECT l_from as lwl_id
+               FROM l;
+    END IF;
 
     # kill duplicates and make order
     ALTER IGNORE TABLE lwl ADD PRIMARY KEY (lwl_id);
@@ -191,11 +208,11 @@ CREATE PROCEDURE deadend (namespace INT)
             SELECT ':: sync';
         END IF;
 
-        # Restore previously deleted links to cronological articles
-        INSERT INTO l (l_to, l_from)
-        SELECT a2cr_to as l_to,
-               a2cr_from as l_from
-               FROM a2cr;
+#        # Restore previously deleted links to cronological articles
+#        INSERT INTO l (l_to, l_from)
+#        SELECT a2cr_to as l_to,
+#               a2cr_from as l_from
+#               FROM a2cr;
 
         DROP TABLE a2cr;
 

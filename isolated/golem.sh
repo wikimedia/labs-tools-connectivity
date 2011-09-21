@@ -48,7 +48,7 @@ source ../cgi-bin/ts $server
   #
   echo "use u_${usr}_golem_p;"
 
-  cat toolserver.sql
+  cat toolserver.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
 
   #
   # Once the processing is started, every server should have capabilities

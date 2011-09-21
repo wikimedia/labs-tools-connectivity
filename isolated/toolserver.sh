@@ -34,7 +34,7 @@ source ../cgi-bin/ts $server
 
   if [ "$2" != 'skip_infecting' ]
   then
-    cat toolserver.sql
+    cat toolserver.sql | sed -e 's/#.*//' -e 's/[ ^I]*$//' -e '/^$/ d'
   fi
 
   #
