@@ -481,7 +481,7 @@ table_opens
                CAST(ls1.catring_count-ls2.catring_count AS SIGNED),
                CAST(ls1.nocatcat_count-ls2.nocatcat_count AS SIGNED),
                ls1.drdi-ls2.drdi,
-               TIME_TO_SEC(TIMEDIFF(_ts,__ts)),
+               TIMESTAMPDIFF(SECOND,__ts,_ts),
                CONCAT(REPLACE(native_name,' ','_'),'_/_',REPLACE(english_name,' ','_'))
                FROM (
                       SELECT ls.lang AS lang,
