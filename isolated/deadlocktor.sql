@@ -122,31 +122,38 @@ CREATE PROCEDURE deadend (namespace INT)
 #           FROM l;
     IF namespace=0
       THEN
-        INSERT INTO lwl (lwl_id)
-        SELECT l_from as lwl_id
-               FROM l
-               WHERE NOT EXISTS (
-                                  SELECT a2cr_to,
-                                         a2cr_from
-                                         FROM a2cr
-                                         WHERE a2cr_to=l_to and
-                                               a2cr_from=l_from
-                                );
+        IF @articles_to_chrono_links_count>0
+          THEN
+            INSERT /* SLOW_OK */ INTO lwl (lwl_id)
+            SELECT l_from as lwl_id
+                   FROM l
+                   WHERE NOT EXISTS (
+                                      SELECT a2cr_to,
+                                             a2cr_from
+                                             FROM a2cr
+                                             WHERE a2cr_to=l_to and
+                                                   a2cr_from=l_from
+                                    );
+          ELSE
+            INSERT /* SLOW_OK */ INTO lwl (lwl_id)
+            SELECT l_from as lwl_id
+                   FROM l;
+        END IF;
       ELSE
-        INSERT INTO lwl (lwl_id)
+        INSERT /* SLOW_OK */ INTO lwl (lwl_id)
         SELECT l_from as lwl_id
                FROM l;
     END IF;
 
     # kill duplicates and make order
-    ALTER IGNORE TABLE lwl ADD PRIMARY KEY (lwl_id);
+    ALTER /* SLOW_OK */ IGNORE TABLE lwl ADD PRIMARY KEY (lwl_id);
     SELECT count(*) INTO @cnt
            FROM lwl;
 
     IF CAST(@@max_heap_table_size/32 AS UNSIGNED)>@cnt
       THEN
         # make it fast, it is now not that huge
-        ALTER TABLE lwl ENGINE=MEMORY;
+        ALTER /* SLOW_OK */ TABLE lwl ENGINE=MEMORY;
     END IF;
 
     # CURRENT DEAD-END ARTICLES
@@ -154,11 +161,10 @@ CREATE PROCEDURE deadend (namespace INT)
     SELECT id,
            1 as act
            FROM articles
-           WHERE id NOT IN
-           (
-            SELECT lwl_id
-                   FROM lwl
-           )
+           WHERE id NOT IN (
+                             SELECT lwl_id
+                                    FROM lwl
+                           )
     ON DUPLICATE KEY UPDATE act=0;
 
     DROP TABLE lwl;
@@ -216,11 +222,11 @@ CREATE PROCEDURE deadend (namespace INT)
 
         DROP TABLE a2cr;
 
-        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links restore' )
-               FROM l;
+#        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links restore' )
+#               FROM l;
     END IF;
 
-    SELECT CONCAT( ':: echo dead-end processing time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo dead-end processing time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

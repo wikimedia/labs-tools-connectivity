@@ -64,7 +64,7 @@ anydbserver=$anysrv
 if [ "$language" != '' ]
 then
   #
-  # Sorry, could you please tell me which server runs wikipedia for $language?
+  # Sorry, would you please share which server runs wikipedia for $language?
   #
   dbserver=$( echo "SELECT server_num( '$language' );" | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 )
 

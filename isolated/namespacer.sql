@@ -585,7 +585,7 @@ CREATE PROCEDURE cache_namespace_links (namespace INT)
 
     SELECT CONCAT( ':: echo ', @pl_count, ' links point namespace ', namespace );
 
-    SELECT CONCAT( ':: echo links to namespace ', namespace, ' caching time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo links to namespace ', namespace, ' caching time: ', TIMEDIFF(now(), @starttime1));
 
     IF namespace=0
       THEN
@@ -833,7 +833,7 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
 
     SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' unique links from ', targetset, ' to ', targetset );
 
-    SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' caching time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' caching time: ', TIMEDIFF(now(), @starttime1));
   END;
 //
 
@@ -1133,7 +1133,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
         #
         CALL throwNhull4subsets( 0, 'articles' );
 
-        SELECT CONCAT( ':: echo zero namespace time: ', timediff(now(), @initstarttime));
+        SELECT CONCAT( ':: echo zero namespace time: ', TIMEDIFF(now(), @initstarttime));
 
         SELECT ':: echo LINKS DISAMBIGUATOR';
 
@@ -1166,7 +1166,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
         # partial namespacer unload
         DROP TABLE nr0;
 
-        SELECT CONCAT( ':: echo links disambiguator processing time: ', timediff(now(), @starttime));
+        SELECT CONCAT( ':: echo links disambiguator processing time: ', TIMEDIFF(now(), @starttime));
 
         #
         # DEAD-END ARTICLES PROCESSING
@@ -1281,7 +1281,7 @@ CREATE PROCEDURE categoryspruce ()
     DROP TABLE isolated;
     DROP TABLE orcat;
 
-    SELECT CONCAT( ':: echo categoryspruce web tool time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo categoryspruce web tool time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

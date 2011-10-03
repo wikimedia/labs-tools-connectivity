@@ -185,7 +185,7 @@ CREATE PROCEDURE recognizable_template_links ()
     SELECT CONCAT( ':: echo ', count(*), ' distinct main namespace names used in links' )
            FROM tcp;
 
-    SELECT CONCAT( ':: echo tcp processing time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo tcp processing time: ', TIMEDIFF(now(), @starttime1));
 
     SET @starttime1=now();
 
@@ -198,7 +198,7 @@ CREATE PROCEDURE recognizable_template_links ()
     SELECT CONCAT( ':: echo ', count(*), ' links from templating pages to main namespace' )
            FROM t20;
 
-    SELECT CONCAT( ':: echo t20 processing time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo t20 processing time: ', TIMEDIFF(now(), @starttime1));
 
     SET @starttime1=now();
 
@@ -211,7 +211,7 @@ CREATE PROCEDURE recognizable_template_links ()
     SELECT CONCAT( ':: echo ', count(*), ' links from articles to main namespace' )
            FROM a20;
 
-    SELECT CONCAT( ':: echo a20 processing time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo a20 processing time: ', TIMEDIFF(now(), @starttime1));
 
     SET @starttime1=now();
 
@@ -226,7 +226,7 @@ CREATE PROCEDURE recognizable_template_links ()
     SELECT CONCAT( ':: echo ', count(*), ' links mentioned in article texts and linking main namespace' )
            FROM a20;
 
-    SELECT CONCAT( ':: echo template links deletion time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo template links deletion time: ', TIMEDIFF(now(), @starttime1));
 
     SET @starttime1=now();
 
@@ -242,7 +242,7 @@ CREATE PROCEDURE recognizable_template_links ()
 
     ALTER TABLE a20 ADD KEY (a20_to);
 
-    SELECT CONCAT( ':: echo tcl and a20 altering time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo tcl and a20 altering time: ', TIMEDIFF(now(), @starttime1));
 
     SET @starttime1=now();
 
@@ -263,7 +263,7 @@ CREATE PROCEDURE recognizable_template_links ()
     SELECT CONCAT( ':: echo overal articles length is ', sum(page_len), ' bytes' )
            FROM text_len;
 
-    SELECT CONCAT( ':: echo articles overal length computation time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo articles overal length computation time: ', TIMEDIFF(now(), @starttime1));
 
 #
 #    This should output the amount of massive link lists.

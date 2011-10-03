@@ -319,15 +319,25 @@ DROP PROCEDURE IF EXISTS grpsplitga//
 CREATE PROCEDURE grpsplitga ()
   BEGIN
     DECLARE changescount INT;
+    DECLARE st VARCHAR(255);
 
     # copy otl as required using a given links order
     DROP TABLE IF EXISTS eotl;
-    CREATE TABLE eotl(
-      eotl_from int(8) unsigned NOT NULL default '0',
-      eotl_to int(8) unsigned NOT NULL default '0',
-      KEY (eotl_from),
-      KEY (eotl_to)
-    ) ENGINE=MEMORY AS
+
+    #
+    # CREATE TABLE eotl(
+    #   eotl_from int(8) unsigned NOT NULL default '0',
+    #   eotl_to int(8) unsigned NOT NULL default '0',
+    #   KEY (eotl_from),
+    #   KEY (eotl_to)
+    # ) ENGINE=<otl_eng>;
+    #
+    SET @st=CONCAT( 'CREATE TABLE eotl( eotl_from int(8) unsigned NOT NULL default "0", eotl_to int(8) unsigned NOT NULL default "0", KEY (eotl_from), KEY (eotl_to) ) ENGINE=', @otl_eng, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    INSERT INTO eotl (eotl_from, eotl_to)
     SELECT otl_from as eotl_from,
            otl_to as eotl_to
            FROM otl;
@@ -415,15 +425,25 @@ DROP PROCEDURE IF EXISTS grpsplitrga//
 CREATE PROCEDURE grpsplitrga ()
   BEGIN
     DECLARE changescount INT;
+    DECLARE st VARCHAR(255);
 
     # copy otl as required using a given links order
     DROP TABLE IF EXISTS eotl;
-    CREATE TABLE eotl(
-      eotl_from int(8) unsigned NOT NULL default '0',
-      eotl_to int(8) unsigned NOT NULL default '0',
-      KEY (eotl_from),
-      KEY (eotl_to)
-    ) ENGINE=MEMORY AS
+
+    #
+    # CREATE TABLE eotl(
+    #   eotl_from int(8) unsigned NOT NULL default '0',
+    #   eotl_to int(8) unsigned NOT NULL default '0',
+    #   KEY (eotl_from),
+    #   KEY (eotl_to)
+    # ) ENGINE=<otl_eng>;
+    #
+    SET @st=CONCAT( 'CREATE TABLE eotl( eotl_from int(8) unsigned NOT NULL default "0", eotl_to int(8) unsigned NOT NULL default "0", KEY (eotl_from), KEY (eotl_to) ) ENGINE=', @otl_eng, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    INSERT INTO eotl (eotl_from, eotl_to)
     SELECT otl_to as eotl_from,
            otl_from as eotl_to
            FROM otl;
@@ -662,6 +682,8 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255), targetset VARCHAR(255))
            FROM lc
            WHERE lc_amnt<maxsize;
 
+    SELECT 'MEMORY' INTO @otl_eng;
+
     SELECT cry_for_memory( 54*@lcnt ) INTO @res;
     # @res could be reported up here but we would like to keep it silent
 
@@ -675,6 +697,8 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255), targetset VARCHAR(255))
           KEY (otl_from),
           KEY (otl_to)
         ) ENGINE=MyISAM;
+
+        SELECT 'MyISAM' INTO @otl_eng;
       ELSE
         CREATE TABLE otl(
           otl_to int(8) unsigned NOT NULL default '0',
@@ -1400,7 +1424,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
         END IF;
     END IF;
 
-    SELECT CONCAT( ':: echo isolated ', targetset, ' processing time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo isolated ', targetset, ' processing time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

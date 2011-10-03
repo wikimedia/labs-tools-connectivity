@@ -16,11 +16,11 @@ $wikis = explode( "\n", trim( $wikis ) );
 
 foreach($wikis as $lang) {*/
 //$lang = $_SERVER['argv'][1];
-function createI18nCache($lang) {
+function createI18nCache($srv, $lang) {
 	// loading auth. data
 	$dbconf = parse_ini_file("/home/".get_current_user()."/.my.cnf");
 	
-	$wiki = DbSimple_Generic::connect( 'mysql://' . $dbconf['user'] . ':' . $dbconf['password'] . '@sql-s3/'.strtr( $lang, '-', '_' ).'wiki_p' );
+	$wiki = DbSimple_Generic::connect( 'mysql://' . $dbconf['user'] . ':' . $dbconf['password'] . '@sql-s'.$srv.'/'.strtr( $lang, '-', '_' ).'wiki_p' );
 	$wiki->setErrorHandler('databaseErrorHandler');
 	
 	// get isolated: orphan, ring, cluster

@@ -43,7 +43,7 @@ CREATE PROCEDURE suggestor ( srv INT )
 
     DROP TABLE ll_orcat;
 
-    SELECT CONCAT( ':: echo suggestor web tool time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo suggestor web tool time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

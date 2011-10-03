@@ -84,7 +84,7 @@ CREATE PROCEDURE categories ()
     SELECT max(id)+1 INTO @freecatid
            FROM categories;
 
-    SELECT CONCAT( ':: echo categories prefetch time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo categories prefetch time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 
@@ -292,7 +292,7 @@ CREATE PROCEDURE isolated_by_category ()
 
     CALL actuality( 'isolatedbycategory' );
 
-    SELECT CONCAT( ':: echo isolated for category web tool time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo isolated for category web tool time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

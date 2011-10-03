@@ -108,7 +108,7 @@ done < $1
 
 if [ "$count" = '0' ]
 then
-  echo "Golem found an empty script and have nothing to process"
+  echo "Golem found an empty script and has nothing to process"
 fi
 
 # </pre>

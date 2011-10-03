@@ -3,6 +3,12 @@
 class Melog {
 	
 	/**
+	 * Wikipedia sql server to work with
+	 * @var string
+	 */
+	private $_srv;
+
+	/**
 	 * Wikipedia language to work with
 	 * @var string
 	 */
@@ -50,7 +56,8 @@ class Melog {
 	 * @param string $login		login for API
 	 * @param string $password	password for API
 	 */
-	public function __construct( $lang, $login, $password ) {
+	public function __construct( $srv, $lang, $login, $password ) {
+		$this->_srv = $srv;
 		$this->_lang = $lang;
 		$this->_l10n = $this->_loadL10n();
 		
@@ -83,6 +90,14 @@ class Melog {
 		return $this->_lang;
 	}
 	
+	/**
+	 * Returns the mysql server bot is working with
+	 * @return string
+	 */
+	public function getSrv() {
+		return $this->_srv;
+	}
+
 	/**
 	 * Docodes cluster chain of _n_m_o_p_r kind to a human-readable one
 	 * @param string $chain		chain to decode
@@ -122,7 +137,7 @@ class Melog {
 	private function _loadL10n() {
 		require_once(__DIR__ . '/melog.i18n.php');
 		
-		return new i18n($this->getLanguage());
+		return new i18n($this->getSrv(), $this->getLanguage());
 	}
 	
 	/**
@@ -131,6 +146,8 @@ class Melog {
 	 */
 	private function _processTask($tasks=array()) {
 		foreach($tasks as $task) {
+			$this->_editFailCount = 0;
+
 			list($title, $ncaact, $deact, $isoact, $cluster) = explode(" ", $task);
 			
 			while(($this->_editFailCount++) < 3) {
@@ -168,6 +185,13 @@ class Melog {
 			return true;
 		}
 		
+		// preventing from editing empty pages
+		if(trim($this->_text) == '') {
+			pecho('Empty article, leaving it unprocessed.', array(PECHO_WARN, PECHO_LOG));
+			unset($page);
+			return true; // it's not true indeed, but trying more makes no sense
+		}
+
 		$this->_fixIsolated($iso, $cluster);
 		$this->_fixNoncategorized($noncat);
 		$this->_fixDeadend($deadend);

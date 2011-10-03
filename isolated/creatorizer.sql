@@ -53,7 +53,7 @@ CREATE PROCEDURE creatorizer ()
     SELECT CONCAT( ':: echo ', count(DISTINCT user, user_text), ' isolated article creators found' )
            FROM creators0;
 
-    SELECT CONCAT( ':: echo creatorizer web tool time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo creatorizer web tool time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

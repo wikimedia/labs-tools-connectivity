@@ -271,7 +271,7 @@ CREATE PROCEDURE combineandout ()
 
     DROP TABLE task;
 
-    SELECT CONCAT( ':: echo nocat, isolated & deadend combining time: ', timediff(now(), @starttime));
+    SELECT CONCAT( ':: echo nocat, isolated & deadend combining time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

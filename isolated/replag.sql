@@ -40,7 +40,7 @@ CREATE PROCEDURE replag ( language VARCHAR(64) )
     SELECT now() INTO @run_time;
 
     # how old the latest edit there is?
-    SELECT CONCAT( ':: replag ', timediff(@run_time, @rep_time)) as title;
+    SELECT CONCAT( ':: replag ', TIMEDIFF(@run_time, @rep_time)) as title;
   END;
 //
 

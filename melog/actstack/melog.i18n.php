@@ -11,6 +11,12 @@ class i18n {
 	 * Localization language
 	 * @var string
 	 */
+	private $_srv;
+
+	/**
+	 * Localization language
+	 * @var string
+	 */
 	private $_lang;
 	
 	/**
@@ -19,7 +25,8 @@ class i18n {
 	 */
 	private $_storage;
 	
-	public function __construct($lang) {
+	public function __construct($srv, $lang) {
+		$this->_srv = $srv;
 		$this->_lang = $lang;
 		
 		$this->_getLocalization();
@@ -73,7 +80,7 @@ class i18n {
 	}
 	
 	
-/**
+        /**
 	 * Gets mnemonics for isolated article cluster types
 	 * @param int $id	1 gets orphan, 2 gets ring, 3 gets cluster, otherwise all three mnemonics in an array
 	 * @return multitype:string,array
@@ -161,7 +168,7 @@ class i18n {
 	 */
 	private function _getLocalization() {
 		pecho("Updating localization cache for {$this->_lang}wiki.", PECHO_LOG);
-		createI18nCache($this->_lang);
+		createI18nCache($this->_srv, $this->_lang);
 		
 		pecho("Localization resources loading for {$this->_lang}wiki.", PECHO_LOG);
 		// isolated

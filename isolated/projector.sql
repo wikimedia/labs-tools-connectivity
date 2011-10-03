@@ -22,6 +22,17 @@ CREATE PROCEDURE get_connectivity_project_root (targetlang VARCHAR(32))
 
     SET @connectivity_project_root='';
 
+    #
+    # SELECT CONCAT( getnsprefix( pl_namespace, 
+    #                             '<targetlang>'
+    #                           ), pl_title ) INTO @connectivity_project_root
+    #        FROM <dbname>.page, 
+    #             <dbname>.pagelinks
+    #        WHERE pl_from=page_id and
+    #              page_namespace=10 and
+    #              page_title="Connectivity_project_root"
+    #        LIMIT 1;
+    #
     SET @st=CONCAT( 'SELECT CONCAT( getnsprefix( pl_namespace, "', targetlang, '" ), pl_title ) INTO @connectivity_project_root FROM ', dbname_for_lang( targetlang ), '.page, ', dbname_for_lang( targetlang ), '.pagelinks WHERE pl_from=page_id and page_namespace=10 and page_title="Connectivity_project_root" LIMIT 1;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;

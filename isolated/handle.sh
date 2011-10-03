@@ -66,13 +66,14 @@ fileportion=1024
 
 source ./isoinv
 
+server=$( ./toolserver.sh "$language" skip_infecting )
+
 #
 # Initialize variables: $dbserver, $dbhost, $usr.
 #
 # Creates sql( $server ) function.
 #
-source ../cgi-bin/ts
-
+source ../cgi-bin/ts $server
 
 extminutes ()
 {
@@ -249,8 +250,9 @@ handle ()
          then
            do_templates=0
          else
-           echo "melog is invoked for $language.*.task.txt"
+           echo "melog is invoked for $language.*.task.txt with sever ${dbserver}"
            {
+             echo ${dbserver}
              echo $language
              tail --bytes=+4 ./${language}.*.task.txt
            } | php -f ../melog/actstack/melog.php &
