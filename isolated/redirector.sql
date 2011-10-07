@@ -311,7 +311,7 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
 #
 #    END WHILE;
 
-    SELECT CONCAT( ':: echo nr2r links caching time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo nr2r links caching time: ', TIMEDIFF(now(), @starttime1));
   END;
 //
 
@@ -501,7 +501,7 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     CALL pl_by_parts( @base_pl_count, 0, @est1, @est2 );
 
-    SELECT CONCAT( ':: echo r2r/r2nr links caching time: ', timediff(now(), @starttime1));
+    SELECT CONCAT( ':: echo r2r/r2nr links caching time: ', TIMEDIFF(now(), @starttime1));
 
     DROP TABLE orcatr;
     DROP TABLE ruwikir;

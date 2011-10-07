@@ -311,7 +311,7 @@ CREATE PROCEDURE inter_langs( srv INT )
       IF NOT done
         THEN
           #
-          # Table name on the destination slave sever to be filled.
+          # Table name on the destination slave server to be filled.
           #
           SELECT CONCAT( ':: s', cur_sv, ' take iwl' );
           #

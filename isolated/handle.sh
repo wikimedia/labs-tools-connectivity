@@ -250,7 +250,7 @@ handle ()
          then
            do_templates=0
          else
-           echo "melog is invoked for $language.*.task.txt with sever ${dbserver}"
+           echo "melog is invoked for $language.*.task.txt with server ${dbserver}"
            {
              echo ${dbserver}
              echo $language

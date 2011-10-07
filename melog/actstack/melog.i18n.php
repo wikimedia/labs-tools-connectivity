@@ -169,7 +169,7 @@ class i18n {
 	private function _getLocalization() {
 		pecho("Updating localization cache for {$this->_lang}wiki.", PECHO_LOG);
 		createI18nCache($this->_srv, $this->_lang);
-		
+
 		pecho("Localization resources loading for {$this->_lang}wiki.", PECHO_LOG);
 		// isolated
 		$this->_appendStorage('isolated', $this->_loadArray('isolated'));

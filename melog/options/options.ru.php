@@ -70,12 +70,12 @@ class Options_ru extends Options {
 		if(is_array($arguments))
 			foreach($arguments as $argument)
 				$this->_deleteRqArguments($argument);
-		
+
 		if(!is_string($arguments))
 			return;
 		
 		$template = new Template($this->_text, 'rq');
-		if($template) {
+		if($template->name) {
 			$template->removeanonfield($arguments);
 			
 			// delete {{rq}} if there are no arguments for it left

@@ -39,6 +39,12 @@ class Melog {
 	private $_text;
 	
 	/**
+	 * Article contents
+	 * @var string
+	 */
+	private $_originaltext;
+
+	/**
 	 * Edit summary
 	 * @var string
 	 */
@@ -50,6 +56,12 @@ class Melog {
 	 */
 	private $_editFailCount;
 	
+	/**
+	 * Edit fail counter
+	 * @var int
+	 */
+	private $_maxeditFailCount;
+
 	/**
 	 * Melog class constructor
 	 * @param string $lang		language to work with
@@ -73,6 +85,7 @@ class Melog {
 		
 		$this->_wiki = Peachy::newWiki( null, $login, $password, 'http://'.$this->_lang.'.wikipedia.org/w/api.php' );
 		$this->_editFailCount = 0; // resetting fail counter
+		$this->_maxeditFailCount = 3;
 	}
 	
 	/**
@@ -150,7 +163,7 @@ class Melog {
 
 			list($title, $ncaact, $deact, $isoact, $cluster) = explode(" ", $task);
 			
-			while(($this->_editFailCount++) < 3) {
+			while(($this->_editFailCount++) < $this->_maxeditFailCount) {
 				if($this->_processArticle(trim($title), trim($ncaact), trim($deact), trim($isoact), trim($cluster)))
 					break;
 			}
@@ -177,6 +190,7 @@ class Melog {
 		pecho("Page ID: ".$page->get_id(), PECHO_LOG);
 		
 		$this->_text = $page->get_text();
+		$this->_originaltext = $this->text;
 		$this->_summary = '';
 		
 		if($this->_skipGlobal()) { // global skip rules
@@ -203,13 +217,20 @@ class Melog {
 			return true; // it's not true indeed, but trying more makes no sense
 		}
 		
+		// preventing from dummy edits
+		if(trim($this->_text) == trim($this->_originaltext)) {
+			pecho('No changes to content, leaving the article unprocessed.', array(PECHO_WARN, PECHO_LOG));
+			unset($page);
+			return true; // it's not true indeed, but trying more makes no sense
+		}
+
 		$this->_finishSummary();
 		
 		$this->_text = preg_replace('~\n{3,}~', "\n\n", $this->_text); // deleting excessive line breaks
+#pecho("start".$this->_text."end", PECHO_LOG);
 		$rev = $page->edit(trim($this->_text), $this->_summary, true, true);
 		unset($page);
 		if(is_int($rev)) {
-			$this->_editFailCount = 0;
 			pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);
 			return true;
 		} else {
@@ -246,9 +267,13 @@ class Melog {
 				pecho('No cluster given. Using orphan0 instead.', array(PECHO_LOG, PEACHO_WARN));
 			}
 			
-			if(preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).':|\[\[[a-z\-]{2,8}:)/ui', $this->_text)) {
+#pecho("ha!".preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).':|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,8}:)/ui', $this->_text)."he!", PECHO_LOG);
+#pecho("ha!".$matches[0]."he!", PECHO_LOG);
+#pecho("ha!".$this->_l10n->getArray('isolated', 'template')."he!", PECHO_LOG);
+			if(preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).':|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,8}:)/ui', $this->_text)) {
 				$this->_text = preg_replace('/\n*(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:)/ui', "\n\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}\n\n\\1", $this->_text, 1);
 			} else {
+#pecho("ha! Was here! he!", PECHO_LOG);
 				$this->_text .= "\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}\n";
 			}
 			$this->_appendSummary('tagged isolated of cluster '. (($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') ));
@@ -276,7 +301,11 @@ class Melog {
 				pecho('Non-categorized skip options went off, skipping non-categorized fix actions.', PECHO_LOG);
 				return;
 			}
-			$this->_text = preg_replace('/(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:|$)/ui', '{{'.$this->_l10n->getArray('noncategorized', 'template')."}}\n\\1", $this->_text, 1);
+                        if(preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:|$)/ui', $this->_text)) {
+				$this->_text = preg_replace('/(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:|$)/ui', "\n{{".$this->_l10n->getArray('noncategorized', 'template')."}}\n\\1", $this->_text, 1);
+			} else {
+				$this->_text .= "\n{{".$this->_l10n->getArray('noncategorized', 'template')."}}\n";
+			}
 			
 			$this->_appendSummary('tagged non-categorized');
 			pecho('Non-categorized template set.', PECHO_LOG);
@@ -318,7 +347,15 @@ class Melog {
 	}
 	
 	private function _skipIsolated() {
-		return preg_match('/\{\{('.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text) || $this->_options->skipIsolated($this->_text);
+#pecho("start".formPregVariants($this->_l10n->getArray('disambigs'))."end", PECHO_LOG);
+#pecho("start".(preg_match('/\{\{('.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text, $matches))."end", PECHO_LOG);
+#pecho("start".$matches[0]."end", PECHO_LOG);
+#pecho("start".($this->_options->skipIsolated($this->_text))."end", PECHO_LOG);
+		if(formPregVariants($this->_l10n->getArray('disambigs'))){
+			return preg_match('/\{\{('.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text) || $this->_options->skipIsolated($this->_text);
+		} else {
+			return $this->_options->skipIsolated($this->_text);
+		}
 	}
 	
 	private function _skipNoncategorized() {
@@ -326,7 +363,11 @@ class Melog {
 	}
 	
 	private function _skipDeadend() {
-		return preg_match('/\{\{('.$this->_l10n->getStorage('deadend').'|'.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text) || $this->_options->skipDeadend($this->_text);
+		if(formPregVariants($this->_l10n->getArray('disambigs'))){
+			return preg_match('/\{\{('.$this->_l10n->getStorage('deadend').'|'.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text) || $this->_options->skipDeadend($this->_text);
+		} else {
+			return preg_match('/\{\{('.$this->_l10n->getStorage('deadend').')/ui', $this->_text) || $this->_options->skipDeadend($this->_text);
+		}
 	}
 	
 	/**

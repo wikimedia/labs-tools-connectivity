@@ -56,9 +56,9 @@ function createI18nCache($srv, $lang) {
 }
 
 function getIsolated(&$db) {
-	$query1 = 'SELECT cl.cl_to FROM categorylinks cl JOIN page p ON cl.cl_from = p.page_id WHERE p.page_title = "ConnectivityProjectInternationalization/IsolatedArticles" AND cl_to NOT LIKE "%сироты%"  ORDER BY cl.cl_sortkey ASC'; // NASY HACK to avoid deprecated category in the result (for ruwiki)
-	$query2 = 'SELECT pl.pl_title FROM pagelinks pl JOIN page p ON pl.pl_from = p.page_id WHERE p.page_title = "ConnectivityProjectInternationalization/IsolatedArticles" AND pl.pl_namespace IN (10, 14) ORDER BY pl.pl_namespace ASC';
-	
+	$query1 = 'SELECT cl_to FROM categorylinks, page WHERE page_id=cl_from AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/IsolatedArticles" AND cl_sortkey_prefix!="old" ORDER BY cl_sortkey_prefix ASC'; // NASY HACK to avoid deprecated category in the result (for ruwiki)
+	$query2 = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/IsolatedArticles" AND pl_namespace IN (10, 14) ORDER BY pl_namespace ASC';
+		
 	$data = $db->selectCol($query1);
 	$isolated = $db->selectCol($query2);
 	$data = array(
@@ -73,13 +73,13 @@ function getIsolated(&$db) {
 }
 
 function getDeadend(&$db) {
-	$query = 'SELECT pl.pl_title FROM pagelinks pl JOIN page p ON pl.pl_from = p.page_id WHERE p.page_title="ConnectivityProjectInternationalization/DeadEndArticles" AND pl.pl_namespace = 10 ORDER BY pl.pl_namespace ASC';
+	$query = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/DeadEndArticles" AND pl_namespace=10 ORDER BY pl_namespace ASC';
 	
 	return strtr($db->selectCell($query), '_', ' ');
 }
 
 function getNoncat(&$db) {
-	$query = 'SELECT pl.pl_title FROM pagelinks pl JOIN page p ON pl.pl_from = p.page_id WHERE p.page_title="ConnectivityProjectInternationalization/NonCategorizedArticles" AND pl.pl_namespace IN (10, 14) ORDER BY pl.pl_namespace ASC';
+	$query = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/NonCategorizedArticles" AND pl_namespace IN (10, 14) ORDER BY pl_namespace ASC';
 	
 	$data = $db->selectCol($query);
 	foreach($data as &$item) {
@@ -90,7 +90,7 @@ function getNoncat(&$db) {
 }
 
 function getDisambigTemplates(&$db) {
-	$query = 'SELECT pl.pl_title FROM pagelinks pl JOIN page p ON pl.pl_from = p.page_id WHERE p.page_title = "Disambiguationspage" AND p.page_namespace = 8 AND pl.pl_namespace = 10';
+	$query = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_title="Disambiguationspage" AND page_namespace=8 AND pl_namespace=10';
 	
 	$data = $db->selectCol($query);
 	foreach($data as &$item) {
@@ -100,7 +100,7 @@ function getDisambigTemplates(&$db) {
 }
 
 function getProjectRoot(&$db) {
-	$query = 'SELECT pl.pl_title FROM pagelinks pl JOIN page p ON pl.pl_from = p.page_id WHERE p.page_title = "Connectivity_project_root" and p.page_namespace = 10';
+	$query = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_title="Connectivity_project_root" AND page_namespace=10';
 	
 	return strtr($db->selectCell($query), '_', ' ');
 }
