@@ -63,6 +63,12 @@ class Melog {
 	private $_maxeditFailCount;
 
 	/**
+	 * Edit fail counter
+	 * @var int
+	 */
+	private $_iwikiList;
+
+	/**
 	 * Melog class constructor
 	 * @param string $lang		language to work with
 	 * @param string $login		login for API
@@ -83,6 +89,8 @@ class Melog {
 			$this->_options = new Options_blank($this->_l10n); // dummy options
 		}
 		
+                $this->_iwikiList=formPregVariants($this->_l10n->getArray('iwiki'));
+
 		$this->_wiki = Peachy::newWiki( null, $login, $password, 'http://'.$this->_lang.'.wikipedia.org/w/api.php' );
 		$this->_editFailCount = 0; // resetting fail counter
 		$this->_maxeditFailCount = 3;
@@ -224,18 +232,24 @@ class Melog {
 			return true; // it's not true indeed, but trying more makes no sense
 		}
 
-		$this->_finishSummary();
+		if($this->_summary != '') {
+			$this->_finishSummary();
 		
-		$this->_text = preg_replace('~\n{3,}~', "\n\n", $this->_text); // deleting excessive line breaks
+			$this->_text = preg_replace('~\n{3,}~', "\n\n", $this->_text); // deleting excessive line breaks
+#pecho("start".$this->_summary."end", PECHO_LOG);
 #pecho("start".$this->_text."end", PECHO_LOG);
-		$rev = $page->edit(trim($this->_text), $this->_summary, true, true);
-		unset($page);
-		if(is_int($rev)) {
-			pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);
-			return true;
+			$rev = $page->edit(trim($this->_text), $this->_summary, true, true, false, false, 'never');
+			unset($page);
+			if(is_int($rev)) {
+				pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);
+				return true;
+			} else {
+				pecho("Article was not commited due to unrevealed problems.", PECHO_LOG);
+				return false;
+			}
 		} else {
-			pecho("Article was not commited due to unrevealed problems.", PECHO_LOG);
-			return false;
+			pecho("Near dummy edits only, no reason to commit.", PECHO_LOG);
+			return true;
 		}
 	}
 	
@@ -248,16 +262,11 @@ class Melog {
 		if(!$status)
 			return;
 		
-		$this->_text = preg_replace('/\{\{'.$this->_l10n->getArray('isolated', 'template') .'(\|(\S+\d{1,3})*)?\}\}\n*/ui', '', $this->_text);
-		if($status == -1) {
-			$this->_appendSummary('untagged isolated');
-			pecho("Isolated template deleted.", PECHO_LOG);
-		} elseif($status == 1) {
-			if($this->_skipIsolated()) {
-				pecho("Isolated skip options went off, skipping isolated fix actions.", PECHO_LOG);
-				return;	
-			}
-			
+		$param_found='';
+		$param_given='';
+		$comment_flag=false;
+
+		if($status == 1) {
 			if(!empty($cluster)) {
 				$chain = (($cluster=='_1')?'':'|'.$this->_decodeChain($cluster));
 				$chain = str_replace(array('orphan', 'ring', 'cluster'), $this->_l10n->getIsolatedMnemonics(), $chain);
@@ -266,20 +275,65 @@ class Melog {
 				$chain = '';
 				pecho('No cluster given. Using orphan0 instead.', array(PECHO_LOG, PEACHO_WARN));
 			}
-			
-#pecho("ha!".preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).':|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,8}:)/ui', $this->_text)."he!", PECHO_LOG);
-#pecho("ha!".$matches[0]."he!", PECHO_LOG);
-#pecho("ha!".$this->_l10n->getArray('isolated', 'template')."he!", PECHO_LOG);
-			if(preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).':|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,8}:)/ui', $this->_text)) {
-				$this->_text = preg_replace('/\n*(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:)/ui', "\n\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}\n\n\\1", $this->_text, 1);
-			} else {
-#pecho("ha! Was here! he!", PECHO_LOG);
-				$this->_text .= "\n{{".$this->_l10n->getArray('isolated', 'template').$chain."}}\n";
-			}
-			$this->_appendSummary('tagged isolated of cluster '. (($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') ));
-			pecho("Isolated template set with cluster chain ".(($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') ).".", PECHO_LOG);
+			$param_given=( ($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') );
 		}
-		$this->_text = $this->_options->fixIsolated($this->_text, $status, $cluster);
+
+		if( $this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Existent')) {
+			$comment_flag=true;
+		}
+
+		$template = new Template($this->_text, trim($this->_l10n->getArray('isolated', 'template')));
+		if($template->name) {
+			if($template->fields[1]) {
+				$param_found=$template->fields[1];
+			} else {
+				$param_found=$this->_l10n->getIsolatedMnemonics(1).'0';
+			}
+
+			if($status == 1) {
+				if( $param_found==$param_given ) {
+					pecho("Isolated cluster chain replacement is not required.", PECHO_LOG);
+				}
+			}
+
+			// delete this template
+			$this->_text=$template->deleteTemplate();
+
+			if($status == -1) {
+				$this->_appendSummary('untagged isolated');
+				pecho("Isolated template deleted.", PECHO_LOG);
+			}
+		} elseif($status == -1) {
+			pecho("Isolated template not detected.", PECHO_LOG);
+		}
+
+		if($status == 1) {
+			if($this->_skipIsolated()) {
+				pecho("Isolated skip options went off, skipping isolated fix actions.", PECHO_LOG);
+				return;	
+			}
+			
+			if(($param_found!=$param_given)||$comment_flag) {
+
+				$this->_appendTextProperly($this->_l10n->getArray('isolated', 'template').$chain);
+			}
+			$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Added');
+
+			if($param_found!='') {
+				if($param_found!=$param_given) {
+					$this->_appendSummary('isolated cluster '.$param_found.' replaced by '.$param_given );
+					pecho("Isolated cluster chain ".$param_found." replaced with ".$param_given.".", PECHO_LOG);
+				}
+			} else {
+				$this->_appendSummary('tagged isolated of cluster '.$param_given);
+				pecho("Isolated template set with cluster chain ".$param_given.".", PECHO_LOG);
+			}
+		}
+		$opt=$this->_options->fixIsolated($this->_text, $status, $cluster);
+		$this->_text=$opt['text'];
+		if( $opt['summary'] != '' ) {
+			$this->_summary.=$opt['summary'];
+		}
 	}
 	
 	/**
@@ -290,28 +344,47 @@ class Melog {
 		if(!$status)
 			return;
 
+		$this->_extractJustInCaseFromComments($this->_l10n->getArray('noncategorized', 'template'), 'Existent');
+
+		$template = new Template($this->_text, trim($this->_l10n->getArray('noncategorized', 'template')));
+		if($template->name) {
+			if($status == -1) {
+				// delete this template
+				$this->_text=$template->deleteTemplate();
+				$this->_appendSummary('untagged non-categorized');
+				pecho("Non-categorized template deleted.", PECHO_LOG);
+			} elseif($status == 1) {
+				pecho("Non-categorized template is already set.", PECHO_LOG);
+                        }
+
+		} elseif($status == -1) {
+			pecho("Non-categorized template not detected.", PECHO_LOG);
+		}
+
 		if($status == -1) {
-			$this->_text = preg_replace('/\[\['.$this->_l10n->getNamespaceName(14).':'.$this->_l10n->getArray('noncategorized', 'category').'\]\]\n*/i', '', $this->_text);
-			$this->_text = preg_replace('/\{\{'.$this->_l10n->getArray('noncategorized', 'template').'\}\}\n*/i', '', $this->_text);
-			
-			$this->_appendSummary('untagged non-categorized');
-			pecho("Non-categorized template deleted.", PECHO_LOG);
+			if(preg_match('/\[\['.$this->_l10n->getNamespaceName(14).':'.$this->_l10n->getArray('noncategorized', 'category').'\]\]\n*/ui', $this->_text )) {
+				$this->_text = preg_replace('/\[\['.$this->_l10n->getNamespaceName(14).':'.$this->_l10n->getArray('noncategorized', 'category').'\]\]\n*/ui', '', $this->_text, 1);
+ 
+				$this->_appendSummary('non-categorized category removed');
+				pecho("Non-categorized category removed.", PECHO_LOG);
+			}
 		} elseif($status == 1) {
 			if($this->_skipNoncategorized()) {
 				pecho('Non-categorized skip options went off, skipping non-categorized fix actions.', PECHO_LOG);
 				return;
 			}
-                        if(preg_match('/(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:|$)/ui', $this->_text)) {
-				$this->_text = preg_replace('/(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[(?!'.$this->_l10n->getPregNamespaces(14).')[a-z\-]{2,9}:|$)/ui', "\n{{".$this->_l10n->getArray('noncategorized', 'template')."}}\n\\1", $this->_text, 1);
-			} else {
-				$this->_text .= "\n{{".$this->_l10n->getArray('noncategorized', 'template')."}}\n";
-			}
+
+			$this->_appendTextProperly($this->_l10n->getArray('noncategorized', 'template'));
+			$this->_extractJustInCaseFromComments(trim($this->_l10n->getArray('noncategorized', 'template')), 'Added');
 			
 			$this->_appendSummary('tagged non-categorized');
 			pecho('Non-categorized template set.', PECHO_LOG);
 		}
-		$this->_text = $this->_options->fixNoncategorized($this->_text, $status);
-		
+		$opt=$this->_options->fixNoncategorized($this->_text, $status);
+		$this->_text=$opt['text'];
+		if( $opt['summary'] != '' ) {
+			$this->_summary.=$opt['summary'];
+		}
 	}
 	
 	/**
@@ -322,35 +395,51 @@ class Melog {
 		if(!$status)
 			return;
 
-		if($status == -1) {
-			$this->_text = preg_replace('/\{\{'.$this->_l10n->getStorage('deadend').'\}\}\n*/i', '', $this->_text);
-			
-			$this->_appendSummary('untagged dead-end');
-			pecho("Dead-end template deleted.", PECHO_LOG);
-		} elseif($status == 1) {
+		$foundsuchatemplate=0;
+
+		$this->_extractJustInCaseFromComments($this->_l10n->getStorage('deadend'), 'Existent');
+
+		$template = new Template($this->_text, trim($this->_l10n->getStorage('deadend')));
+		if($template->name) {
+			if($status == -1) {
+				// delete this template
+				$this->_text=$template->deleteTemplate();
+				$this->_appendSummary('untagged dead-end');
+				pecho("Dead-end template deleted.", PECHO_LOG);
+			} elseif($status == 1) {
+				pecho("Dead-end template is already set.", PECHO_LOG);
+				$foundsuchatemplate=1;
+			}
+
+		} elseif($status == -1) {
+			pecho("Dead-end template not detected.", PECHO_LOG);
+		}
+
+		if($status == 1) {
 			if($this->_skipDeadend()) {
 				pecho('Dead-end skip options went off, skipping dead-end fix actions.', PECHO_LOG);
 				return;
 			}
+
+			if(!$foundsuchatemplate) {
+				$this->_text='{{'.$this->_l10n->getStorage('deadend')."}}\n".$this->_text;
 			
-			// As opposed to other templates, this one is prepended, so no meta section searching is needed.
-			$this->_text = '{{'.$this->_l10n->getStorage('deadend')."}}\n" . $this->_text;
-			
-			$this->_appendSummary('tagged dead-end');
-			pecho('Dead-end template set.', PECHO_LOG);
+				$this->_appendSummary('tagged dead-end');
+				pecho('Dead-end template set.', PECHO_LOG);
+			}
 		}
-		$this->_text = $this->_options->fixDeadend($this->_text, $status);
+		$opt=$this->_options->fixDeadend($this->_text, $status);
+		$this->_text=$opt['text'];
+		if( $opt['summary'] != '' ) {
+			$this->_summary.=$opt['summary'];
+		}
 	}
 	
 	private function _skipGlobal() {
-		return preg_match('/('.formPregVariants($this->_l10n->getArray('magicwords', 'redirect')).')/ui', $this->_text) || $this->_options->skipGlobal($this->_text);
+		return preg_match('/(^|\}[\s\t]*)('.formPregVariants($this->_l10n->getArray('magicwords', 'redirect')).')/mui', $this->_text) || $this->_options->skipGlobal($this->_text);
 	}
 	
 	private function _skipIsolated() {
-#pecho("start".formPregVariants($this->_l10n->getArray('disambigs'))."end", PECHO_LOG);
-#pecho("start".(preg_match('/\{\{('.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text, $matches))."end", PECHO_LOG);
-#pecho("start".$matches[0]."end", PECHO_LOG);
-#pecho("start".($this->_options->skipIsolated($this->_text))."end", PECHO_LOG);
 		if(formPregVariants($this->_l10n->getArray('disambigs'))){
 			return preg_match('/\{\{('.formPregVariants($this->_l10n->getArray('disambigs')).')/ui', $this->_text) || $this->_options->skipIsolated($this->_text);
 		} else {
@@ -384,5 +473,30 @@ class Melog {
 	private function _finishSummary() {
 		$this->_summary = substr($this->_summary, 0, -2).'.';
 	}
-	
+
+	/**
+	 * Appends to the text but before interwiki and categories
+	 */
+	private function _appendTextProperly($insert) {
+
+		$this->_text = preg_replace('/\n*(\[\['.$this->_l10n->getNamespaceName(14).'|\[\[('.$this->_iwikiList.'):|$)/ui', "\n\n{{".$insert."}}\n\n\\1", $this->_text, 1);
+	}
+
+	/**
+	 * Extracts given template from comments if required
+	 */
+	private function _extractJustInCaseFromComments($insert, $kind) {
+
+		if(preg_match( '/\<![ \r\n\t]*--([^\-\{]|[\r\n]|-[^\-]|\{(?!\{'.str_replace(' ', '\s', $insert).'))*\{\{'.str_replace(' ', '\s', $insert).'\}\}([^\-]|[\r\n]|-[^\-])*--[ \r\n\t]*\>/us', $this->_text )) {
+			// moving up
+			$this->_text = preg_replace('/(\<![ \r\n\t]*--)(([^\-\{]|[\r\n]|-[^\-]|\{(?!\{'.str_replace(' ', '\s', $insert).'))*)\{\{'.str_replace(' ', '\s', $insert).'\}\}(([^\-]|[\r\n]|-[^\-])*)(--[ \r\n\t]*\>)/', "{{".$insert."}}\n\n\\1\\2\\4\\6", $this->_text, 1);
+
+			$this->_appendSummary($kind.' {{'.$insert.'}} uncommented');
+			pecho($kind." template {{".$insert."}} moved out of comment.", PECHO_LOG);
+
+			return true;
+		} else {
+			return false;
+		}
+	}
 }

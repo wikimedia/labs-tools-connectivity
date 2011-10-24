@@ -196,6 +196,8 @@ class i18n {
 		// disambig templates
 		$this->_appendStorage('disambigs', $this->_loadArray('disambigs'));
 		
+		// iwiki prefixes
+		$this->_appendStorage('iwiki', $this->_loadArray('iwiki'));
 	}
 	
 	/**

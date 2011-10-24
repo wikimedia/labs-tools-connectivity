@@ -65,19 +65,49 @@ class Template {
      * @param string $name Name of the temlate to find
      */
     public function __construct($text,$name) {
-        if (false === ($from = stripos($text,'{{' . $name))) {
-            unset ($this);
-            return;
-        }
+# mashiah: this could speedup things just in case stripos supports utf-8
+#        if (false === ($from = stripos($text,'{{' . $name))) {
+#            unset ($this);
+#            return;
+#        }
         
-        $name = "(?i:" . substr(preg_quote($name,'/'),0,1) . ")" . substr($name,1);
-        preg_match("/\{\{" . $name . "\s*(?:(?:\|.*)|(?:\}.*))/is",$text,$match);
-        if (isset($match[0])) {
-            $from = stripos($text,$match[0]);
+# mashiah: code below is for utf-8 support
+#          it is supposed preg_ functions work properly with utf-8
+#          and other string functions do not
+        $name = preg_replace('/\s/', '\s+', $name);
+        if($name{0}>="\x7f") {
+          $namestart=$name{0}.$name{1};
+          $nameend=substr($name,2);
         } else {
-            unset ($this);
-            return;
+          $namestart=$name{0};
+          $nameend=substr($name,1);
+	}
+
+        preg_match_all("/\{\{(".$namestart.")/ui",$text,$matchstarts,PREG_SET_ORDER);
+
+        $i=0;
+        foreach ($matchstarts as $matchstart) {
+          preg_match("/\{\{".$matchstart[1].$nameend."\s*(?:(?:\|.*)|(?:\}.*))/s",$text,$match);
+          if (isset($match[0])) {
+              $from = stripos($text,$match[0]);
+              $i=1;
+              break;
+          }
         }
+        if($i<1) {
+          unset( $this );
+          return;
+        }
+
+# mashiah: this code does not work when string functions do not support utf-8
+#        $name = "(?i:" . substr(preg_quote($name,'/'),0,1) . ")" . substr($name,1);
+#        preg_match("/\{\{" . $name . "\s*(?:(?:\|.*)|(?:\}.*))/s",$text,$match);
+#        if (isset($match[0])) {
+#            $from = stripos($text,$match[0]);
+#        } else {
+#            unset ($this);
+#            return;
+#        }
         
         $i = 2;
         $counter = 2;

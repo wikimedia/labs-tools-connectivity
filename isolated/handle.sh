@@ -244,34 +244,36 @@ handle ()
          sleep 2
        done
 
-       if [ "$do_templates" = 1 ]
-       then
-         if [ -f ${language}.no_templates.log ]
+       {
+         if [ "$do_templates" = 1 ]
          then
-           do_templates=0
-         else
-           echo "melog is invoked for $language.*.task.txt with server ${dbserver}"
-           {
-             echo ${dbserver}
-             echo $language
-             tail --bytes=+4 ./${language}.*.task.txt
-           } | php -f ../melog/actstack/melog.php &
+           if [ -f ${language}.no_templates.log ]
+           then
+             do_templates=0
+           else
+             echo "melog is invoked for $language.*.task.txt with server ${dbserver}"
+             {
+               echo ${dbserver}
+               echo $language
+               tail --bytes=+4 ./${language}.*.task.txt
+             } | php -f ../melog/actstack/melog.php
+           fi
          fi
-       fi
 
-       # pack templates management info for delivery to AWB host
-       rm -f $language.today.7z
-       7z a $language.today.7z ./${language}.*.txt >${language}.7z.log 2>&1
-       rm -f ./${language}.*.txt
+         # pack templates management info for delivery to AWB host
+         rm -f $language.today.7z
+         7z a $language.today.7z ./${language}.*.txt >${language}.7z.log 2>&1
+         rm -f ./${language}.*.txt
 
-       rm -f $language.info.7z
-       7z a $language.info.7z ./${language}.*.info >>${language}.7z.log 2>&1
-       rm -f ./${language}.*.info
+         rm -f $language.info.7z
+         7z a $language.info.7z ./${language}.*.info >>${language}.7z.log 2>&1
+         rm -f ./${language}.*.info
 
-       7z a $language.stat.7z ./${language}.*.stat >>${language}.7z.log 2>&1
+         7z a $language.stat.7z ./${language}.*.stat >>${language}.7z.log 2>&1
 
-       todos ${language}.7z.log
-       chmod 755 ${language}.*.7z
+         todos ${language}.7z.log
+         chmod 755 ${language}.*.7z
+       } &
        ;;
     'introduce')
        distinct_srv=''

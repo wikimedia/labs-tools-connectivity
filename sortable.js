@@ -51,7 +51,9 @@ function ts_makeSortable(table) {
 	for (var i = 0; i < firstRow.cells.length; i++) {
 		var cell = firstRow.cells[i];
 		if ((" "+cell.className+" ").indexOf(" unsortable ") == -1) {
-			cell.innerHTML += '&nbsp;&nbsp;<a href="#" class="sortheader" onclick="ts_resortTable(this);return false;"><span class="sortarrow"><img src="'+ ts_image_path + ts_image_none + '" alt="&darr;"/></span></a>';
+//			cell.innerHTML += '&nbsp;&nbsp;<a href="#" class="sortheader" onclick="ts_resortTable(this);return false;"><span class="sortarrow"><img src="'+ ts_image_path + ts_image_none + '" alt="&darr;"/></span></a>';
+			cell.innerHTML += '&nbsp;&nbsp;<a href="#" class="sortheader" onclick="ts_resortTable(this);return false;"><span class="sortarrow"><img src="../none.gif" alt="&darr;"/></span></a>';
+
 		}
 	}
 	if (ts_alternate_row_colors) {
@@ -135,11 +137,13 @@ function ts_resortTable(lnk) {
 
 	var arrowHTML;
 	if (reverse) {
-			arrowHTML = '<img src="'+ ts_image_path + ts_image_down + '" alt="&darr;"/>';
+//			arrowHTML = '<img src="'+ ts_image_path + ts_image_down + '" alt="&darr;"/>';
+			arrowHTML = '<img src="../down.gif" alt="&darr;"/>';
 			newRows.reverse();
 			span.setAttribute('sortdir','up');
 	} else {
-			arrowHTML = '<img src="'+ ts_image_path + ts_image_up + '" alt="&uarr;"/>';
+//			arrowHTML = '<img src="'+ ts_image_path + ts_image_up + '" alt="&uarr;"/>';
+			arrowHTML = '<img src="../up.gif" alt="&uarr;"/>';
 			span.setAttribute('sortdir','down');
 	}
 
@@ -158,7 +162,8 @@ function ts_resortTable(lnk) {
 	// Delete any other arrows there may be showing
 	var spans = getElementsByClassName(tr, "span", "sortarrow");
 	for (var i = 0; i < spans.length; i++) {
-		spans[i].innerHTML = '<img src="'+ ts_image_path + ts_image_none + '" alt="&darr;"/>';
+//		spans[i].innerHTML = '<img src="'+ ts_image_path + ts_image_none + '" alt="&darr;"/>';
+		spans[i].innerHTML = '<img src="../none.gif" alt="&darr;"/>';
 	}
 	span.innerHTML = arrowHTML;
 

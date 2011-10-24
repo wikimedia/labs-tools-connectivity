@@ -4,9 +4,12 @@ abstract class Options {
 	
 	private $_l10n;
 	
+	protected $_text;
+
+	protected $_summary;
+
 	public function __construct($i18n) {
 		$this->_l10n = $i18n;
-		
 	}
 
 	public function __call($name, $arguments) {
@@ -14,11 +17,31 @@ abstract class Options {
 			return false;
 	}
 	
-	abstract public function skipGlobal($text); 
+	public function skipGlobal($text) {
+		return false;
+	}
 	
-	abstract public function fixIsolated($text, $status, $chain);
+	public function skipIsolated($text) {
+		return false;
+	}
 	
-	abstract public function fixNonCategorized($text, $status);
+	public function skipNoncategorized($text) {
+		return false;
+	}
 	
-	abstract public function fixDeadend($text, $status);
+	public function skipDeadend($text) {
+		return false;
+	}
+
+	public function fixIsolated($text, $status, $chain) {
+		return array('text' => $text, 'summary' => '');
+	}
+	
+	public function fixNonCategorized($text, $status) {
+		return array('text' => $text, 'summary' => '');
+	}
+	
+	public function fixDeadend($text, $status) {
+		return array('text' => $text, 'summary' => '');
+	}
 }

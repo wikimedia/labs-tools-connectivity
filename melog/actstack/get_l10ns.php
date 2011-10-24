@@ -52,7 +52,10 @@ function createI18nCache($srv, $lang) {
 	// get project root
 	$root = getProjectRoot( $wiki );
 	file_put_contents( __DIR__ . '/../i18n/root.'.$lang.'.txt', $root );
-	//}
+
+	// get valid iwiki prefixes
+	$iwiki=getIwikiPrefixes( $wiki );
+	file_put_contents( __DIR__ . '/../i18n/iwiki.'.$lang.'.txt', serialize($iwiki) );
 }
 
 function getIsolated(&$db) {
@@ -103,4 +106,14 @@ function getProjectRoot(&$db) {
 	$query = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_title="Connectivity_project_root" AND page_namespace=10';
 	
 	return strtr($db->selectCell($query), '_', ' ');
+}
+
+function getIwikiPrefixes(&$db) {
+	$query = 'select distinct(ll_lang) from langlinks';
+	
+	$data=$db->selectCol($query);
+	foreach($data as &$item) {
+		$item = strtr($item, '_', ' ');
+	}
+	return $data;
 }
