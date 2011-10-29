@@ -957,6 +957,24 @@ EOM
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 EOM
 
+  if [ "$listby" = 'suggest,title' ]
+  then
+    cat << EOM
+<script>
+<!--
+function wopen(url, name, w, h)
+{
+  w += 32;
+  h += 96;
+  var win = window.open( url, name, 'width=' + w + ', height=' + h + ', ' + 'location=no, menubar=no, ' + 'status=no, toolbar=no, scrollbars=no, resizable=no' );
+  win.resizeTo(w, h);
+  win.focus();
+}
+// -->
+</script>
+EOM
+  fi
+
   echo "<title>$pagetitle</title>"
 
   cat << EOM

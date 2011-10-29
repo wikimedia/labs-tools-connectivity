@@ -249,7 +249,4 @@ suggestions $isotype
                
 echo "&nbsp;<br />"
 
-echo "<h3>$googleonwikipedia</h3>"
-echo "<iframe src=\"http://www.google.com/custom?hl=$interface&amp;domains=$language.wikipedia.org&amp;q=${title_url//_/%20}&amp;sitesearch=$language.wikipedia.org\" width=\"100%\" height=\"1500\" scrolling=\"auto\" frameborder=\"1\">"
-echo "Your user agent does not support frames or is currently configured not to display frames. However, you may <a href=\"http://www.google.com/custom?hl=$interface&amp;domains=$language.wikipedia.org&amp;q=${title_url//_/%20}&amp;sitesearch=$language.wikipedia.org\">seach with this link</a>."
-echo "</iframe>"
+echo "<h3><a href=\"http://www.google.com/search?q=${title_url//_/%20}+site:$language.wikipedia.org&hl=$interface\" onClick=\"wopen('http://www.google.com/search?q=${title_url//_/%20}+site:$language.wikipedia.org&hl=$interface', 'popup', 640, 480); return false;\" target=\"popup\">$googleonwikipedia</a></h3>"
