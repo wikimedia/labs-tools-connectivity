@@ -46,23 +46,43 @@ CREATE PROCEDURE get_known_deadend ()
 DROP PROCEDURE IF EXISTS deadend//
 CREATE PROCEDURE deadend (namespace INT)
   BEGIN
-    DECLARE cnt INT;
+    DECLARE cnt INT DEFAULT '0';
     DECLARE st VARCHAR(255);
+    DECLARE res VARCHAR(255);
 
     SELECT ':: echo DEADLOCKTOR';
 
     SET @starttime=now();
 
-    # temporarily delete links to chrono articles
     IF namespace=0
       THEN
+        SELECT count(*) INTO @cnt
+               FROM l,
+                    chrono
+               WHERE l_to=chr_id;
+
+        SELECT cry_for_memory( 54*@cnt ) INTO @res;
+        IF @res!=''
+          THEN
+            SELECT CONCAT( ':: echo ', @res );
+        END IF;
+
+        IF SUBSTRING( @res FROM 1 FOR 8 )='... ... '
+          THEN
+            SELECT ':: echo ... MyISAM engine is chosen for categorizing links table';
+            SELECT 'MyISAM' INTO @res;
+          ELSE
+            SELECT 'MEMORY' INTO @res;
+        END IF;
+
         # List of links from articles to chrono articles
         DROP TABLE IF EXISTS a2cr;
-        CREATE TABLE a2cr (
-          a2cr_to INT(8) unsigned NOT NULL default '0',
-          a2cr_from INT(8) unsigned NOT NULL default '0',
-          KEY ( a2cr_to )
-        ) ENGINE=MEMORY AS
+        SET @st=CONCAT( 'CREATE TABLE a2cr ( a2cr_to int(8) unsigned NOT NULL default ', "'0',", ' a2cr_from int(8) unsigned NOT NULL default ', "'0',", ' KEY (a2cr_to) ) ENGINE=', @res, ';' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        INSERT INTO a2cr (a2cr_to, a2cr_from)
         SELECT l_to as a2cr_to,
                l_from as a2cr_from
                FROM l,
@@ -72,20 +92,7 @@ CREATE PROCEDURE deadend (namespace INT)
         SELECT count(*) INTO @articles_to_chrono_links_count
                FROM a2cr;
 
-        SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' links to be excluded as links to chrono articles' );
-
-#        IF @articles_to_chrono_links_count>0
-#          THEN
-#            # deletion of links to timelines, recoverable, since we have a2cr
-#            DELETE /* SLOW_OK */ l
-#                   FROM l,
-#                        a2cr
-#                   WHERE l_to=a2cr_to;
-#
-#            SELECT CONCAT( ':: echo ', count(*), ' links after chrono links exclusion' )
-#                   FROM l;
-#        END IF;
-
+        SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' links to be excluded as pointing chrono articles' );
     END IF;
 
     # Begin the procedure for dead end pages
@@ -117,13 +124,12 @@ CREATE PROCEDURE deadend (namespace INT)
     # Note: Has been killed on s1 for table with primary key 
     #       look for distinct values may take long.
     #
-#    INSERT INTO lwl (lwl_id)
-#    SELECT l_from as lwl_id
-#           FROM l;
     IF namespace=0
       THEN
         IF @articles_to_chrono_links_count>0
           THEN
+            ALTER /* SLOW_OK */ TABLE a2cr ADD KEY (a2cr_from);
+
             INSERT /* SLOW_OK */ INTO lwl (lwl_id)
             SELECT l_from as lwl_id
                    FROM l
@@ -139,6 +145,8 @@ CREATE PROCEDURE deadend (namespace INT)
             SELECT l_from as lwl_id
                    FROM l;
         END IF;
+
+        DROP TABLE a2cr;
       ELSE
         INSERT /* SLOW_OK */ INTO lwl (lwl_id)
         SELECT l_from as lwl_id
@@ -213,17 +221,6 @@ CREATE PROCEDURE deadend (namespace INT)
             DEALLOCATE PREPARE stmt;
             SELECT ':: sync';
         END IF;
-
-#        # Restore previously deleted links to cronological articles
-#        INSERT INTO l (l_to, l_from)
-#        SELECT a2cr_to as l_to,
-#               a2cr_from as l_from
-#               FROM a2cr;
-
-        DROP TABLE a2cr;
-
-#        SELECT CONCAT( ':: echo ', count(*), ' links after chrono links restore' )
-#               FROM l;
     END IF;
 
     SELECT CONCAT( ':: echo dead-end processing time: ', TIMEDIFF(now(), @starttime));

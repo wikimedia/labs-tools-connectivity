@@ -238,7 +238,19 @@ class Melog {
 			$this->_text = preg_replace('~\n{3,}~', "\n\n", $this->_text); // deleting excessive line breaks
 #pecho("start".$this->_summary."end", PECHO_LOG);
 #pecho("start".$this->_text."end", PECHO_LOG);
-			$rev = $page->edit(trim($this->_text), $this->_summary, true, true, false, false, 'never');
+			try {
+				# parameters: text, summary, minor, bot, force, pend, create
+				$rev = $page->edit(trim($this->_text), $this->_summary, false, true, false, false, 'never');
+			}
+			catch( EditError $e ) {
+				if($e->getMessage() == 'Edit Error: Nobots (The page has a nobots template)') {
+					pecho("No editing due to Nobots protection.", PECHO_LOG);
+					return true;
+				} else {
+					pecho( "Error: $e\n\n", PECHO_FATAL );
+				}
+			}
+
 			unset($page);
 			if(is_int($rev)) {
 				pecho("Article revision {$rev} commited. The article is processed now.", PECHO_LOG);
@@ -264,7 +276,6 @@ class Melog {
 		
 		$param_found='';
 		$param_given='';
-		$comment_flag=false;
 
 		if($status == 1) {
 			if(!empty($cluster)) {
@@ -278,9 +289,7 @@ class Melog {
 			$param_given=( ($chain=='')? $this->_l10n->getIsolatedMnemonics(1).'0' : ltrim($chain, '|') );
 		}
 
-		if( $this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Existent')) {
-			$comment_flag=true;
-		}
+		$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Existent');
 
 		$template = new Template($this->_text, trim($this->_l10n->getArray('isolated', 'template')));
 		if($template->name) {
@@ -296,7 +305,7 @@ class Melog {
 				}
 			}
 
-			// delete this template
+			// Delete this template if exists, no exclusions
 			$this->_text=$template->deleteTemplate();
 
 			if($status == -1) {
@@ -313,11 +322,8 @@ class Melog {
 				return;	
 			}
 			
-			if(($param_found!=$param_given)||$comment_flag) {
-
-				$this->_appendTextProperly($this->_l10n->getArray('isolated', 'template').$chain);
-			}
-			$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Added');
+			# For chain change the old one should have been removed
+			$this->_appendTextProperly($this->_l10n->getArray('isolated', 'template').$chain);
 
 			if($param_found!='') {
 				if($param_found!=$param_given) {
@@ -328,7 +334,14 @@ class Melog {
 				$this->_appendSummary('tagged isolated of cluster '.$param_given);
 				pecho("Isolated template set with cluster chain ".$param_given.".", PECHO_LOG);
 			}
+
+			if( $param_found==$param_given ) {
+				$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, '');
+			} else {
+				$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Added');
+			}
 		}
+
 		$opt=$this->_options->fixIsolated($this->_text, $status, $cluster);
 		$this->_text=$opt['text'];
 		if( $opt['summary'] != '' ) {
@@ -375,10 +388,12 @@ class Melog {
 			}
 
 			$this->_appendTextProperly($this->_l10n->getArray('noncategorized', 'template'));
-			$this->_extractJustInCaseFromComments(trim($this->_l10n->getArray('noncategorized', 'template')), 'Added');
-			
+
 			$this->_appendSummary('tagged non-categorized');
 			pecho('Non-categorized template set.', PECHO_LOG);
+
+			$this->_extractJustInCaseFromComments(trim($this->_l10n->getArray('noncategorized', 'template')), 'Added');
+			
 		}
 		$opt=$this->_options->fixNoncategorized($this->_text, $status);
 		$this->_text=$opt['text'];
@@ -489,10 +504,14 @@ class Melog {
 
 		if(preg_match( '/\<![ \r\n\t]*--([^\-\{]|[\r\n]|-[^\-]|\{(?!\{'.str_replace(' ', '\s', $insert).'))*\{\{'.str_replace(' ', '\s', $insert).'\}\}([^\-]|[\r\n]|-[^\-])*--[ \r\n\t]*\>/us', $this->_text )) {
 			// moving up
-			$this->_text = preg_replace('/(\<![ \r\n\t]*--)(([^\-\{]|[\r\n]|-[^\-]|\{(?!\{'.str_replace(' ', '\s', $insert).'))*)\{\{'.str_replace(' ', '\s', $insert).'\}\}(([^\-]|[\r\n]|-[^\-])*)(--[ \r\n\t]*\>)/', "{{".$insert."}}\n\n\\1\\2\\4\\6", $this->_text, 1);
+			$this->_text = preg_replace('/(\<![ \r\n\t]*--)(([^\-\{\r\n]|[\r\n](?![\r\n]*\{\{'.str_replace(' ', '\s', $insert).')|-[^\-]|\{(?!\{'.str_replace(' ', '\s', $insert).'))*)[\n\r]*\{\{'.str_replace(' ', '\s', $insert).'\}\}[\n\r]*(([^\-]|[\r\n]|-[^\-])*)(--[ \r\n\t]*\>)/', "{{".$insert."}}\n\n\\1\\2\\4\\6", $this->_text, 1);
 
-			$this->_appendSummary($kind.' {{'.$insert.'}} uncommented');
-			pecho($kind." template {{".$insert."}} moved out of comment.", PECHO_LOG);
+			if( $kind != '' ) {
+				if( $kind != 'Added' ) {
+					$this->_appendSummary($kind.' {{'.$insert.'}} uncommented');
+				}
+				pecho($kind." template {{".$insert."}} moved out of comment.", PECHO_LOG);
+			}
 
 			return true;
 		} else {

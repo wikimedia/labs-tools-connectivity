@@ -753,13 +753,14 @@ class Page {
 		}
 		
 		if( !$force ) {
-			try {
+# mashiah: I throw editing myself
+#			try {
 				$this->preEditChecks();
-			}
-			catch( EditError $e ) {
-				pecho( "Error: $e\n\n", PECHO_FATAL );
-				return false;
-			}
+#			}
+#			catch( EditError $e ) {
+#				pecho( "Error: $e\n\n", PECHO_FATAL );
+#				return false;
+#			}
 		}
 		
 		Hooks::runHook( 'StartEdit', array( &$editarray ) );
@@ -871,13 +872,14 @@ class Page {
 		}
 		
 		if( !$force ) {
-			try {
+# mashiah: I throw editing myself
+#			try {
 				$this->preEditChecks();
-			}
-			catch( EditError $e ) {
-				pecho( "Error: $e\n\n", PECHO_FATAL );
-				return false;
-			}
+#			}
+#			catch( EditError $e ) {
+#				pecho( "Error: $e\n\n", PECHO_FATAL );
+#				return false;
+#			}
 		}
 		
 		pecho( "Undoing revision(s) on {$this->title}...\n\n", PECHO_NORMAL );
@@ -1449,13 +1451,14 @@ class Page {
 		}
 		
 		if( !$force ) {
-			try {
+# mashiah: I throw editing myself
+#			try {
 				$this->preEditChecks();
-			}
-			catch( EditError $e ) {
-				pecho( "Error: $e\n\n", PECHO_FATAL );
-				return false;
-			}
+#			}
+#			catch( EditError $e ) {
+#				pecho( "Error: $e\n\n", PECHO_FATAL );
+#				return false;
+#			}
 		}
 		
 		$history = $this->history( 1, 'older', false, null, true );

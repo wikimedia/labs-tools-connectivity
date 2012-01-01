@@ -672,8 +672,6 @@ CREATE PROCEDURE pl_by_parts (IN plcount INT, IN shift INT, IN extst1 VARCHAR(25
           SELECT my_plcount INTO portion;
       END IF;
 
-#      CALL replag( @target_lang );
-
       DROP TABLE IF EXISTS part_pl;
       CREATE TABLE part_pl (
         dst int(8) unsigned NOT NULL default '0',
@@ -691,8 +689,6 @@ CREATE PROCEDURE pl_by_parts (IN plcount INT, IN shift INT, IN extst1 VARCHAR(25
       PREPARE stmt FROM @st;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
-
-#      CALL replag( @target_lang );
 
       #
       # External statements execution.
@@ -825,8 +821,6 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
     # Processing lower well-ordered part.
     #
     CALL pl_by_parts( @base_pl_count, 0, @est, '' );
-
-#    CALL pl_by_parts( @pl_count, 0, @est, '' );
 
     SELECT count(*) INTO @articles_to_articles_links_count
            FROM l;
@@ -986,7 +980,7 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
         #
         CALL redirector_unload( 10 );
 
-        SET @st=CONCAT( 'SELECT count(*) INTO @tl_count FROM ', @dbname, '.templatelinks;' );
+        SET @st=CONCAT( 'SELECT /* SLOW_OK */ count(*) INTO @tl_count FROM ', @dbname, '.templatelinks;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -1256,39 +1250,15 @@ CREATE PROCEDURE zero_namespace_postponed_tools ( server INT )
   END;
 //
 
-#
-# Prepare data for categoryspruce web tool
-#
-DROP PROCEDURE IF EXISTS categoryspruce//
-CREATE PROCEDURE categoryspruce ()
-  BEGIN
-    SET @starttime=now();
-
-    #
-    # For "CATEGORYTREE CONNECTIVITY".
-    #
-
-    # unnecessary table, not used unlike to ns=0
-    # unload categorizer
-    DROP TABLE IF EXISTS nrcat;
-
-    CALL actuality( 'categoryspruce' );
-
-    # unload articlizer
-    DROP TABLE articles;
-
-    # unload isolated
-    DROP TABLE isolated;
-    DROP TABLE orcat;
-
-    SELECT CONCAT( ':: echo categoryspruce web tool time: ', TIMEDIFF(now(), @starttime));
-  END;
-//
-
 DROP PROCEDURE IF EXISTS categorytree_connectivity//
 CREATE PROCEDURE categorytree_connectivity ( maxsize INT )
   BEGIN
+    #
+    # For "CATEGORYTREE CONNECTIVITY".
+    #
     SELECT ':: echo CATEGORYTREE CONNECTIVITY';
+
+    SET @starttime=now();
 
     # the name-prefix for all output files, distinct for each function call
     SET @fprefix=CONCAT( CAST( NOW() + 0 AS UNSIGNED ), '.' );
@@ -1334,7 +1304,20 @@ CREATE PROCEDURE categorytree_connectivity ( maxsize INT )
 
     CALL isolated_refresh( '14', 14 );
 
-    CALL categoryspruce();
+    # unnecessary table, not used unlike to ns=0
+    # unload categorizer
+    DROP TABLE IF EXISTS nrcat;
+
+    CALL actuality( 'categoryspruce' );
+
+    # unload articlizer
+    DROP TABLE articles;
+
+    # unload isolated
+    DROP TABLE isolated;
+    DROP TABLE orcat;
+
+    SELECT CONCAT( ':: echo categoryspruce web tool time: ', TIMEDIFF(now(), @starttime));
   END;
 //
 

@@ -117,7 +117,7 @@ CREATE PROCEDURE cleanup_wrong_redirects (namespace INT)
 # Outputs: pl modified
 #
 DROP PROCEDURE IF EXISTS nr2X2nr//
-CREATE PROCEDURE nr2X2nr ()
+CREATE PROCEDURE nr2X2nr (iteration INT)
   BEGIN
     DECLARE cnt INT;
     DECLARE chainlen INT DEFAULT '1';
@@ -132,25 +132,17 @@ CREATE PROCEDURE nr2X2nr ()
 
     WHILE cnt>0 DO
 
-      SELECT CONCAT( ':: echo . ', cnt, ' links from non-redirects to non-redirects via a chain of ', chainlen, ' redirects' );
+      SELECT CONCAT( ':: echo . ', cnt, ' links from non-redirects to non-redirects via a chain of ', chainlen, ' redirects found at iteration ', iteration );
 
       #
       # Rectify redirects adding appropriate direct links.
       #
-#      # Note: pl has no unique keys, so data is redundant.
-#      #
-#      INSERT INTO pl (pl_from, pl_to)
       INSERT INTO plr (pl_from, pl_to)
       SELECT nr2r_from as pl_from,
              r2nr_to as pl_to
              FROM nr2r,
                   r2nr
              WHERE nr2r_to=r2nr_from;
-
-#      SELECT count(*) INTO @pl_count
-#             FROM pl;
-#
-#      SELECT CONCAT( ':: echo . ', @pl_count, ' links after ', chainlen, '-redirect chains rectification' );
 
       #
       # One step of new long-redirect driven "links to be added" collection.
@@ -218,7 +210,6 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
     SELECT @base_pl_count INTO my_plcount;
 
     SELECT ':: echo starting nr2r iterations';
-#    SELECT CONCAT( ':: echo ... MEMORY table capacity is limited to store up to ', portion, ' indexed nr2r records' );
 
     SET @starttime1=now();
 
@@ -230,7 +221,6 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
         THEN
           SELECT my_plcount INTO portion;
       END IF;
-#    WHILE pcnt=portion DO
 
       DROP TABLE IF EXISTS part_pl;
       CREATE TABLE part_pl (
@@ -243,10 +233,8 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
       # SELECT pl_to as dst,
       #        pl_from as src
       #        FROM pl
-#      #        ORDER BY pl_to
       #        LIMIT <shift>,<portion>;
       #
-#      SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl ORDER BY pl_to LIMIT ', shift, ',', portion, ';' );
       SET @st=CONCAT( 'INSERT INTO part_pl /* SLOW_OK */ (dst,src) SELECT pl_to as dst, pl_from as src FROM pl LIMIT ', shift, ',', portion, ';' );
       PREPARE stmt FROM @st;
       EXECUTE stmt;
@@ -269,20 +257,8 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
       #                              FROM nr<namespace>
       #                     ) and
       #              dst=r_id;
-#      # SELECT r_id as nr2r_to,
-#      #        pl_from as nr2r_from
-#      #        FROM pl,
-#      #             r<namespace>
-#      #        WHERE pl_from in (
-#      #                           SELECT id
-#      #                                  FROM nr<namespace>
-#      #                         ) and
-#      #              pl_to=r_id
-#      #        ORDER BY r_id
-#      #        LIMIT <shift>,<portion>;
       #
       SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, src as nr2r_from FROM part_pl, r', namespace, ' WHERE src in ( SELECT id FROM nr', namespace, ' ) and dst=r_id ORDER BY r_id;' );
-#      SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, pl_from as nr2r_from FROM pl, r', namespace, ' WHERE pl_from in ( SELECT id FROM nr', namespace, ' ) and pl_to=r_id ORDER BY r_id LIMIT ', shift, ',', portion, ';' );
       PREPARE stmt FROM @st;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
@@ -292,9 +268,7 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
 
       IF pcnt>0
         THEN
-          SELECT CONCAT( ':: echo ', pcnt, ' links from non-redirects to redirects encountered at iteration ', iteration );
-
-          CALL nr2X2nr();
+          CALL nr2X2nr(iteration);
       END IF;
 
       DROP TABLE nr2r;
@@ -306,10 +280,6 @@ CREATE PROCEDURE fast_nr2X2nr (namespace INT)
       SELECT iteration+1 INTO iteration;
 
     END WHILE;
-#      SELECT shift+portion INTO shift;
-#      SELECT iteration+1 INTO iteration;
-#
-#    END WHILE;
 
     SELECT CONCAT( ':: echo nr2r links caching time: ', TIMEDIFF(now(), @starttime1));
   END;
@@ -596,12 +566,32 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     CALL fast_nr2X2nr( namespace );
 
+    # kill duplicates and make order
+    ALTER /* SLOW_OK */ IGNORE TABLE plr ADD PRIMARY KEY (pl_from, pl_to);
+
     INSERT INTO pl (pl_from, pl_to)
     SELECT pl_from,
            pl_to
            FROM plr;
 
+    SELECT CONCAT( ':: echo ', count(*), ' distinct links through a redirect chain' )
+           FROM plr;
+
+    DROP TABLE IF EXISTS bwl;
+    CREATE TABLE bwl (
+      id int(8) unsigned NOT NULL default '0'
+    ) ENGINE=MEMORY;
+
+    INSERT INTO bwl (id)
+    SELECT pl_from as id
+           FROM plr
+           WHERE pl_from=pl_to;
+
     DROP TABLE plr;
+
+    CALL outifexists( CONCAT( 'bwl' ), 'pages back-linked through redirect chains', 'bwl.txt', 'id', 'out' );
+
+    DROP TABLE bwl;
 
     SELECT count(*) INTO @pl_count
            FROM pl;

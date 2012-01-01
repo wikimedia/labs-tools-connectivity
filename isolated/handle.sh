@@ -251,12 +251,22 @@ handle ()
            then
              do_templates=0
            else
-             echo "melog is invoked for $language.*.task.txt with server ${dbserver}"
-             {
-               echo ${dbserver}
-               echo $language
-               tail --bytes=+4 ./${language}.*.task.txt
-             } | php -f ../melog/actstack/melog.php
+             task_exists=0
+             
+             for $language.*.task.txt
+             do
+               task_exists=1
+             done
+
+             if [ "$task_exists" = 1 ]
+             then
+               echo "melog is invoked for $language.*.task.txt with server ${dbserver}"
+               {
+                 echo ${dbserver}
+                 echo $language
+                 tail --bytes=+4 ./${language}.*.task.txt
+               } | php -f ../melog/actstack/melog.php
+             fi
            fi
          fi
 

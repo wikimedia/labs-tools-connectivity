@@ -64,7 +64,7 @@ CREATE PROCEDURE a2a_templating ()
       pl_to int(8) unsigned NOT NULL default '0'
     ) ENGINE=MyISAM;
 
-    CALL nr2X2nr();
+    CALL nr2X2nr(0);
     DROP TABLE nr2r;
 
     INSERT INTO pl (pl_from, pl_to)
@@ -78,8 +78,6 @@ CREATE PROCEDURE a2a_templating ()
            FROM pl;
 
     SELECT CONCAT( ':: echo ', @pl_count, ' overall (direct & redirected) articles templating links count' );
-#    SELECT CONCAT( ':: echo ', count(*), ' overall (direct & redirected) articles templating links count' )
-#           FROM pl;
   END;
 //
 
