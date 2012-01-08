@@ -244,6 +244,9 @@ handle ()
          sleep 2
        done
 
+       # just in case
+       sleep 2
+
        {
          if [ "$do_templates" = 1 ]
          then
