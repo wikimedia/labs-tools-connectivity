@@ -64,7 +64,7 @@ CREATE PROCEDURE a2a_templating ()
       pl_to int(8) unsigned NOT NULL default '0'
     ) ENGINE=MyISAM;
 
-    CALL nr2X2nr(0);
+    CALL nr2X2nr('0');
     DROP TABLE nr2r;
 
     INSERT INTO pl (pl_from, pl_to)

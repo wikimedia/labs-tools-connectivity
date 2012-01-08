@@ -37,6 +37,32 @@ CREATE PROCEDURE get_known_deadend ()
   END;
 //
 
+DROP PROCEDURE IF EXISTS get_link_sources//
+CREATE PROCEDURE get_link_sources ()
+  BEGIN
+#    DECLARE cnt INT DEFAULT '0';
+#    DECLARE shift INT DEFAULT '0';
+#    DECLARE portion INT DEFAULT '16777216';
+#
+#    WHILE cnt<@articles_to_articles_links_count DO
+#
+#      SET @st=CONCAT( 'INSERT /* SLOW_OK */ INTO lwl (lwl_id) SELECT l_from as lwl_id FROM l LIMIT ', shift, ', ', portion, ';' );
+#      PREPARE stmt FROM @st;
+#      EXECUTE stmt;
+#      DEALLOCATE PREPARE stmt;
+# 
+#      SELECT count(*) INTO cnt
+#             FROM lwl;
+#
+#      SELECT shift+portion INTO shift;
+#    END WHILE;
+
+    INSERT /* SLOW_OK */ INTO lwl (lwl_id)
+    SELECT l_from as lwl_id
+           FROM l;
+  END;
+//
+
 #
 # Collects dead-end articles, i.e. articles having no links to other
 # existent articles. Also forms the list of new dead-end articles for
@@ -141,16 +167,18 @@ CREATE PROCEDURE deadend (namespace INT)
                                                    a2cr_from=l_from
                                     );
           ELSE
-            INSERT /* SLOW_OK */ INTO lwl (lwl_id)
-            SELECT l_from as lwl_id
-                   FROM l;
+            CALL get_link_sources();
+#            INSERT /* SLOW_OK */ INTO lwl (lwl_id)
+#            SELECT l_from as lwl_id
+#                   FROM l;
         END IF;
 
         DROP TABLE a2cr;
       ELSE
-        INSERT /* SLOW_OK */ INTO lwl (lwl_id)
-        SELECT l_from as lwl_id
-               FROM l;
+        CALL get_link_sources();
+#        INSERT /* SLOW_OK */ INTO lwl (lwl_id)
+#        SELECT l_from as lwl_id
+#               FROM l;
     END IF;
 
     # kill duplicates and make order

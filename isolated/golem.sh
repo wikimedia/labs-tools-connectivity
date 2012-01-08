@@ -6,7 +6,7 @@
  #
  # Purpose: 
  #
- #      Packet run of connectivity analysis for various lanuages
+ #      Packet run of connectivity analysis for various languages
  #      defined in a file, which name is passed here as an input parameter
  #
  # Error handling:

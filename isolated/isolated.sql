@@ -1051,6 +1051,8 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DECLARE res VARCHAR(255);
     DECLARE isocl INT;
     DECLARE isocsl VARCHAR(255);
+    DECLARE isocnt INT;
+    DECLARE isodidcnt INT;
 
     SET @starttime=now();
 
@@ -1284,8 +1286,25 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
             DROP TABLE ref_orcat;
 
-            SELECT CONCAT( ':: echo . ', count(*), ' isolated articles templated' )
+            SELECT count(*) INTO isocnt
                    FROM isolated;
+
+            SELECT CONCAT( ':: echo . ', isocnt, ' distinct isolated marks set' );
+
+            SELECT count(DISTINCT id) INTO isodidcnt
+                   FROM isolated;
+
+            SELECT CONCAT( ':: echo . ', isodidcnt, ' isolated articles marked' );
+
+            IF isocnt>isodidcnt
+              THEN
+                SELECT CONCAT( ':: out ', @fprefix, 'doubled.txt' );
+                SET @st=CONCAT( 'SELECT id, CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @dbname, '.page WHERE id=page_id GROUP BY id ASC HAVING count(cat)>1 ORDER BY page_title;' );
+                PREPARE stmt FROM @st; 
+                EXECUTE stmt; 
+                DEALLOCATE PREPARE stmt; 
+                SELECT ':: sync';
+            END IF;
         END IF;
     END IF;
 

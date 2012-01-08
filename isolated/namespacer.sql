@@ -672,7 +672,7 @@ CREATE PROCEDURE pl_by_parts (IN plcount INT, IN shift INT, IN extst1 VARCHAR(25
           SELECT my_plcount INTO portion;
       END IF;
 
-      DROP TABLE IF EXISTS part_pl;
+      DROP /* SLOW_OK */ TABLE IF EXISTS part_pl;
       CREATE TABLE part_pl (
         dst int(8) unsigned NOT NULL default '0',
         src int(8) unsigned NOT NULL default '0'
@@ -708,7 +708,7 @@ CREATE PROCEDURE pl_by_parts (IN plcount INT, IN shift INT, IN extst1 VARCHAR(25
 
       SELECT CONCAT( ':: echo . iteration ', iteration );
 
-      DROP TABLE part_pl;
+      DROP /* SLOW_OK */ TABLE part_pl;
 
       SELECT my_plcount-portion INTO my_plcount;
       SELECT shift+portion INTO shift;
