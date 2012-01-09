@@ -256,7 +256,7 @@ handle ()
            else
              task_exists=0
              
-             for $language.*.task.txt
+             for ${language}.*.task.txt
              do
                task_exists=1
              done
