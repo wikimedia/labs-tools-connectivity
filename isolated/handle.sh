@@ -256,7 +256,7 @@ handle ()
            else
              task_exists=0
              
-             for ${language}.*.task.txt
+             for i in $(ls ${language}.*.task.txt 2>/dev/null)
              do
                task_exists=1
              done
@@ -269,6 +269,8 @@ handle ()
                  echo $language
                  tail --bytes=+4 ./${language}.*.task.txt
                } | php -f ../melog/actstack/melog.php
+             else
+               echo "no reason to run melog due to no task for it"
              fi
            fi
          fi
