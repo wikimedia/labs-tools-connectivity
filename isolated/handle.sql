@@ -160,6 +160,60 @@ CREATE PROCEDURE combineandout ()
     #
     ON DUPLICATE KEY UPDATE isoact=isolated.act, isocat=orcat.coolcat;
 
+    SELECT count( * ) INTO cnt
+           FROM tagdoubled; 
+
+    IF cnt>0
+      THEN
+        #
+        # Isolates tagged prior to run more than once require special attention.
+        # This query allows removing unnecessary templates keeping just one.
+        #
+        # Notes: Once an article already in task, we just ignore adding it again.
+        #
+        #        Field 'act' equal to -1 means the tag was initally set,
+        #        but analysis no longer confirms the particular cluster chain.
+        #
+        INSERT IGNORE INTO task (id, ncaact, deact, isoact, isocat, title, importance)
+        SELECT tdid,
+               0 as ncaact,
+               0 as deact,
+               1 as isoact,
+               coolcat as isocat,
+               '' as title,
+               0 as importance
+               FROM tagdoubled,
+                    isolated,
+                    orcat
+               WHERE tdid=id and
+                     act>=0 and
+                     uid=isolated.cat;
+
+        #
+        # Keep in tagdoubled just non-isolated ones with multiple templates set.
+        #
+        DELETE tagdoubled
+               FROM tagdoubled,
+                    isolated
+               WHERE tdid=id and
+                     act>=0;
+
+        #
+        # For removal of multiple isolated templates from non-isolated articles.
+        #
+        INSERT IGNORE INTO task (id, ncaact, deact, isoact, isocat, title, importance)
+        SELECT tdid,
+               0 as ncaact,
+               0 as deact,
+               -1 as isoact,
+               '' as isocat,
+               '' as title,
+               0 as importance
+               FROM tagdoubled;
+    END IF;
+
+    DROP TABLE tagdoubled;
+
     #
     # Add dead-end articles to be edited updating existent rows.
     #

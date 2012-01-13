@@ -276,6 +276,8 @@ class Melog {
 		
 		$param_found='';
 		$param_given='';
+		$morefound=0;
+                $morethanone=0;
 
 		if($status == 1) {
 			if(!empty($cluster)) {
@@ -299,14 +301,31 @@ class Melog {
 				$param_found=$this->_l10n->getIsolatedMnemonics(1).'0';
 			}
 
-			if($status == 1) {
-				if( $param_found==$param_given ) {
-					pecho("Isolated cluster chain replacement is not required.", PECHO_LOG);
-				}
-			}
-
 			// Delete this template if exists, no exclusions
 			$this->_text=$template->deleteTemplate();
+
+			// Some articles could be templated more than once
+			do {
+				$morefound=0;
+				$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Existent');
+
+				$template = new Template($this->_text, trim($this->_l10n->getArray('isolated', 'template')));
+				if($template->name) {
+					$morefound=1;
+                                        $morethanone=1;
+					$this->_text=$template->deleteTemplate();
+				}
+			} while ($morefound == 1);
+
+			if($morethanone == 1) {
+				pecho("Article tagged as isolated more than once.", PECHO_LOG);
+			} else {
+				if($status == 1) {
+					if( $param_found==$param_given ) {
+						pecho("Isolated cluster chain replacement is not required.", PECHO_LOG);
+					}
+				}
+			}
 
 			if($status == -1) {
 				$this->_appendSummary('untagged isolated');
@@ -325,21 +344,28 @@ class Melog {
 			# For chain change the old one should have been removed
 			$this->_appendTextProperly($this->_l10n->getArray('isolated', 'template').$chain);
 
-			if($param_found!='') {
-				if($param_found!=$param_given) {
-					$this->_appendSummary('isolated cluster '.$param_found.' replaced by '.$param_given );
-					pecho("Isolated cluster chain ".$param_found." replaced with ".$param_given.".", PECHO_LOG);
-				}
+			$kind='';
+
+			if($morethanone == 1) {
+				$this->_appendSummary('multiple isolated tags replaced by single of cluster '.$param_given);
+				pecho("Isolated template set with cluster chain ".$param_given." instead of multiple isolated tags.", PECHO_LOG);
 			} else {
-				$this->_appendSummary('tagged isolated of cluster '.$param_given);
-				pecho("Isolated template set with cluster chain ".$param_given.".", PECHO_LOG);
+				if($param_found!='') {
+					if($param_found!=$param_given) {
+						$this->_appendSummary('isolated cluster '.$param_found.' replaced by '.$param_given );
+						pecho("Isolated cluster chain ".$param_found." replaced with ".$param_given.".", PECHO_LOG);
+					}
+				} else {
+					$this->_appendSummary('tagged isolated of cluster '.$param_given);
+					pecho("Isolated template set with cluster chain ".$param_given.".", PECHO_LOG);
+				}
+
+				if( $param_found!=$param_given ) {
+					$kind='Added';
+				}
 			}
 
-			if( $param_found==$param_given ) {
-				$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, '');
-			} else {
-				$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, 'Added');
-			}
+			$this->_extractJustInCaseFromComments($this->_l10n->getArray('isolated', 'template').$chain, $kind);
 		}
 
 		$opt=$this->_options->fixIsolated($this->_text, $status, $cluster);

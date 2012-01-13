@@ -1174,6 +1174,12 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     #
     IF targetset='articles'
       THEN
+        DROP TABLE IF EXISTS tagdoubled;
+        CREATE TABLE tagdoubled (
+          tdid int(8) unsigned NOT NULL default '0',
+          PRIMARY KEY (tdid)
+        ) ENGINE=MEMORY;
+
         IF @isolated_category_name!=''
           THEN
             #
@@ -1298,8 +1304,15 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
 
             IF isocnt>isodidcnt
               THEN
+                INSERT INTO tagdoubled (tdid)
+                SELECT id as tdid
+                       FROM isolated
+                       GROUP BY id ASC
+                       HAVING count(cat)>1;
+
+# to be removed once melog resolves over-tagged isolates properly
                 SELECT CONCAT( ':: out ', @fprefix, 'doubled.txt' );
-                SET @st=CONCAT( 'SELECT id, CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @dbname, '.page WHERE id=page_id GROUP BY id ASC HAVING count(cat)>1 ORDER BY page_title;' );
+                SET @st=CONCAT( 'SELECT tdid, CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM tagdoubled, ', @dbname, '.page WHERE tdid=page_id ORDER BY page_title;' );
                 PREPARE stmt FROM @st; 
                 EXECUTE stmt; 
                 DEALLOCATE PREPARE stmt; 
