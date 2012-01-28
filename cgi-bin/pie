@@ -1,6 +1,6 @@
 cat <<EOM
 <script language="javascript" src="../wallmap/js-class.js" type="text/javascript"></script>
-<script language="javascript" src="../wallmap/bluff-src.js" type="text/javascript"></script>
+<script language="javascript" src="../wallmap/bluff-min.js" type="text/javascript"></script>
 <script language="javascript" src="../wallmap/excanvas.js" type="text/javascript"></script>
 
 <script language="javascript" type="text/javascript">
