@@ -1,5 +1,5 @@
 pagetitle="Estatísticas do Projecto Conectividade"
-thish1="comparação de línguas"
+thish1="comparação de línguas&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"./go.sh?$stdurl&amp;listby=pie\">pie charts</a>"
 lang_text="língua"
 article_text="artigos<br />"
 disambig_text="desambigs<br />"

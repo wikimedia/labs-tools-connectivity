@@ -49,7 +49,10 @@ parse_query language interface listby shift view
 
 if [ "$language" = '' ]
 then
-  listby='language'
+  if [ "$listby" = '' ]
+  then
+    listby='language'
+  fi
 fi
 language_sql=${language//\-/_}
 

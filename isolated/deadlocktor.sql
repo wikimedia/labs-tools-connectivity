@@ -118,7 +118,10 @@ CREATE PROCEDURE deadend (namespace INT)
         SELECT count(*) INTO @articles_to_chrono_links_count
                FROM a2cr;
 
-        SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' links to be excluded as pointing chrono articles' );
+        IF @articles_to_chrono_links_count>0
+          THEN
+            SELECT CONCAT( ':: echo ', @articles_to_chrono_links_count, ' links to be excluded as pointing chrono articles' );
+        END IF;
     END IF;
 
     # Begin the procedure for dead end pages

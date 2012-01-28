@@ -1,5 +1,5 @@
 pagetitle="Nepasiekiamų straipsnių staistika"
-thish1="kalbų palyginimas"
+thish1="kalbų palyginimas&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"./go.sh?$stdurl&amp;listby=pie\">pie charts</a>"
 lang_text="kalba"
 article_text="straipsniai<br />"
 disambig_text="nuorodiniai<br />"

@@ -28,19 +28,62 @@ DROP PROCEDURE IF EXISTS collect_disambig//
 CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
+    DECLARE cnt INT default(0);
 
     #
     # All disambiguation templates including templates-redirects are being
     # stored here.
     #
     DROP TABLE IF EXISTS dt;
-    SET @st=CONCAT( 'CREATE TABLE dt ( dt_title varchar(255) binary NOT NULL default "", PRIMARY KEY (dt_title) ) ENGINE=MEMORY AS SELECT DISTINCT pl_title as dt_title FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
+    CREATE TABLE dt (
+     dt_title varchar(255) binary NOT NULL default '',
+     PRIMARY KEY (dt_title)
+    ) ENGINE=MEMORY;
+
+    SET @st=CONCAT( 'INSERT INTO dt (dt_title) SELECT DISTINCT pl_title as dt_title FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    SELECT CONCAT( prefix, count(*), ' disambiguating template names found' )
+    SELECT count(*) INTO cnt
            FROM dt;
+
+    IF cnt=0
+      THEN
+        #
+        # IF disambiguating templates are not properly initialized on
+        # [[Mediawiki:Disambiguationspage]]...
+        #
+        IF @disambiguation_templates_initialized>0
+          THEN
+            #
+            # ...we can try guessing the disambiguating template name is
+            # 'Disambig' or 'Disambiguation'...
+            #
+            INSERT INTO dt (dt_title) VALUES ('Disambig'), ('Disambiguation');
+
+            # ...or this name could be redirecting to a localized version of
+            # what we look for;...
+            #
+            SET @st=CONCAT( 'INSERT IGNORE INTO dt (dt_title) SELECT pl_title as dt_title FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=10 AND ( page_title="Disambig" OR page_title="Disambiguation") and page_is_redirect=1 and pl_from=page_id;' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+
+            #
+            # ...also template(s) might contain [[en:Template:Disambig]].
+            #
+            SET @st=CONCAT( 'INSERT IGNORE INTO dt (dt_title) SELECT page_title as dt_title FROM ', dbname, '.langlinks, ', dbname, '.page WHERE ll_lang="en" and ( ll_title="Template:Disambig" OR ll_title="Template:Disambiguation" ) and page_id=ll_from and page_namespace=10;' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        END IF;
+
+        SELECT CONCAT( prefix, count(*), ' disambiguating template names found but not in the right place' )
+               FROM dt;
+      ELSE
+        SELECT CONCAT( prefix, cnt, ' disambiguating template names found' );
+    END IF;
 
     #
     # Dirty list of disambiguation pages, everything, 

@@ -1,5 +1,5 @@
-pagetitle="Connected components for Wikipedia"
-thish1="languages comparison"
+pagetitle="Статистика проекта \"Связность\""
+thish1="сравнение языковых разделов&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"./go.sh?$stdurl&amp;listby=pie\">круговые диаграммы</a>"
 lang_text="language"
 article_text="articles<br />"
 disambig_text="disambigs<br />"

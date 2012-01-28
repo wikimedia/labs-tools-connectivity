@@ -62,8 +62,11 @@ CREATE PROCEDURE apply_linking_rules (namespace INT)
     SELECT @articles_to_articles_links_count-count(*) INTO @chrono_to_articles_links_count
            FROM l;
 
-    SELECT CONCAT( ':: echo ', count(*), ' links after chrono-cleanup' )
-           FROM l;
+    IF @chrono_to_articles_links_count!=0
+      THEN
+        SELECT CONCAT( ':: echo ', count(*), ' links after chrono-cleanup' )
+               FROM l;
+    END IF;
 
     #
     #  Well, next, if an article is {{included as a template}}
@@ -651,7 +654,7 @@ CREATE PROCEDURE _1 (category VARCHAR(255), targetset VARCHAR(255))
 //
 
 DROP FUNCTION IF EXISTS smart_action//
-CREATE FUNCTION smart_action(cluster_size INT, acnt INT)
+CREATE FUNCTION smart_action(cluster_size INT, acnt INT, maxsize INT)
   RETURNS INT
   DETERMINISTIC
   BEGIN
@@ -661,8 +664,20 @@ CREATE FUNCTION smart_action(cluster_size INT, acnt INT)
       THEN
         SET result=0;
         SET @principle_component_size=cluster_size;
+        SET @largest_component_size=cluster_size;
       ELSE
         SET result=1;
+        #
+        # Note: here acnt=maxsize means limit=0 set,
+        #       i.e. largest component expected to be found at the end
+        #
+        IF acnt=maxsize
+          THEN
+            IF cluster_size>@largest_component_size
+              THEN
+                SET @largest_component_size=cluster_size;
+            END IF;
+        END IF;
     END IF;
 
     RETURN result;
@@ -772,10 +787,13 @@ CREATE PROCEDURE oscc (maxsize INT, upcat VARCHAR(255), targetset VARCHAR(255))
     SELECT max(uid)+1 INTO @freecatid
            FROM orcat;
 
+    #
+    # New isolated articles clusters to be reginested in isolated table.
+    # 
     INSERT INTO isolated (id, cat, act)
     SELECT ga.id as id,
            catuid(CONCAT(upcat,'_',grp.cnt)) as cat,
-           smart_action(grp.cnt, @articles_count) as act
+           smart_action(grp.cnt, @articles_count, maxsize) as act
            FROM ga,
                 grp
            WHERE grp.id=ga.f and
@@ -1310,7 +1328,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
                        GROUP BY id ASC
                        HAVING count(cat)>1;
 
-# to be removed once melog resolves over-tagged isolates properly
+# to be removed once melog have resolved over-tagged isolates properly
                 SELECT CONCAT( ':: out ', @fprefix, 'doubled.txt' );
                 SET @st=CONCAT( 'SELECT tdid, CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM tagdoubled, ', @dbname, '.page WHERE tdid=page_id ORDER BY page_title;' );
                 PREPARE stmt FROM @st; 
@@ -1343,20 +1361,32 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DEALLOCATE PREPARE stmt;
 
     SET @principle_component_size=0;
+    SET @largest_component_size=0;
 
     # choose right limit for recursion depth allowed
     CALL forest_walk( targetset, maxsize, '', '*' );
 
     #
-    # Once the principle component is detected it doesn't allow functions
-    # performed for proper isolates (like suggestions search) work fast enough.
+    # Once the largest component is detected it doesn't allow
+    # functions performed for proper isolates (like suggestions search)
+    # work fast enough.
     #
-    DELETE FROM isolated
-           WHERE cat IN (
-                   SELECT uid
-                          FROM orcat
-                          WHERE coolcat LIKE CONCAT( '%\_', @principle_component_size, '%' )
-                 );
+    # Note: If the largest component is not unique on size, 
+    #       it is not the principle one, and there is no obvious rule
+    #       to select one among others as the groing principle component.
+    #
+    SELECT count(uid) INTO cnt
+           FROM orcat
+           WHERE coolcat LIKE CONCAT( '%\_', @largest_component_size );
+    IF cnt=1
+      THEN
+        DELETE FROM isolated
+               WHERE cat IN (
+                       SELECT uid
+                              FROM orcat
+                              WHERE coolcat LIKE CONCAT( '%\_', @largest_component_size, '%' )
+                     );
+    END IF;
 
     # from oscchull
     DROP TABLE IF EXISTS otllc;

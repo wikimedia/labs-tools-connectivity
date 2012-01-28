@@ -306,13 +306,6 @@ handle_a_table ()
     fi
     echo "<td><span title=\"$( format_diff $iso_diff $tmul ${ts_diff} ${half_ts_diff} ) $tmeas\">$bld$iso$bldc</span></td>"
 
-    if [ "$cl" = '0' ]
-    then
-      echo "<td><span title=\"${art_diff}\">${bld}$art${bldc}</span></td>"
-    else
-      echo "<td><span title=\"${cl_diff}\">$bld$cl$bldc</span></td>"
-    fi
-
     if [ "$iso" = '?' ]
     then
       echo "<td>$bld$isor$bldc</td>"
@@ -334,6 +327,13 @@ handle_a_table ()
         fi
         echo "<td><span title=\"${iso_cr_diff}\">$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=creator\">$isocr</a>$bldc</span></td>"
       fi
+    fi
+
+    if [ "$cl" = '0' ]
+    then
+      echo "<td><span title=\"${art_diff}\">${bld}$art${bldc}</span></td>"
+    else
+      echo "<td><span title=\"${cl_diff}\">$bld$cl$bldc</span></td>"
     fi
 
     if [ "$chr" = '?' ]
@@ -432,9 +432,9 @@ table_opens ()
   echo "<th>$drdi_text</th>"
   echo "<th><b class=\"data\">$main_text</b></th>"
   echo "<th>$iso_text</th>"
-  echo "<th>$cl_text</th>"
   echo "<th>$iso_rat_text</th>"
   echo "<th>$iso_cr_text</th>"
+  echo "<th>$cl_text</th>"
   echo "<th>$chrono_text</th>"
   echo "<th>$deadend_text</th>"
   echo "<th>$nocat_text</th>"
@@ -505,7 +505,7 @@ table_opens
                     INNER JOIN language_stats ls2
                                ON ls2.lang=__ls.lang AND
                                   ls2.ts=__ls.__ts
-                    INNER JOIN toolserver.language
+                    LEFT OUTER JOIN toolserver.language
                                ON __ls.lang=LOWER(language.lang)
                ORDER BY _main DESC,
                         _ac DESC;"

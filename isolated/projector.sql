@@ -268,15 +268,76 @@ CREATE PROCEDURE count_disambiguation_templates (targetlang VARCHAR(32))
   BEGIN
     DECLARE st VARCHAR(511);
     DECLARE dbname VARCHAR(32);
+    DECLARE tmp INT;
 
     SELECT dbname_for_lang( targetlang ) INTO dbname;
 
     SET @disambiguation_templates_initialized=0;
 
-    SET @st=CONCAT( 'SELECT count(DISTINCT pl_title) INTO @disambiguation_templates_initialized FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
+    SET @st=CONCAT( 'SELECT count(DISTINCT pl_title) INTO @disambiguation_templates_initialized FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
+
+    IF @disambiguation_templates_initialized IS NULL
+      THEN
+        SET @disambiguation_templates_initialized=0;
+    END IF;
+
+    IF @disambiguation_templates_initialized=0
+      THEN
+        #
+        # IF disambiguating templates are not properly initialized on
+        # [[Mediawiki:Disambiguationspage]] we can try guessing the
+        # disambiguating template name is 'Disambig' or 'Disambiguation' it
+        # could be a redirect to a localized version of disambiguating template.
+        #
+        SET @st=CONCAT( 'SELECT count(*) INTO @disambiguation_templates_initialized FROM ', dbname, '.page WHERE page_namespace=10 AND ( page_title="Disambig" OR page_title="Disambiguation" ) and page_is_redirect=0;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        IF @disambiguation_templates_initialized<1
+          THEN
+            SET @st=CONCAT( 'SELECT count(*) INTO @disambiguation_templates_initialized FROM ', dbname, '.page WHERE page_namespace=10 AND ( page_title="Disambig" OR page_title="Disambiguation" ) and page_is_redirect=1;' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+
+            SELECT @disambiguation_templates_initialized INTO @tmp;
+
+            IF @disambiguation_templates_initialized>0
+              THEN
+                SET @st=CONCAT( 'SELECT count(pl_title) INTO @disambiguation_templates_initialized FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=10 AND ( page_title="Disambig" OR page_title="Disambiguation" ) and page_is_redirect=1 and pl_from=page_id;' );
+                PREPARE stmt FROM @st;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+
+                IF @disambiguation_templates_initialized>0
+                  THEN
+                    #
+                    # Notes: No redirect chains support here, 
+                    #        just normal redirects.
+                    #
+                    #        Counting is wrong, values might coinside on names
+                    # 
+                    SET @disambiguation_templates_initialized=@tmp+@disambiguation_templates_initialized;
+                END IF;
+              ELSE
+                SET @disambiguation_templates_initialized=0;
+            END IF;
+        END IF;
+
+        SET @st=CONCAT( 'SELECT count(*) INTO @tmp FROM ', dbname, '.langlinks WHERE ll_lang="en" and ( ll_title="Template:Disambig" OR ll_title="Template:Disambiguation" );' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        #
+        # Note: Counting is wrong, values might coinside on names
+        #
+        SET @disambiguation_templates_initialized=@tmp+@disambiguation_templates_initialized;
+    END IF;
 
     IF @disambiguation_templates_initialized IS NULL
       THEN
