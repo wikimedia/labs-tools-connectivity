@@ -14,7 +14,7 @@ source ./allyouneed
   echo "SELECT @deadend_category_name;"
   echo "SELECT @non_categorized_articles_category;"
   echo "SELECT @template_documentation_subpage_name;"
-  echo "SELECT @disambiguation_templates_initialized;"
+  echo "SELECT SIGN(@disambiguations_look_recognized);"
 
   echo "CALL langwiki2();"
 } | $( sql ${dbserver} u_${usr}_golem_p ) 2>&1 | {
@@ -56,7 +56,7 @@ source ./allyouneed
     read -r deadend_category
     read -r nca_category
     read -r template_doc
-    read -r disambiguating_templates
+    read -r disambiguating_enabled
 
     isolated_category="${catnspref}${isolated_category}"
     deadend_category="${catnspref}${deadend_category}"
@@ -81,6 +81,7 @@ source ./allyouneed
 #
 #  echo "<br>$anysrv"
 #  echo "<br>$wiknspref"
+#  echo "<br>aaa${disambiguating_enabled}bbb"
 
   if [ "$errorstring" = '' ]
   then
@@ -90,7 +91,7 @@ source ./allyouneed
     else
       if [ "$neverrun" = '' ]
       then
-        if [ "$listby" = 'categoryspruce' ] || [ $disambiguating_templates -gt 0 ]
+        if [ "$listby" = 'categoryspruce' ] || [ "$disambiguating_enabled" != '0' ]
         then
           if [ "$listby" != 'disambig,template' ] || [ "$template_doc" != '' ]
           then

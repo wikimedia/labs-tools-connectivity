@@ -31,8 +31,7 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
     DECLARE cnt INT default(0);
 
     #
-    # All disambiguation templates including templates-redirects are being
-    # stored here.
+    # All disambiguation templates, including templates-redirects, are here.
     #
     DROP TABLE IF EXISTS dt;
     CREATE TABLE dt (
@@ -40,6 +39,16 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
      PRIMARY KEY (dt_title)
     ) ENGINE=MEMORY;
 
+    #
+    #   INSERT INTO dt (dt_title)
+    #   SELECT DISTINCT pl_title as dt_title
+    #          FROM <dbname>.page,
+    #               <dbname>.pagelinks
+    #          WHERE page_namespace=8 AND
+    #                page_title="Disambiguationspage" AND
+    #                pl_from=page_id AND
+    #                pl_namespace=10;
+    #
     SET @st=CONCAT( 'INSERT INTO dt (dt_title) SELECT DISTINCT pl_title as dt_title FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
@@ -65,6 +74,18 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
             # ...or this name could be redirecting to a localized version of
             # what we look for;...
             #
+            #    INSERT IGNORE INTO dt (dt_title)
+            #    SELECT pl_title as dt_title
+            #           FROM <dbname>.page,
+            #                <dbname>.pagelinks
+            #           WHERE page_namespace=10 AND
+            #                 ( 
+            #                   page_title="Disambig" OR
+            #                   page_title="Disambiguation"
+            #                 ) AND
+            #                 page_is_redirect=1 AND
+            #                 pl_from=page_id;
+            #
             SET @st=CONCAT( 'INSERT IGNORE INTO dt (dt_title) SELECT pl_title as dt_title FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=10 AND ( page_title="Disambig" OR page_title="Disambiguation") and page_is_redirect=1 and pl_from=page_id;' );
             PREPARE stmt FROM @st;
             EXECUTE stmt;
@@ -72,6 +93,18 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
 
             #
             # ...also template(s) might contain [[en:Template:Disambig]].
+            #
+            #    INSERT IGNORE INTO dt (dt_title)
+            #    SELECT page_title as dt_title
+            #           FROM <dbname>.langlinks,
+            #                <dbname>.page
+            #           WHERE ll_lang="en" AND
+            #                 (
+            #                   ll_title="Template:Disambig" OR
+            #                   ll_title="Template:Disambiguation"
+            #                 ) AND
+            #                 page_id=ll_from AND
+            #                 page_namespace=10;
             #
             SET @st=CONCAT( 'INSERT IGNORE INTO dt (dt_title) SELECT page_title as dt_title FROM ', dbname, '.langlinks, ', dbname, '.page WHERE ll_lang="en" and ( ll_title="Template:Disambig" OR ll_title="Template:Disambiguation" ) and page_id=ll_from and page_namespace=10;' );
             PREPARE stmt FROM @st;
@@ -96,6 +129,44 @@ CREATE PROCEDURE collect_disambig (dbname VARCHAR(32), namespace INT, prefix VAR
 
     SELECT count(*) INTO @disambiguation_pages_count
            FROM d;
+
+    IF @disambiguation_pages_count=0
+      THEN
+        #
+        # disambiguations existence is now a question of categorization,
+        # not templates set
+        #
+        IF @disambiguations_look_recognized>0
+          THEN
+            #
+            # disambiguation pages recognized by iwiki links for categories
+            #
+            #    INSERT INTO d (d_id)
+            #    SELECT cl_from AS d_id
+            #           FROM <dbname>.langlinks,
+            #                <dbname>.page
+            #                <dbname>.categorylinks
+            #           WHERE ll_lang="en" AND
+            #                 (
+            #                   ll_title="Category:Disambiguation pages" OR
+            #                   ll_title="Category:Disambiguation_pages"
+            #                   ll_title="Category:All disambiguation pages" OR
+            #                   ll_title="Category:All_disambiguation_pages"
+            #                 ) AND
+            #                 page_id=ll_from AND
+            #                 page_namespace=14 AND
+            #                 cl_to=page_title;
+            #
+            SET @st=CONCAT( 'INSERT INTO d (d_id) SELECT cl_from AS d_id FROM ', dbname, '.langlinks, ', dbname, '.page, ', dbname, '.categorylinks WHERE ll_lang="en" AND (ll_title="Category:Disambiguation pages" OR ll_title="Category:Disambiguation_pages" OR ll_title="Category:All disambiguation pages" OR ll_title="Category:All_disambiguation_pages") AND page_id=ll_from AND page_namespace=14 AND cl_to=page_title;' );
+            PREPARE stmt FROM @st;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+
+
+            SELECT count(*) INTO @disambiguation_pages_count
+                   FROM d;
+        END IF;
+    END IF;
 
     SELECT CONCAT( prefix, @disambiguation_pages_count, ' disambiguation pages for all namespaces' );
 

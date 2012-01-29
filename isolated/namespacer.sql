@@ -917,6 +917,7 @@ CREATE PROCEDURE store_paraphrases ()
   END;
 //
 
+#
 # Do all the templates namespace connectivity analysis assuming maxsize as
 # maximal possible cluster size, zero means no limit.
 #
@@ -944,7 +945,7 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
         SET @templator_needed=1;
     END IF;
 
-    IF @disambiguation_templates_initialized=0
+    IF @disambiguations_look_recognized=0
       THEN
         SET @templator_needed=0;
     END IF;
@@ -1060,7 +1061,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
   BEGIN
     DECLARE st VARCHAR(255);
 
-    IF @disambiguation_templates_initialized>0
+    IF @disambiguations_look_recognized>0
       THEN
         SELECT ':: echo ZERO NAMESPACE';
 
@@ -1237,7 +1238,7 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
 DROP PROCEDURE IF EXISTS zero_namespace_postponed_tools//
 CREATE PROCEDURE zero_namespace_postponed_tools ( server INT )
   BEGIN
-    IF @disambiguation_templates_initialized>0
+    IF @disambiguations_look_recognized>0
       THEN
         SELECT ':: echo POSTPONED ZERO NAMESPACE TOOLS';
 

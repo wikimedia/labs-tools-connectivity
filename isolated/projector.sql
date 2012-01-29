@@ -273,6 +273,7 @@ CREATE PROCEDURE count_disambiguation_templates (targetlang VARCHAR(32))
     SELECT dbname_for_lang( targetlang ) INTO dbname;
 
     SET @disambiguation_templates_initialized=0;
+    SET @disambiguations_look_recognized=0;
 
     SET @st=CONCAT( 'SELECT count(DISTINCT pl_title) INTO @disambiguation_templates_initialized FROM ', dbname, '.page, ', dbname, '.pagelinks WHERE page_namespace=8 AND page_title="Disambiguationspage" AND pl_from=page_id AND pl_namespace=10;' );
     PREPARE stmt FROM @st;
@@ -343,6 +344,33 @@ CREATE PROCEDURE count_disambiguation_templates (targetlang VARCHAR(32))
       THEN
         SET @disambiguation_templates_initialized=0;
     END IF;
+
+    IF @disambiguation_templates_initialized=0
+      THEN
+        #
+        # there could be no disambiguation templates,
+        # but still a disambiguation category...
+        #
+        #    SELECT count(*) INTO @disambiguations_look_recognized
+        #           FROM <dbname>.langlinks,
+        #                <dbname>.page
+        #           WHERE ll_lang="en" AND
+        #                 (
+        #                   ll_title="Category:Disambiguation pages" OR
+        #                   ll_title="Category:Disambiguation_pages" OR
+        #                   ll_title="Category:All disambiguation pages" OR
+        #                   ll_title="Category:All_disambiguation_pages"
+        #                 ) AND
+        #                 page_id=ll_from AND
+        #                 page_namespace=14;
+        #
+        SET @st=CONCAT( 'SELECT count(*) INTO @disambiguations_look_recognized FROM ', dbname, '.langlinks, ', dbname, '.page WHERE ll_lang="en" AND (ll_title="Category:Disambiguation pages" OR ll_title="Category:Disambiguation_pages" OR ll_title="Category:All disambiguation pages" OR ll_title="Category:All_disambiguation_pages") AND page_id=ll_from AND page_namespace=14;' );
+        PREPARE stmt FROM @st;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      ELSE
+        SET @disambiguations_look_recognized=1;
+    END IF;
   END;
 //
 
@@ -407,6 +435,7 @@ CREATE PROCEDURE out_project_settings()
     SELECT CONCAT( ':: echo non_categorized_articles_category: "', @non_categorized_articles_category, '"' );
     SELECT CONCAT( ':: echo template_documentation_subpage_name: "', @template_documentation_subpage_name, '"' );
     SELECT CONCAT( ':: echo disambiguation_templates_initialized: "', @disambiguation_templates_initialized, '"' );
+    SELECT CONCAT( ':: echo disambiguations_look_recognized: "', SIGN(@disambiguations_look_recognized), '"' );
   END;
 //
 

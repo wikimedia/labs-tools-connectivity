@@ -8,7 +8,7 @@ orphan_param=''
 deadend_category=''
 nca_category=''
 template_doc=''
-disambiguating_templates=0
+disambiguating_enabled='0'
 languages1=''
 languages2=''
 languages3=''
@@ -135,7 +135,7 @@ how_actual ()
 {
   local table=$1
   
-  if [ "$listby" = 'categoryspruce' ] || [ $disambiguating_templates -gt 0 ]
+  if [ "$listby" = 'categoryspruce' ] || [ $disambiguating_enabled -gt 0 ]
   then
     local string=$(
                     {
@@ -478,7 +478,7 @@ the_menu ()
 
   echo "<ul>"
 
-  if [ "${disambiguating_templates}" != '0' ]
+  if [ "${disambiguating_enabled}" != '0' ]
   then
     cur=''
     if [ "$listby" = 'zns' ]

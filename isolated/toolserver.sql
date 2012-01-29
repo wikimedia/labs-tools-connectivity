@@ -164,7 +164,7 @@ CREATE PROCEDURE emit_for_everywhere ( language VARCHAR(64), usr VARCHAR(64) )
 
     CALL replag( language );
 
-    SELECT SIGN(@disambiguation_templates_initialized) INTO @_dr;
+    SELECT SIGN(@disambiguations_look_recognized) INTO @_dr;
 
     IF @_dr>0
       THEN
