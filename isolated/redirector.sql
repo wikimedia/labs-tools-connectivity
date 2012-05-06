@@ -371,6 +371,13 @@ CREATE PROCEDURE throw_multiple_redirects (namespace INT)
 
     IF namespace!=0
       THEN
+        #
+        #    INSERT INTO mr (mr_title)
+        #    SELECT CONCAT( getnsprefix( ', namespace, ', "', @target_lang, '" ), r_title ) as mr_title
+        #           FROM l,
+        #                r<namespace>
+        #           WHERE l_from=r_id;
+        #
         SET @st=CONCAT( 'INSERT INTO mr (mr_title) SELECT CONCAT( getnsprefix( ', namespace, ', "', @target_lang, '" ), r_title ) as mr_title FROM l, r', namespace, ' WHERE l_from=r_id;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;

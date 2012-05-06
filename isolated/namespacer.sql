@@ -296,6 +296,24 @@ CREATE PROCEDURE get_chrono ()
            FROM chrono;
 
     SELECT CONCAT( ':: echo ', @chrono_articles_count, ' chronological articles found' );
+
+    DROP TABLE IF EXISTS noncr;
+    SET @st=CONCAT( 'CREATE TABLE noncr (noncr_id int(8) unsigned NOT NULL default "0", PRIMARY KEY (noncr_id)) ENGINE=', @articles_eng, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    INSERT INTO noncr (noncr_id)
+    SELECT id as noncr_id
+           FROM articles
+           WHERE id NOT IN
+                 (
+                   SELECT chr_id
+                          FROM chrono
+                 );
+
+    SELECT CONCAT( ':: echo ', count(*), ' non-chronological articles as the result' )
+           FROM noncr;
   END;
 //
 
@@ -732,6 +750,7 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
   BEGIN
     DECLARE res VARCHAR(255) DEFAULT '';
     DECLARE est VARCHAR(255) DEFAULT '';
+    DECLARE est2 VARCHAR(255) DEFAULT '';
 
     # collects wrong redirects and excludes them from r<ns>
     CALL cleanup_wrong_redirects( namespace );
@@ -798,6 +817,37 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
 
     SELECT ':: echo starting l iterations for redirected links';
 
+    #
+    # For dead-end pages recognition
+    #
+    DROP TABLE IF EXISTS lwl;
+    SET @st=CONCAT( 'CREATE TABLE lwl (lwl_id int(8) unsigned NOT NULL default "0", PRIMARY KEY (lwl_id)) ENGINE=', @articles_eng, ';' );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    #
+    # Here we can construct the list of non-dead-end articles.
+    #
+    # INSERT IGNORE INTO lwl /* SLOW_OK */ (lwl_id)
+    # SELECT src as lwl_id
+    #        FROM part_pl,
+    #             < noncr | articles >
+    #        WHERE src in
+    #              (
+    #               SELECT id 
+    #                      FROM articles
+    #              ) and
+    #              dst=[noncr_]id and
+    #              src!=[noncr_]id
+    #        ORDER BY src ASC;
+    IF namespace=0
+      THEN
+        SET @est2='INSERT IGNORE INTO lwl /* SLOW_OK */ (lwl_id) SELECT src as lwl_id FROM part_pl, noncr WHERE src in ( SELECT id FROM articles ) and dst=noncr_id and src!=noncr_id ORDER BY src ASC;';
+      ELSE
+        SET @est2='INSERT IGNORE INTO lwl /* SLOW_OK */ (lwl_id) SELECT src as lwl_id FROM part_pl, articles WHERE src in ( SELECT id FROM articles ) and dst=id and src!=id ORDER BY src ASC;';
+    END IF;
+
     IF @pl_count > @base_pl_count
     THEN
       #
@@ -812,7 +862,7 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
       #       non ordered data first and then always move something,
       #       but not that much.
       #
-      CALL pl_by_parts( @pl_count-@base_pl_count, @base_pl_count, @est, '' );
+    CALL pl_by_parts( @pl_count-@base_pl_count, @base_pl_count, @est, @est2 );
     END IF;
 
     SELECT ':: echo starting l iterations for direct links';
@@ -820,12 +870,17 @@ CREATE PROCEDURE throwNhull4subsets (IN namespace INT, IN targetset VARCHAR(255)
     #
     # Processing lower well-ordered part.
     #
-    CALL pl_by_parts( @base_pl_count, 0, @est, '' );
+    CALL pl_by_parts( @base_pl_count, 0, @est, @est2 );
+
+    DROP TABLE IF EXISTS noncr;
 
     SELECT count(*) INTO @articles_to_articles_links_count
            FROM l;
 
     SELECT CONCAT( ':: echo ', @articles_to_articles_links_count, ' unique links from ', targetset, ' to ', targetset );
+
+    SELECT CONCAT( ':: echo ', count(*), ' non-dead-end pages found among ', targetset )
+           FROM lwl;
 
     SELECT CONCAT( ':: echo links from ', targetset, ' to ', targetset, ' caching time: ', TIMEDIFF(now(), @starttime1));
   END;
