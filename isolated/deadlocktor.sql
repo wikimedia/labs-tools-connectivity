@@ -127,6 +127,14 @@ CREATE PROCEDURE deadend (namespace INT)
 #    # Begin the procedure for dead end pages
 #    SELECT ':: echo dead end pages processing:' as title;
 
+    IF namespace=0
+      THEN
+        SELECT count(*) INTO @articles_to_chrono_links_count
+               FROM l,
+                    chrono
+               WHERE l_to=chr_id;
+    END IF;
+
     # DEAD-END PAGES STORAGE
     DROP TABLE IF EXISTS del;
     CREATE TABLE del (
