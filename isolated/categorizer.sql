@@ -95,6 +95,12 @@ CREATE PROCEDURE categorylinks (namespace INT)
     DECLARE cnt INT DEFAULT '0';
     DECLARE res VARCHAR(255);
 
+    #
+    # SELECT count(*) /* SLOW_OK */ INTO @cnt
+    #        FROM <dbname>.categorylinks,
+    #             nr<ns>
+    #        WHERE nr<ns>.id=cl_from;
+    #
     SET @st=CONCAT( 'SELECT count(*) /* SLOW_OK */ INTO @cnt FROM ', @dbname, '.categorylinks, nr', namespace, ' WHERE nr', namespace, '.id=cl_from;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
@@ -115,6 +121,21 @@ CREATE PROCEDURE categorylinks (namespace INT)
     END IF;
 
     DROP TABLE IF EXISTS nrcatl;
+    #
+    # CREATE TABLE /* SLOW_OK */ nrcatl ( 
+    #   nrcl_from int(8) unsigned NOT NULL default '0',
+    #   nrcl_cat int(8) unsigned NOT NULL default '0'
+    #   KEY (nrcl_from),
+    #   KEY (nrcl_cat)
+    # ) ENGINE=<eng> AS
+    # SELECT nr<ns>.id as nrcl_from,
+    #        categories.id as nrcl_cat
+    #        FROM <dbname>.categorylinks,
+    #             nr<ns>,
+    #             categories
+    #        WHERE nr<ns>.id=cl_from and
+    #              cl_to=categories.title;
+    #
     SET @st=CONCAT( 'CREATE TABLE /* SLOW_OK */ nrcatl ( nrcl_from int(8) unsigned NOT NULL default ', "'0',", ' nrcl_cat int(8) unsigned NOT NULL default ', "'0',", ' KEY (nrcl_from), KEY (nrcl_cat) ) ENGINE=', @res, ' AS SELECT nr', namespace, '.id as nrcl_from, categories.id as nrcl_cat FROM ', @dbname, '.categorylinks, nr', namespace, ', categories WHERE nr', namespace, '.id=cl_from and cl_to=categories.title;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;

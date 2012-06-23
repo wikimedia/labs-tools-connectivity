@@ -323,9 +323,14 @@ CREATE FUNCTION getnsprefix ( ns INT, targetlang VARCHAR(32) )
 
     SELECT ns_name INTO wrconstruct
            FROM toolserver.namespacename
-           WHERE dbname=dbname_for_lang(targetlang) and
+           WHERE dbname=dbname_for_lang(targetlang) AND
                  ns_id=ns AND
-                 ns_type='primary';
+                 (
+                   ns_type='canonical' OR
+                   ns_type='primary'
+                 )
+           ORDER BY ns_type ASC
+           LIMIT 1;
 
     IF wrconstruct != ''
       THEN

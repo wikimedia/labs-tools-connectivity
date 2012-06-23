@@ -29,10 +29,25 @@ CREATE PROCEDURE a2a_templating ()
     #
     # Articles transcluded directly in other articles.
     #
-    # Note: Fast when transclusion is completely unusual for articles titles.
-    #       The more are transcluded the slower this.
+    # Note: Fast when transclusion is completely unusual for article titles.
+    #       The more are transcluded the slower this query is.
     #
-    SET @st=CONCAT( 'INSERT IGNORE INTO pl (pl_from, pl_to) SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, ', @dbname, '.page, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and page_title=tl_title and page_id=id;' );
+    # INSERT IGNORE INTO pl (pl_from, pl_to)
+    # SELECT tl_from as pl_from,
+    #        id as pl_to
+    #        FROM <dbname>.templatelinks,
+    #             <dbname>.page,
+    #             articles
+    #        WHERE tl_namespace=0 and
+    #              tl_from IN (
+    #                           SELECT id
+    #                                  FROM articles
+    #                         ) and
+    #              page_namespace=0 and
+    #              page_title=tl_title and
+    #              page_id=id;
+    #
+    SET @st=CONCAT( 'INSERT IGNORE INTO pl (pl_from, pl_to) SELECT tl_from as pl_from, id as pl_to FROM ', @dbname, '.templatelinks, ', @dbname, '.page, articles WHERE tl_namespace=0 and tl_from IN ( SELECT id FROM articles ) and page_namespace=0 and page_title=tl_title and page_id=id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -47,10 +62,29 @@ CREATE PROCEDURE a2a_templating ()
     # Note: Table name selection is dictated by nr2X2nr called below.
     #
     DROP TABLE IF EXISTS nr2r;
+    CREATE TABLE nr2r (
+      nr2r_to int(8) unsigned NOT NULL default '0',
+      nr2r_from int(8) unsigned NOT NULL default '0',
+      KEY (nr2r_to)
+    ) ENGINE=MEMORY;
 
-    ALTER TABLE r0 ADD UNIQUE KEY rtitle (r_title);
-
-    SET @st=CONCAT( 'CREATE TABLE nr2r ( nr2r_to int(8) unsigned NOT NULL default ', "'0'", ', nr2r_from int(8) unsigned NOT NULL default ', "'0'", ', KEY (nr2r_to) ) ENGINE=MEMORY AS SELECT r_id as nr2r_to, tl_from as nr2r_from FROM ', @dbname, '.templatelinks, r0 WHERE tl_namespace=0 and tl_from in ( SELECT id FROM articles ) and tl_title=r_title;' );
+    #
+    # INSERT INTO nr2r (nr2r_to, nr2r_from)
+    # SELECT r_id as nr2r_to,
+    #        tl_from as nr2r_from
+    #        FROM <dbname>.templatelinks,
+    #             <dbname>.page,
+    #             r0
+    #        WHERE tl_namespace=0 and
+    #              tl_from in (
+    #                           SELECT id
+    #                                  FROM articles
+    #                         ) and
+    #              page_namespace=0 and
+    #              page_title=tl_title and
+    #              page_id=r_id;
+    #
+    SET @st=CONCAT( 'INSERT INTO nr2r (nr2r_to, nr2r_from) SELECT r_id as nr2r_to, tl_from as nr2r_from FROM ', @dbname, '.templatelinks, ', @dbname, '.page, r0 WHERE tl_namespace=0 and tl_from in ( SELECT id FROM articles ) and page_namespace=0 and page_title=tl_title and page_id=r_id;' );
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

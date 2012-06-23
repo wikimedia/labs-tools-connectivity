@@ -1067,8 +1067,8 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
     DECLARE rank INT;
     DECLARE cnt INT;
     DECLARE res VARCHAR(255);
-    DECLARE isocl INT;
     DECLARE isocsl VARCHAR(255);
+    DECLARE isocsl_ VARCHAR(255);
     DECLARE isocnt INT;
     DECLARE isodidcnt INT;
 
@@ -1217,7 +1217,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
             #              page_namespace=14;
             #
             # Note: Table requires expansion by linked but not created
-            #       isolated categories, all changes are to be sinchronized 
+            #       isolated categories, all changes are to be synchronized 
             #       with nrcatl on uid=nrcl_cat. This might also cause
             #       influence on categories table.
             #
@@ -1241,15 +1241,21 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
               KEY(cat)
             ) ENGINE=MEMORY;
             
-            SELECT 1+CHAR_LENGTH( @isolated_category_name ) INTO isocl;
             SELECT CONCAT( @isolated_category_name, '/' ) INTO isocsl;
+            #
+            # this string is just greater than any name of isolated category
+            #
+            SELECT CONCAT( @isolated_category_name, 'A' ) INTO isocsl_;
 
+            #
+            # Non-existent orphaned categories (as identified by name prefix) linked from main namespace.
             #
             # INSERT INTO ref_orcat (cat)
             # SELECT cl_to as cat
             #        FROM <dbname>.categorylinks,
             #             <dbname>.page
-            #        WHERE LEFT( cl_to, isocl ) = isocsl and
+            #        WHERE cl_to > isocsl and
+            #              cl_to < isocsl_ and
             #              cl_to NOT IN (
             #                             SELECT cat
             #                                    FROM orcat
@@ -1258,7 +1264,7 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
             #              page_namespace=0
             #        GROUP BY cl_to;
             #
-            SET @st=CONCAT( 'INSERT INTO ref_orcat (cat) SELECT cl_to as cat FROM ', @dbname, '.categorylinks, ', @dbname, '.page WHERE LEFT( cl_to, ', isocl, ' ) = ', "'", isocsl, "'", ' and cl_to NOT IN ( SELECT cat FROM orcat ) and cl_from=page_id and page_namespace=0 GROUP BY cl_to;' );
+            SET @st=CONCAT( 'INSERT INTO ref_orcat (cat) SELECT cl_to as cat FROM ', @dbname, '.categorylinks, ', @dbname, '.page WHERE cl_to > ', "'", isocsl, "'", ' and cl_to < ', "'", isocsl_, "'", ' and cl_to NOT IN ( SELECT cat FROM orcat ) and cl_from=page_id and page_namespace=0 GROUP BY cl_to;' );
             PREPARE stmt FROM @st; 
             EXECUTE stmt; 
             DEALLOCATE PREPARE stmt; 
@@ -1328,7 +1334,9 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
                        GROUP BY id ASC
                        HAVING count(cat)>1;
 
-# to be removed once melog have resolved over-tagged isolates properly
+                #
+                # Note: Melog resolves over-tagged isolates, but just in case...
+                #
                 SELECT CONCAT( ':: out ', @fprefix, 'doubled.txt' );
                 SET @st=CONCAT( 'SELECT tdid, CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM tagdoubled, ', @dbname, '.page WHERE tdid=page_id ORDER BY page_title;' );
                 PREPARE stmt FROM @st; 
@@ -1424,6 +1432,14 @@ CREATE PROCEDURE isolated (namespace INT, targetset VARCHAR(255), maxsize INT)
             SELECT CONCAT( ':: echo parented isolates: ', cnt ) as title;
 
             SELECT CONCAT( ':: out ', @fprefix, 'orem.txt' );
+            #
+            # SELECT CONCAT( getnsprefix( page_namespace, "<target_lang>" ), page_title ) as title
+            #        FROM isolated,
+            #             <dbname>.page
+            #        WHERE act=-1 AND
+            #              id=page_id
+            #        ORDER BY page_title ASC;
+            #
             SET @st=CONCAT( 'SELECT CONCAT(getnsprefix(page_namespace,"', @target_lang, '"), page_title) as title FROM isolated, ', @dbname, '.page WHERE act=-1 AND id=page_id ORDER BY page_title ASC;' );
             PREPARE stmt FROM @st; 
             EXECUTE stmt; 

@@ -1036,6 +1036,11 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
         #
         CALL redirector_unload( 10 );
 
+        #
+        # Note: This count is just for a memory cry, and it looks too expencive for this minor purpose,
+        #       MyISAM engine pre-set might be a good compromize.
+        #       Does it help by caching templatelinks table for future use in ti construction?
+        #
         SET @st=CONCAT( 'SELECT /* SLOW_OK */ count(*) INTO @tl_count FROM ', @dbname, '.templatelinks;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -1074,6 +1079,16 @@ CREATE PROCEDURE collect_template_pages ( maxsize INT )
             ) ENGINE=MEMORY;
         END IF;
 
+        #
+        # INSERT /* SLOW_OK */ INTO ti
+        # SELECT tl_from as ti_from,
+        #        page_id AS ti_to
+        #        FROM <dbname>.page,
+        #             <dbname>.templatelinks
+        #        WHERE tl_title=page_title and
+        #              page_namespace=10 and
+        #              tl_namespace=10;
+        #
         SET @st=CONCAT( 'INSERT /* SLOW_OK */ INTO ti SELECT tl_from as ti_from, page_id AS ti_to FROM ', @dbname, '.page, ', @dbname, '.templatelinks WHERE tl_title=page_title and page_namespace=10 and tl_namespace=10;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
@@ -1157,6 +1172,13 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
         IF @template_documentation_subpage_name!=''
           THEN
             #
+            # Note: Template usage statistics query below works on the inner join
+            #       of ti with articles on id=ti_from. Deletion is a major speedup.
+            #
+            DELETE FROM ti
+                   WHERE ti_from NOT IN (select id from articles);
+
+            #
             # Template usage statistics
             #
             DROP TABLE IF EXISTS templatetop;
@@ -1166,10 +1188,8 @@ CREATE PROCEDURE zero_namespace_connectivity ( maxsize INT )
               PRIMARY KEY (t_id)
             ) ENGINE=MEMORY AS
             SELECT ti_to as t_id,
-                   count(DISTINCT id) as a_cnt
-                   FROM ti,
-                        articles
-                   WHERE ti_from=id
+                   count(DISTINCT ti_from) as a_cnt
+                   FROM ti
                    GROUP BY t_id;
 
             SELECT CONCAT( ':: echo ', count(*), ' distinct templating names used in articles' )
