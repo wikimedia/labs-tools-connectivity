@@ -409,6 +409,10 @@ table.infotable th {
   text-align: center;
 }
 
+table.infotable th:hover {
+  background-color: #e2e2e2;
+}
+
 table.infotable td {
   text-align: right;
 }

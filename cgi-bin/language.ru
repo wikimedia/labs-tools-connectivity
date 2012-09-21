@@ -4,7 +4,6 @@ lang_text="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;язык&nbsp;&nbsp;&nbsp;&nbsp;&
 article_text="статьи<br />"
 disambig_text="страницы<br />значений<br />"
 article_and_disambig_text="&nbsp;&nbsp;статьи+страницы&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;значений&nbsp;<br />"
-ambig_text="неодно-<br />значность<br />терминов,<br />%"
 drdi_text="<a href=\"http://ru.wikipedia.org/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D0%BF%D0%B5%D0%B4%D0%B8%D1%8F:%D0%98%D0%BD%D0%B4%D0%B5%D0%BA%D1%81_%D0%BF%D1%80%D0%B5%D0%BD%D0%B5%D0%B1%D1%80%D0%B5%D0%B6%D0%B5%D0%BD%D0%B8%D1%8F_%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%BE%D0%BC_%D1%82%D0%BE%D0%BB%D0%BA%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F\">ИППТ</a>,<br />%"
 main_text="&nbsp;ядро&nbsp;<br />"
 iso_text="изолиро-<br />ванные<br />"

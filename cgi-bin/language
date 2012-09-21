@@ -158,32 +158,31 @@ handle_a_table ()
     local lang=${str[0]}
     local art=${str[1]}
     local dsmbg=${str[2]}
-    local ambg=${str[3]}
-    local drdi=${str[4]}
-    local core=${str[5]}
-    local iso=${str[6]}
-    local cl=${str[7]}
-    local isor=${str[8]}
-    local isocr=${str[9]}
-    local chr=${str[10]}
-    local de=${str[11]}
-    local nc=${str[12]}
-    local cr=${str[13]}
-    local ncc=${str[14]}
-    local tmst=${str[15]}
-    local art_diff=${str[16]}
-    local iso_diff=${str[17]}
-    local iso_cr_diff=${str[18]}
-    local dsmbg_diff=${str[19]}
-    local cl_diff=${str[20]}
-    local chr_diff=${str[21]}
-    local de_diff=${str[22]}
-    local nc_diff=${str[23]}
-    local cr_diff=${str[24]}
-    local ncc_diff=${str[25]}
-    local drdi_diff=${str[26]}
-    local ts_diff=${str[27]}
-    local lang_name=${str[28]}
+    local drdi=${str[3]}
+    local core=${str[4]}
+    local iso=${str[5]}
+    local cl=${str[6]}
+    local isor=${str[7]}
+    local isocr=${str[8]}
+    local chr=${str[9]}
+    local de=${str[10]}
+    local nc=${str[11]}
+    local cr=${str[12]}
+    local ncc=${str[13]}
+    local tmst=${str[14]}
+    local art_diff=${str[15]}
+    local iso_diff=${str[16]}
+    local iso_cr_diff=${str[17]}
+    local dsmbg_diff=${str[18]}
+    local cl_diff=${str[19]}
+    local chr_diff=${str[20]}
+    local de_diff=${str[21]}
+    local nc_diff=${str[22]}
+    local cr_diff=${str[23]}
+    local ncc_diff=${str[24]}
+    local drdi_diff=${str[25]}
+    local ts_diff=${str[26]}
+    local lang_name=${str[27]}
 
     local art_diff_txt=''
 
@@ -224,22 +223,6 @@ handle_a_table ()
         if [ "${isor_diff:0:1}" != '-' ]
         then
           isor_diff="+${isor_diff}"
-        fi
-      fi
-    fi
-
-    ambg_diff=$( echo "scale=4; $ambg-100*($dsmbg-(${dsmbg_diff}))/($dsmbg-(${dsmbg_diff})+$art-(${art_diff}))" | bc )
-    if [ "${ambg_diff:0:1}" = '.' ]
-    then
-      ambg_diff="+0${ambg_diff}"
-    else
-      if [ "${ambg_diff:0:2}" = '-.' ]
-      then
-        ambg_diff="-0.${ambg_diff:2}"
-      else
-        if [ "${ambg_diff:0:1}" != '-' ]
-        then
-          ambg_diff="+${ambg_diff}"
         fi
       fi
     fi
@@ -288,10 +271,8 @@ handle_a_table ()
 
     if [ "$tmst" = 'never processed yet' ]
     then
-      echo "<td>$bld$ambg$bldc</td>"
       echo "<td>$bld$drdi$bldc</td>"
     else
-      echo "<td><span title=\"${ambg_diff}\">$bld$ambg$bldc</span></td>"
       echo "<td>$bld<a href=\"./go.sh?$stdurl&amp;language=$lang&amp;listby=disambig\" title=\"${drdi_diff}\">$drdi</a>$bldc</td>"
     fi
 
@@ -428,7 +409,6 @@ table_opens ()
     echo "<th>$article_text</th>"
     echo "<th>$disambig_text</th>"
   fi
-  echo "<th>$ambig_text</th>"
   echo "<th>$drdi_text</th>"
   echo "<th><b class=\"data\">$main_text</b></th>"
   echo "<th>$iso_text</th>"
@@ -457,7 +437,6 @@ table_opens
   echo "SELECT __ls.lang,
                ls1.article_count as _ac,
                ls1.disambig_count,
-               ls1.disambig_count*100/(ls1.disambig_count+ls1.article_count),
                ls1.drdi,
                ls1.article_count-ls1.isolated_count as _main,
                ls1.isolated_count,
@@ -514,7 +493,6 @@ table_opens
 
   echo "SELECT ls.lang,
                size,
-               '?',
                '?',
                '?',
                '?',

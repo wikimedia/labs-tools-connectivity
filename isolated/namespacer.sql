@@ -95,14 +95,16 @@ CREATE PROCEDURE cache_namespace_pages (namespace INT)
         DEALLOCATE PREPARE stmt;
 
         #
-        # INSERT INTO nr (id, title)
+        # Not sure on why duplicates may occur, but it happens sometimes.
+        #
+        # INSERT IGNORE INTO nr (id, title)
         # SELECT page_id as id,
         #        page_title as title
         #        FROM <dbname>.page
         #        WHERE page_namespace=<namespace> and
         #              page_is_redirect=0;
         #
-        SET @st=CONCAT( 'INSERT INTO nr (id, title) SELECT page_id as id, page_title as title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
+        SET @st=CONCAT( 'INSERT IGNORE INTO nr (id, title) SELECT page_id as id, page_title as title FROM ', @dbname, '.page WHERE page_namespace=', namespace, ' and page_is_redirect=0;' );
         PREPARE stmt FROM @st;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
