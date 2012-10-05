@@ -7,7 +7,7 @@ class Options_uk extends Options {
 	public function skipGlobal($text) {
 		/*$this->_text = $text;
 		
-		if(Template::testTemplates(strtolower($this->_text), array('delete','выдаліць','edited'))) { // TODO: get delete nominations through i18n
+		if(Template::testTemplates(strtolower($this->_text), array('delete','Cancella subito'))) { // TODO: get delete nominations through i18n
 			pecho('Article is nominated for deletion.', PECHO_LOG);
 			return true;
 		}*/
