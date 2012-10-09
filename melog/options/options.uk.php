@@ -14,5 +14,3 @@ class Options_uk extends Options {
 		return false;
 	}
 }
-
-'Редагую','Пишу','В роботі', 'У роботі'
