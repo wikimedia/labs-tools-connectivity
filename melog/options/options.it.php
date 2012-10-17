@@ -2,7 +2,7 @@
 
 require( __DIR__ .'/options.php');
 
-class Options_uk extends Options {
+class Options_it extends Options {
 	
 	public function skipGlobal($text) {
 		/*$this->_text = $text;
