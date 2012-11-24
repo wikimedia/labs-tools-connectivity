@@ -1,0 +1,7 @@
+pagetitle="Voci isolate per categoria presenti su ${language}wiki"
+thish1="voci isolate per categoria presenti su ${language}wiki"
+example="Esempio: Persone viventi"
+catnamereq="Inserisci una categoria"
+top1name="top 100 delle categorie per numero di voci isolate"
+top2name="top 100 delle categorie per percentuale di voci isolate"
+submenudesc="questo è l'elenco di tutte le voci isolate presenti nella categoria $wiki_link_to_category"

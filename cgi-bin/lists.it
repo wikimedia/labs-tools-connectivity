@@ -1,0 +1,13 @@
+pagetitle="Elenchi sulle voci isolate"
+thish1=$isolatedarticles
+available_lists="elenchi disponibili sulle voci isolate"
+fl="elenco completo delle voci isolate"
+fl_disambig="elenco completo delle voci isolate con suggerimenti sui link riguardanti le pagine di disambiguazione"
+fl_interlink="elenco completo delle voci isolate con suggerimenti sui link delle corispettive voci interwiki"
+fl_translate="elenco completo delle voci isolate con suggerimenti sui link di voci utili da tradurre"
+fl_anonym="elenco completo delle voci isolate create da autori anonimi o non loggati"
+isoclustertext="I collegamenti tra sole voci isolate formano <strong>cluster di isolate</strong>, che non sono connesse alle altre voci al di fuori del cluster. Grazie a questi link è però possibile passare da una voce all'altra, dello stesso cluster."
+upper_cluster_limit="Il limite superiore della dimensione dei cluster durante l'analisi è"
+no_upper_limit="L'analisi è stata svolta senza un limite superiore alla dimensione dei cluster."
+linked_core="voci ben connesse"
+_isolated="isolate"
