@@ -4,7 +4,7 @@ isolated_flexies ()
 
   __isolated=$_isolated1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ] || [ "$interface" = 'it' ]
   then
     __isolated=$_isolated
   else

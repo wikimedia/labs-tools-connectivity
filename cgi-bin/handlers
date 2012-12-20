@@ -225,7 +225,7 @@ articles_flexies ()
 
   __articles=$_articles1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ] || [ "$interface" = 'it' ]
   then
     if [ "$articles" != '1' ]
     then
@@ -265,7 +265,7 @@ types_flexies ()
 
   __types=$_types1
 
-  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ]
+  if [ "$interface" = 'en' ] || [ "$interface" = 'eo' ] || [ "$interface" = 'pt' ] || [ "$interface" = 'lt' ] || [ "$interface" = 'it' ]
   then
     if [ "$types" != '1' ]
     then
