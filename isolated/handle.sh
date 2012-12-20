@@ -222,10 +222,13 @@ handle ()
        echo got current upload timestamp as $stat_up_ts
        if [ "$do_stat" = "1" ]
        then
+         echo -ne statistics upload is enabled in the command line
          if [ -f ${language}.no_stat.log ]
          then
+           echo , but switched off due to no_stat.log created
            do_stat=0
          else
+           echo .
            stats_reply_to=${line:28:1}
            stats_store=${line:30}
            # empty @connectivity_project_root should prevent any upload
@@ -233,6 +236,8 @@ handle ()
            then
              # cut 3 very first utf-8 bytes and upload the stats
              tail --bytes=+4 ./${language}.*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
+           else
+             echo statistics upload storage does not look initialized
            fi
          fi
        fi
@@ -278,16 +283,18 @@ handle ()
          # pack templates management info for delivery to AWB host
          rm -f $language.today.7z
          7z a $language.today.7z ./${language}.*.txt >${language}.7z.log 2>&1
-         rm -f ./${language}.*.txt
 
          rm -f $language.info.7z
          7z a $language.info.7z ./${language}.*.info >>${language}.7z.log 2>&1
-         rm -f ./${language}.*.info
 
          7z a $language.stat.7z ./${language}.*.stat >>${language}.7z.log 2>&1
 
          todos ${language}.7z.log
          chmod 755 ${language}.*.7z
+
+         # the later the better
+         rm -f ./${language}.*.txt
+         rm -f ./${language}.*.info
        } &
        ;;
     'introduce')
