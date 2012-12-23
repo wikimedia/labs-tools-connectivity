@@ -69,6 +69,9 @@ rm -f ./${language}.*.info ./${language}.*.txt ./${language}.*.stat ${language}.
 
 echo "PROCESSING LANGUAGE $language"
 
+echo "melog enabled: ${do_templates}"
+echo "stats upload enabled: ${do_stat}"
+echo "multiple redirects cleanup enabled: ${do_mr}"
 echo "cluster size limit: ${cluster_limit}"
 
 time { 

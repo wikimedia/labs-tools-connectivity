@@ -234,6 +234,12 @@ handle ()
            # empty @connectivity_project_root should prevent any upload
            if [ "$stats_store" != '/stat' ]
            then
+             # just in case
+             sleep 2
+
+             echo statistics upload starting with the following command:
+             echo tail --bytes=+4 ./${language}.*.articles.stat ! perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language ! ./handle.sh $cmdl
+
              # cut 3 very first utf-8 bytes and upload the stats
              tail --bytes=+4 ./${language}.*.articles.stat | perl r.pl $stats_store 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
            else
