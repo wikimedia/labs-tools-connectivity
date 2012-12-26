@@ -22,7 +22,8 @@ my $fix_stat_for=shift;
 my $reply_to=shift;
 my $language=shift;
 
-open FILE, '</home/'.$user.'/.'.$language.'.cnf' or die ":: echo $!";
+my $cnfpath='/home/'.$user.'/.'.$language.'.cnf';
+open FILE, '<'.$cnfpath or die ":: echo path $cnfpath opening returns: $!";
 print ":: echo ".$user." grants permissions to bot ";
 my $pass="";
 while( my $line = <FILE> )
