@@ -237,11 +237,8 @@ handle ()
              # just in case
              sleep 2
 
-#             echo statistics upload starting with the following command:
-#             echo tail --bytes=+4 ./${language}.*.articles.stat ! perl r.pl "$stats_store" 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language ! ./handle.sh $cmdl
-
              # cut 3 very first utf-8 bytes and upload the stats
-             tail --bytes=+4 ./${language}.*.articles.stat | perl r.pl "$stats_store" 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language | ./handle.sh $cmdl
+             tail --bytes=+4 ./${language}.*.articles.stat 2>&1 | perl r.pl "$stats_store" 'stat' $usr "$stat_up_ts" $statintv $stats_reply_to $language 2>&1 | ./handle.sh $cmdl
            else
              echo statistics upload storage does not look initialized
            fi

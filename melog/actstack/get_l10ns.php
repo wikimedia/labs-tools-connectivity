@@ -59,7 +59,7 @@ function createI18nCache($srv, $lang) {
 }
 
 function getIsolated(&$db) {
-	$query1 = 'SELECT cl_to FROM categorylinks, page WHERE page_id=cl_from AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/IsolatedArticles" AND cl_sortkey_prefix!="old" ORDER BY cl_sortkey_prefix ASC'; // NASY HACK to avoid deprecated category in the result (for ruwiki)
+	$query1 = 'SELECT cl_to FROM categorylinks, page WHERE page_id=cl_from AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/IsolatedArticles" AND ( cl_sortkey_prefix="_1" OR cl_sortkey_prefix="_2" OR cl_sortkey_prefix="_N" ) ORDER BY cl_sortkey_prefix ASC';
 	$query2 = 'SELECT pl_title FROM pagelinks, page WHERE pl_from=page_id AND page_namespace=4 AND page_title="ConnectivityProjectInternationalization/IsolatedArticles" AND pl_namespace IN (10, 14) ORDER BY pl_namespace ASC';
 		
 	$data = $db->selectCol($query1);
